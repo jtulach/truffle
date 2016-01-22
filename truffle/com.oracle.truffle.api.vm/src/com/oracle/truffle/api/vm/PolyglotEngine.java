@@ -61,6 +61,7 @@ import com.oracle.truffle.api.interop.java.JavaInterop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
+
 import java.util.WeakHashMap;
 import java.util.logging.Level;
 
@@ -113,7 +114,7 @@ public class PolyglotEngine {
     private final EventConsumer<?>[] handlers;
     private final Map<String, Object> globals;
     private final Instrumenter instrumenter;
-    private final String[] arguments;
+    private final Map<Class<? extends TruffleLanguage>, String[]> arguments;
     private final Debugger debugger;
     private boolean disposed;
 
@@ -137,7 +138,8 @@ public class PolyglotEngine {
     /**
      * Real constructor used from the builder.
      */
-    PolyglotEngine(Executor executor, Map<String, Object> globals, OutputStream out, OutputStream err, InputStream in, EventConsumer<?>[] handlers, String[] arguments) {
+    PolyglotEngine(Executor executor, Map<String, Object> globals, OutputStream out, OutputStream err, InputStream in, EventConsumer<?>[] handlers,
+                    Map<Class<? extends TruffleLanguage>, String[]> arguments) {
         this.executor = executor;
         this.out = out;
         this.err = err;
@@ -214,7 +216,7 @@ public class PolyglotEngine {
         private final List<EventConsumer<?>> handlers = new ArrayList<>();
         private final Map<String, Object> globals = new HashMap<>();
         private Executor executor;
-        private String[] arguments;
+        private Map<Class<? extends TruffleLanguage>, String[]> arguments;
 
         Builder() {
         }
@@ -256,14 +258,18 @@ public class PolyglotEngine {
         }
 
         /**
-         * Provide a set of simple string-based arguments to initialize the {@link PolyglotEngine}.
-         * These arguments can be used by the language to initialize and configure their initial
-         * execution state correctly.
+         * Provide simple string-based arguments to initialize the {@link PolyglotEngine} for a
+         * specific language. These arguments can be used by the language to initialize and
+         * configure their initial execution state correctly.
          *
-         * @param arguments, an array of strings to parameterize initial state
+         * @param lang, the language for which the arguments are
+         * @param arguments, an array of strings to parameterize initial state of a language
          */
-        public Builder setArguments(String[] arguments) {
-            this.arguments = arguments;
+        public Builder setArguments(Class<? extends TruffleLanguage> lang, String[] arguments) {
+            if (this.arguments == null) {
+                this.arguments = new HashMap<>();
+            }
+            this.arguments.put(lang, arguments);
             return this;
         }
 
@@ -700,7 +706,7 @@ public class PolyglotEngine {
          *            {@link java.lang.Double}, {@link java.lang.Character},
          *            {@link java.lang.Boolean}, and {@link java.lang.String}) or a
          *            {@link TruffleObject object created} by one of the languages)
-         * 
+         *
          * @return symbol wrapper around the value returned by invoking the symbol, never
          *         <code>null</code>
          * @throws IOException signals problem during execution
@@ -914,7 +920,8 @@ public class PolyglotEngine {
         }
 
         @Override
-        protected Env attachEnv(Object obj, TruffleLanguage<?> language, OutputStream stdOut, OutputStream stdErr, InputStream stdIn, Instrumenter instrumenter, String[] arguments) {
+        protected Env attachEnv(Object obj, TruffleLanguage<?> language, OutputStream stdOut, OutputStream stdErr, InputStream stdIn, Instrumenter instrumenter,
+                        Map<Class<? extends TruffleLanguage>, String[]> arguments) {
             PolyglotEngine vm = (PolyglotEngine) obj;
             return super.attachEnv(vm, language, stdOut, stdErr, stdIn, instrumenter, arguments);
         }
