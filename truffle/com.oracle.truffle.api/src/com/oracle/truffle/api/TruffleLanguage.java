@@ -49,6 +49,7 @@ import com.oracle.truffle.api.instrument.WrapperNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
+import java.util.List;
 
 /**
  * An entry point for everyone who wants to implement a Truffle based language. By providing an
@@ -128,7 +129,14 @@ public abstract class TruffleLanguage<C> {
      * insert it into own AST hierarchy - use {@link #createFindContextNode()} to obtain the
      * {@link Node findNode} and later {@link #findContext(com.oracle.truffle.api.nodes.Node)
      * findContext(findNode)} to get back your language context.
-     *
+     * <p>
+     * When this method is executed one has access to global symbols provided
+     * as {@link com.oracle.truffle.api.vm.PolyglotEngine.Builder#globalSymbol} so
+     * one can easily pass in language specific parameters in an array:
+     * {@codesnippet arguments.pass}
+     * and read them as a {@link List}:
+     * {@codesnippet arguments.read}
+     * <p>
      * If it is expected that any {@linkplain Instrumenter Instrumentation Services} or tools that
      * depend on those services (e.g. the {@link Debugger}, then part of the preparation in the new
      * context is to
