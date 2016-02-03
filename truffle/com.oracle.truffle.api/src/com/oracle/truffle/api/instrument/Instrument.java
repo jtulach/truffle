@@ -53,7 +53,7 @@ public abstract class Instrument {
      *
      * @throws IllegalStateException if this has already been disposed
      */
-    public void dispose() throws IllegalStateException {
+    public final void dispose() throws IllegalStateException {
         if (isDisposed) {
             throw new IllegalStateException("Istruments only dispose once");
         }
@@ -64,7 +64,7 @@ public abstract class Instrument {
     /**
      * Has this been detached from its source of execution events?
      */
-    public boolean isDisposed() {
+    public final boolean isDisposed() {
         return isDisposed;
     }
 
