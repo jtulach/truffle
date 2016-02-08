@@ -128,7 +128,7 @@ public final class Debugger {
     Debugger(PolyglotEngine engine, Instrumenter instrumenter) {
         this.engine = engine;
         this.instrumenter = instrumenter;
-        this.lineBreaks = new LineBreakpointFactory(this, instrumenter, breakpointCallback, warningLog);
+        this.lineBreaks = new LineBreakpointFactory(instrumenter, breakpointCallback, warningLog);
         this.tagBreaks = new TagBreakpointFactory(this, breakpointCallback, warningLog);
     }
 

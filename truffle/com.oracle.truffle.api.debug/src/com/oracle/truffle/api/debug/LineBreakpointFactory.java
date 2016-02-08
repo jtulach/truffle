@@ -113,7 +113,6 @@ final class LineBreakpointFactory {
         }
     };
 
-    @SuppressWarnings("unused") private final Debugger debugger;  // TODO
     private final Instrumenter instrumenter;
     private final BreakpointCallback breakpointCallback;
     private final WarningLog warningLog;
@@ -124,12 +123,6 @@ final class LineBreakpointFactory {
      */
     private final Map<LineLocation, LineBreakpointImpl> lineToBreakpoint = new HashMap<>();
 
-// /**
-// * A map of {@link LineLocation} to a collection of {@link Probe}s. This list must be
-// * initialized and filled prior to being used by this class.
-// */
-// private final LineToProbesMap lineToProbesMap = null;
-
     /**
      * Globally suspends all line breakpoint activity when {@code false}, ignoring whether
      * individual breakpoints are enabled.
@@ -137,35 +130,10 @@ final class LineBreakpointFactory {
     @CompilationFinal private boolean breakpointsActive = true;
     private final CyclicAssumption breakpointsActiveUnchanged = new CyclicAssumption(BREAKPOINT_NAME + " globally active");
 
-    LineBreakpointFactory(Debugger debugger, Instrumenter instrumenter, BreakpointCallback breakpointCallback, final WarningLog warningLog) {
-        this.debugger = debugger;
+    LineBreakpointFactory(Instrumenter instrumenter, BreakpointCallback breakpointCallback, final WarningLog warningLog) {
         this.instrumenter = instrumenter;
         this.breakpointCallback = breakpointCallback;
         this.warningLog = warningLog;
-
-// final Instrumenter instrumenter = debugger.getInstrumenter();
-// this.lineToProbesMap = new LineToProbesMap();
-// instrumenter.install(lineToProbesMap);
-//
-// instrumenter.addProbeListener(new DefaultProbeListener() {
-//
-// @Override
-// public void probeTaggedAs(Probe probe, SyntaxTag tag, Object tagValue) {
-// if (tag == StandardSyntaxTag.STATEMENT) {
-// final SourceSection sourceSection = probe.getProbedSourceSection();
-// if (sourceSection != null) {
-// final LineLocation lineLocation = sourceSection.getLineLocation();
-// if (lineLocation != null) {
-// // A Probe with line location tagged STATEMENT we haven't seen before.
-// final LineBreakpointImpl breakpoint = lineToBreakpoint.get(lineLocation);
-// if (breakpoint != null) {
-// breakpoint.attach(probe);
-// }
-// }
-// }
-// }
-// }
-// });
     }
 
     /**
@@ -219,13 +187,6 @@ final class LineBreakpointFactory {
             }
 
             lineToBreakpoint.put(lineLocation, breakpoint);
-
-// for (Probe probe : lineToProbesMap.findProbes(lineLocation)) {
-// if (probe.isTaggedAs(StandardSyntaxTag.STATEMENT)) {
-// breakpoint.attach(probe);
-// break;
-// }
-// }
         } else {
             if (ignoreCount == breakpoint.getIgnoreCount()) {
                 throw new IOException(BREAKPOINT_NAME + " already set at line " + lineLocation);
@@ -277,7 +238,7 @@ final class LineBreakpointFactory {
         private static final String SHOULD_NOT_HAPPEN = "LineBreakpointImpl:  should not happen";
 
         private final LineLocation lineLocation;
-        private final SourceSectionFilter query;
+        private final SourceSectionFilter lineLocationQuery;
         @SuppressWarnings("rawtypes") private EventBinding binding;
 
         // Cached assumption that the global status of line breakpoint activity has not changed.
@@ -293,8 +254,8 @@ final class LineBreakpointFactory {
         public LineBreakpointImpl(int ignoreCount, LineLocation lineLocation, boolean oneShot) {
             super(ENABLED_UNRESOLVED, ignoreCount, oneShot);
             this.lineLocation = lineLocation;
-            this.query = SourceSectionFilter.newBuilder().sourceIs(lineLocation.getSource()).lineIs(lineLocation.getLineNumber()).tagIs(Debugger.HALT_TAG).build();
-            this.binding = instrumenter.attachListener(query, new LineBreakListener());
+            this.lineLocationQuery = SourceSectionFilter.newBuilder().sourceIs(lineLocation.getSource()).lineIs(lineLocation.getLineNumber()).tagIs(Debugger.HALT_TAG).build();
+            this.binding = instrumenter.attachListener(lineLocationQuery, new LineBreakListener());
             this.breakpointsActiveAssumption = LineBreakpointFactory.this.breakpointsActiveUnchanged.getAssumption();
             this.isEnabled = true;
             this.enabledUnchangedAssumption = Truffle.getRuntime().createAssumption(BREAKPOINT_NAME + " enabled state unchanged");
@@ -348,23 +309,10 @@ final class LineBreakpointFactory {
             binding.dispose();
             if (expr == null) {
                 conditionSource = null;
-                binding = instrumenter.attachListener(query, new LineBreakListener());
+                binding = instrumenter.attachListener(lineLocationQuery, new LineBreakListener());
             } else {
                 conditionSource = Source.fromText(expr, "breakpoint condition from text: " + expr);
-                binding = instrumenter.attachFactory(query, this);
-
-                // De-instrument the Probes instrumented by this breakpoint
-// final ArrayList<Probe> probes = new ArrayList<>();
-// for (ProbeInstrument instrument : instruments) {
-// probes.add(instrument.getProbe());
-// instrument.dispose();
-// }
-// instruments.clear();
-// this.conditionSource = Source.fromText(expr, "breakpoint condition from text: " + expr);
-// // Re-instrument the probes previously instrumented
-// for (Probe probe : probes) {
-// attach(probe);
-// }
+                binding = instrumenter.attachFactory(lineLocationQuery, this);
             }
         }
 
@@ -383,21 +331,6 @@ final class LineBreakpointFactory {
             }
         }
 
-// private void attach(Probe newProbe) {
-// if (getState() == DISPOSED) {
-// throw new IllegalStateException("Attempt to attach a disposed " + BREAKPOINT_NAME);
-// }
-// ProbeInstrument newInstrument = null;
-// final Instrumenter instrumenter = debugger.getInstrumenter();
-// if (conditionSource == null) {
-// newInstrument = instrumenter.attach(newProbe, new UnconditionalLineBreakInstrumentListener(),
-// BREAKPOINT_NAME);
-// } else {
-// newInstrument = instrumenter.attach(newProbe, conditionSource, this, BREAKPOINT_NAME, null);
-// }
-// instruments.add(newInstrument);
-// changeState(isEnabled ? ENABLED : DISABLED);
-// }
         private void doSetEnabled(boolean enabled) {
             if (this.isEnabled != enabled) {
                 enabledUnchangedAssumption.invalidate();
