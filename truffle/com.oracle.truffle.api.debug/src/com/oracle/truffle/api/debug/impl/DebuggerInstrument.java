@@ -52,7 +52,7 @@ public final class DebuggerInstrument extends TruffleInstrument {
         return debugger;
     }
 
-    public static interface Factory {
+    public interface Factory {
         Debugger create(PolyglotEngine engine, Instrumenter instrumenter);
     }
 }

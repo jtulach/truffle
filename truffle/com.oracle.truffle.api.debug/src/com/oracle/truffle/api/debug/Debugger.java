@@ -79,15 +79,16 @@ public final class Debugger {
     private static final SourceSectionFilter CALL_FILTER = SourceSectionFilter.newBuilder().tagIs(CALL_TAG).build();
     private static final SourceSectionFilter HALT_FILTER = SourceSectionFilter.newBuilder().tagIs(HALT_TAG).build();
 
-    /** Finds debugger associated with given engine. There is at most one
-     * debugger associated with any {@link PolyglotEngine}. One can access it
-     * by calling this static method. Once the debugger is initialized, events
-     * like {@link SuspendedEvent} or {@link ExecutionEvent} are delivered to
-     * {@link com.oracle.truffle.api.vm.PolyglotEngine.Builder#onEvent(com.oracle.truffle.api.vm.EventConsumer) registered event handlers}
-     * whenever an important event (related to debugging) occurs in the 
+    /**
+     * Finds debugger associated with given engine. There is at most one debugger associated with
+     * any {@link PolyglotEngine}. One can access it by calling this static method. Once the
+     * debugger is initialized, events like {@link SuspendedEvent} or {@link ExecutionEvent} are
+     * delivered to
+     * {@link com.oracle.truffle.api.vm.PolyglotEngine.Builder#onEvent(com.oracle.truffle.api.vm.EventConsumer)
+     * registered event handlers} whenever an important event (related to debugging) occurs in the
      * engine.
-     * 
-     * 
+     *
+     *
      * @param engine the engine to find debugger for
      * @return an instance of associated debugger, never <code>null</code>
      */
@@ -119,11 +120,16 @@ public final class Debugger {
 
     private final PolyglotEngine engine;
     private final Instrumenter instrumenter;
+    private final LineBreakpointFactory lineBreaks;
+    private final TagBreakpointFactory tagBreaks;
+
     private Source lastSource;
 
     Debugger(PolyglotEngine engine, Instrumenter instrumenter) {
         this.engine = engine;
         this.instrumenter = instrumenter;
+        this.lineBreaks = new LineBreakpointFactory(this, instrumenter, breakpointCallback, warningLog);
+        this.tagBreaks = new TagBreakpointFactory(this, breakpointCallback, warningLog);
     }
 
     interface BreakpointCallback {
@@ -157,16 +163,6 @@ public final class Debugger {
             debugContext.logWarning(warning);
         }
     };
-
-    /**
-     * Implementation of line-oriented breakpoints.
-     */
-    private LineBreakpointFactory lineBreaks;
-
-    /**
-     * Implementation of tag-oriented breakpoints.
-     */
-    private TagBreakpointFactory tagBreaks;
 
     /**
      * Head of the stack of executions.
@@ -993,7 +989,7 @@ public final class Debugger {
 
         @Override
         protected Closeable executionStart(Object vm, int currentDepth, final Object d, Source s) {
-            final Debugger debugger = find((PolyglotEngine)vm, false);
+            final Debugger debugger = find((PolyglotEngine) vm, false);
             if (debugger == null) {
                 return new Closeable() {
                     @Override

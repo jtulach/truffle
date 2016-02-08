@@ -34,15 +34,15 @@ import com.oracle.truffle.api.vm.PolyglotEngine;
  * <code>DebuggerController.<b>class</b></code> parameter to obtain the interface.
  */
 public interface DebuggerController {
-    public static final String ID = "example-debugger";
+    String ID = "example-debugger";
 
-    public void installBreakpoint(int i, Callback callback);
+    void installBreakpoint(int i, Callback callback);
 
-    public void stepInto(Callback callback);
+    void stepInto(Callback callback);
 
-    public void stepOut(Callback callback);
+    void stepOut(Callback callback);
 
-    public void stepOver(Callback callback);
+    void stepOver(Callback callback);
 
     public interface Callback {
 
