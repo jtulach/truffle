@@ -212,7 +212,7 @@ public abstract class REPLHandler {
             BreakpointInfo breakpointInfo;
             try {
                 breakpointInfo = replServer.setLineBreakpoint(DEFAULT_IGNORE_COUNT, source.createLineLocation(lineNumber), false);
-            } catch (IllegalStateException ex) {
+            } catch (IOException ex) {
                 return finishReplyFailed(reply, ex.getMessage());
             }
             reply.put(REPLMessage.SOURCE_NAME, fileName);
@@ -245,7 +245,12 @@ public abstract class REPLHandler {
             if (lineNumber == null) {
                 return finishReplyFailed(reply, "missing line number");
             }
-            final BreakpointInfo breakpointInfo = replServer.setLineBreakpoint(DEFAULT_IGNORE_COUNT, source.createLineLocation(lineNumber), true);
+            BreakpointInfo breakpointInfo;
+            try {
+                breakpointInfo = replServer.setLineBreakpoint(DEFAULT_IGNORE_COUNT, source.createLineLocation(lineNumber), true);
+            } catch (IOException ex) {
+                return finishReplyFailed(reply, ex.getMessage());
+            }
             reply.put(REPLMessage.SOURCE_NAME, fileName);
             reply.put(REPLMessage.FILE_PATH, source.getPath());
             reply.put(REPLMessage.BREAKPOINT_ID, Integer.toString(breakpointInfo.getID()));

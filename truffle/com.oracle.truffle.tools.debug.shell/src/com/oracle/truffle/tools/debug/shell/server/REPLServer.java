@@ -65,11 +65,6 @@ import com.oracle.truffle.tools.debug.shell.client.SimpleREPLClient;
  */
 public final class REPLServer {
 
-    enum BreakpointKind {
-        LINE,
-        TAG
-    }
-
     private static final boolean TRACE = Boolean.getBoolean("truffle.debug.trace");
     private static final String TRACE_PREFIX = "REPLSrv: ";
     private static final PrintStream OUT = System.out;
@@ -158,15 +153,6 @@ public final class REPLServer {
         protected void on(ExecutionEvent event) {
             if (TRACE) {
                 trace("BEGIN on %s debugger=%s", describeObject(event), describeObject(db));
-            }
-            if (db == null) {
-                db = event.getDebugger();
-                for (BreakpointInfo breakpointInfo : breakpoints.values()) {
-                    if (TRACE) {
-                        trace("ACTIVATING %s", breakpointInfo.summarize());
-                    }
-                    breakpointInfo.activate(db);
-                }
             }
             if (currentServerContext.steppingInto) {
                 event.prepareStepInto();
@@ -542,16 +528,16 @@ public final class REPLServer {
         return language.getMimeTypes().iterator().next();
     }
 
-    BreakpointInfo setLineBreakpoint(int ignoreCount, LineLocation lineLocation, boolean oneShot) {
-        final BreakpointInfo info = new BreakpointInfo(db, lineLocation, ignoreCount, oneShot);
-        if (TRACE) {
-            trace("NEW %s", info.summarize());
-        }
+    BreakpointInfo setLineBreakpoint(int ignoreCount, LineLocation lineLocation, boolean oneShot) throws IOException {
+        final BreakpointInfo info = new LineBreakpointInfo(lineLocation, ignoreCount, oneShot);
+        info.activate();
         return info;
     }
 
-    BreakpointInfo setTagBreakpoint(int ignoreCount, String tag, boolean oneShot) {
-        return new BreakpointInfo(db, tag, ignoreCount, oneShot);
+    BreakpointInfo setTagBreakpoint(int ignoreCount, String tag, boolean oneShot) throws IOException {
+        final BreakpointInfo info = new TagBreakpointInfo(tag, ignoreCount, oneShot);
+        info.activate();
+        return info;
     }
 
     synchronized BreakpointInfo findBreakpoint(int id) {
@@ -562,91 +548,80 @@ public final class REPLServer {
      * Gets a list of the currently existing breakpoints.
      */
     Collection<BreakpointInfo> getBreakpoints() {
+        // TODO (mlvdv) check if each is currently resolved
         return new ArrayList<>(breakpoints.values());
     }
 
-    final class BreakpointInfo {
-
-        private final BreakpointKind kind;
-
-        /** Null before created in debugger or after disposal. */
-        private Breakpoint breakpoint;
-
-        /** Non-null only when breakpoint == null. */
-        private State state; // non-null iff haven't "activated" yet
-
-        private final int uid;
-
-        private boolean oneShot;
-
-        private int ignoreCount;
-
-        private Source conditionSource;
+    final class LineBreakpointInfo extends BreakpointInfo {
 
         private final LineLocation lineLocation;
 
+        private LineBreakpointInfo(LineLocation lineLocation, int ignoreCount, boolean oneShot) {
+            super(ignoreCount, oneShot);
+            this.lineLocation = lineLocation;
+        }
+
+        @Override
+        protected void activate() throws IOException {
+            breakpoint = db.setLineBreakpoint(ignoreCount, lineLocation, oneShot);
+            // TODO (mlvdv) check if resolved
+            breakpoints.put(uid, this);
+        }
+
+        @Override
+        String describeLocation() {
+            if (breakpoint == null) {
+                return "Line: " + lineLocation.getShortDescription();
+            }
+            return breakpoint.getLocationDescription();
+        }
+
+    }
+
+    final class TagBreakpointInfo extends BreakpointInfo {
         private final String tag;
 
-        private BreakpointInfo(Debugger debugger, LineLocation lineLocation, int ignoreCount, boolean oneShot) {
-            this.kind = BreakpointKind.LINE;
-            this.lineLocation = lineLocation;
-            this.tag = null;
-            this.ignoreCount = ignoreCount;
-            this.oneShot = oneShot;
-            this.uid = nextBreakpointUID++;
-            if (debugger == null) {
-                this.state = State.ENABLED_UNRESOLVED;
-            } else {
-                activate(debugger);
-            }
-            breakpoints.put(uid, this);
-        }
-
-        private BreakpointInfo(Debugger debugger, String tag, int ignoreCount, boolean oneShot) {
-            this.kind = BreakpointKind.TAG;
-            this.lineLocation = null;
+        private TagBreakpointInfo(String tag, int ignoreCount, boolean oneShot) {
+            super(ignoreCount, oneShot);
             this.tag = tag;
+        }
+
+        @Override
+        protected void activate() throws IOException {
+            breakpoint = db.setTagBreakpoint(ignoreCount, tag, oneShot);
+            // TODO (mlvdv) check if resolved
+            breakpoints.put(uid, this);
+
+        }
+
+        @Override
+        String describeLocation() {
+            if (breakpoint == null) {
+                return "Tag: " + tag;
+            }
+            return breakpoint.getLocationDescription();
+        }
+    }
+
+    abstract class BreakpointInfo {
+
+        protected final int uid;
+        protected final boolean oneShot;
+        protected final int ignoreCount;
+
+        protected State state = State.ENABLED_UNRESOLVED;
+        protected Breakpoint breakpoint;
+        protected Source conditionSource;
+
+        protected BreakpointInfo(int ignoreCount, boolean oneShot) {
             this.ignoreCount = ignoreCount;
             this.oneShot = oneShot;
             this.uid = nextBreakpointUID++;
-            if (debugger == null) {
-                this.state = State.ENABLED_UNRESOLVED;
-            } else {
-                activate(debugger);
-            }
-            breakpoints.put(uid, this);
         }
 
-        private void activate(Debugger debugger) {
-            if (breakpoint != null) {
-                throw new IllegalStateException("Breakpoint already activated");
-            }
-            if (state == State.DISPOSED) {
-                throw new IllegalStateException("Breakpoint already disposed");
-            }
-            try {
-                switch (kind) {
-                    case LINE:
-                        breakpoint = debugger.setLineBreakpoint(ignoreCount, lineLocation, oneShot);
-                        break;
-                    case TAG:
-                        breakpoint = debugger.setTagBreakpoint(ignoreCount, tag, oneShot);
-                        break;
-                    default:
-                        throw new IllegalStateException("Unexpected breakpoint kind");
-                }
-                if (conditionSource != null) {
-                    breakpoint.setCondition(conditionSource.getCode());
-                    conditionSource = null;
-                }
-                if (state == State.DISABLED_UNRESOLVED) {
-                    breakpoint.setEnabled(false);
-                }
-                state = null;
-            } catch (IOException ex) {
-                throw new IllegalStateException(ex.getMessage());
-            }
-        }
+        protected abstract void activate() throws IOException;
+
+        abstract String describeLocation();
 
         int getID() {
             return uid;
@@ -654,20 +629,6 @@ public final class REPLServer {
 
         String describeState() {
             return (breakpoint == null ? state : breakpoint.getState()).getName();
-        }
-
-        String describeLocation() {
-            if (breakpoint == null) {
-                switch (kind) {
-                    case LINE:
-                        return "Line: " + lineLocation.getShortDescription();
-                    case TAG:
-                        return "Tag " + tag.toString();
-                    default:
-                        throw new IllegalStateException("Unexpected breakpoint state");
-                }
-            }
-            return breakpoint.getLocationDescription();
         }
 
         void setEnabled(boolean enabled) {
@@ -737,9 +698,6 @@ public final class REPLServer {
             sb.append(" id=" + uid);
             sb.append(" locn=(" + describeLocation());
             sb.append(") " + describeState());
-            if (db == null) {
-                sb.append(" (UNACTIVATED)");
-            }
             return sb.toString();
         }
     }
