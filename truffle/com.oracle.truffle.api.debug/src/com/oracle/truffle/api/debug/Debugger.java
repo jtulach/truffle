@@ -945,7 +945,7 @@ public final class Debugger {
 
     }
 
-    void executionStarted(Object theVM, int depth, Source source) {
+    void executionStarted(int depth, Source source) {
         Source execSource = source;
         if (execSource == null) {
             execSource = lastSource;
@@ -997,7 +997,7 @@ public final class Debugger {
                     }
                 };
             }
-            debugger.executionStarted(vm, currentDepth, s);
+            debugger.executionStarted(currentDepth, s);
             return new Closeable() {
                 @Override
                 public void close() throws IOException {
