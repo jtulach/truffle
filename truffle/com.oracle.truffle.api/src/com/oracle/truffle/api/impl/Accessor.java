@@ -45,6 +45,7 @@ import com.oracle.truffle.api.instrument.WrapperNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
+import java.util.Set;
 
 /**
  * Communication between PolyglotEngine, TruffleLanguage API/SPI, and other services.
@@ -109,6 +110,11 @@ public abstract class Accessor {
         new Node(null) {
         }.getRootNode();
 
+        try {
+            Class.forName("com.oracle.truffle.api.debug.Debugger", true, Accessor.class.getClassLoader());
+        } catch (ClassNotFoundException ex) {
+            throw new IllegalStateException(ex);
+        }
     }
 
     protected Accessor() {
@@ -261,13 +267,13 @@ public abstract class Accessor {
         return SPI.getInstrumentationHandler(vm);
     }
 
+    protected <T> T getInstrumentationHandlerService(Object handler, Object key, Class<T> type) {
+        return INSTRUMENTHANDLER.getInstrumentationHandlerService(handler, key, type);
+    }
+
     // new instrumentation
     protected Object createInstrumentationHandler(Object vm, OutputStream out, OutputStream err, InputStream in) {
         return INSTRUMENTHANDLER.createInstrumentationHandler(vm, out, err, in);
-    }
-
-    protected Object getDebugger(Object vm) {
-        return DEBUG == null ? null : DEBUG.getDebugger(vm);
     }
 
     private static Reference<Object> previousVM = new WeakReference<>(null);
@@ -337,8 +343,8 @@ public abstract class Accessor {
         INSTRUMENTHANDLER.initializeCallTarget(target);
     }
 
-    protected void attachToInstrumentation(Object vm, TruffleLanguage<?> impl, Env context) {
-        INSTRUMENTHANDLER.attachToInstrumentation(vm, impl, context);
+    protected void collectEnvServices(Set<Object> collectTo, Object vm, TruffleLanguage<?> impl, Env context) {
+        INSTRUMENTHANDLER.collectEnvServices(collectTo, vm, impl, context);
     }
 
     protected void detachFromInstrumentation(Object vm, Env context) {
