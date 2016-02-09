@@ -120,16 +120,14 @@ public final class Debugger {
 
     private final PolyglotEngine engine;
     private final Instrumenter instrumenter;
-    private final LineBreakpointFactory lineBreaks;
-    private final TagBreakpointFactory tagBreaks;
+    private final BreakpointFactory breakpoints;
 
     private Source lastSource;
 
     Debugger(PolyglotEngine engine, Instrumenter instrumenter) {
         this.engine = engine;
         this.instrumenter = instrumenter;
-        this.lineBreaks = new LineBreakpointFactory(instrumenter, breakpointCallback, warningLog);
-        this.tagBreaks = new TagBreakpointFactory(this, breakpointCallback, warningLog);
+        this.breakpoints = new BreakpointFactory(instrumenter, breakpointCallback, warningLog);
     }
 
     interface BreakpointCallback {
@@ -171,6 +169,10 @@ public final class Debugger {
 
     /**
      * Sets a breakpoint to halt at a source line.
+     * <p>
+     * If a breakpoint <em>condition</em> is applied to the breakpoint, then the condition will be
+     * assumed to be in the same language as the code location where attached.
+     *
      *
      * @param ignoreCount number of hits to ignore before halting
      * @param lineLocation where to set the breakpoint (source, line number)
@@ -180,11 +182,14 @@ public final class Debugger {
      */
     @TruffleBoundary
     public Breakpoint setLineBreakpoint(int ignoreCount, LineLocation lineLocation, boolean oneShot) throws IOException {
-        return lineBreaks.create(ignoreCount, lineLocation, oneShot);
+        return breakpoints.create(ignoreCount, lineLocation, oneShot);
     }
 
     /**
      * Sets a breakpoint to halt at any node holding a specified <em>tag</em>.
+     * <p>
+     * If a breakpoint <em>condition</em> is applied to the breakpoint, then the condition will be
+     * assumed to be in the same language as the code location where attached.
      *
      * @param ignoreCount number of hits to ignore before halting
      * @param oneShot if {@code true} breakpoint removes it self after a hit
@@ -193,7 +198,7 @@ public final class Debugger {
      */
     @TruffleBoundary
     public Breakpoint setTagBreakpoint(int ignoreCount, String tag, boolean oneShot) throws IOException {
-        return tagBreaks.create(ignoreCount, tag, oneShot);
+        return breakpoints.create(ignoreCount, tag, oneShot);
     }
 
     /**
@@ -202,10 +207,7 @@ public final class Debugger {
      */
     @TruffleBoundary
     public Collection<Breakpoint> getBreakpoints() {
-        final Collection<Breakpoint> result = new ArrayList<>();
-        result.addAll(lineBreaks.getAll());
-        result.addAll(tagBreaks.getAll());
-        return result;
+        return breakpoints.getAll();
     }
 
     /**
@@ -375,14 +377,12 @@ public final class Debugger {
 
         @TruffleBoundary
         protected final void suspendUserBreakpoints() {
-            lineBreaks.setActive(false);
-            tagBreaks.setActive(false);
+            breakpoints.setActive(false);
         }
 
         @SuppressWarnings("unused")
         protected final void restoreUserBreakpoints() {
-            lineBreaks.setActive(true);
-            tagBreaks.setActive(true);
+            breakpoints.setActive(true);
         }
 
         /**
@@ -832,7 +832,7 @@ public final class Debugger {
             clearStrategy();
 
             // Clean up, just in cased the one-shot breakpoints got confused
-            lineBreaks.disposeOneShots();
+            breakpoints.disposeOneShots();
 
             // Includes the "caller" frame (not iterated)
             final int contextStackDepth = (currentStackDepth() - contextStackBase) + 1;
@@ -960,8 +960,7 @@ public final class Debugger {
     }
 
     void executionEnded() {
-        lineBreaks.disposeOneShots();
-        tagBreaks.disposeOneShots();
+        breakpoints.disposeOneShots();
         debugContext.clearStrategy();
         debugContext.contextTrace("END EXEC ");
         // Pop the stack of execution contexts.
