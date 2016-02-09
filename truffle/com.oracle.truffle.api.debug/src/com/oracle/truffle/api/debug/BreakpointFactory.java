@@ -256,6 +256,10 @@ final class BreakpointFactory {
 
         private final Object locationKey;
         private final SourceSectionFilter locationQuery;
+        private final boolean isOneShot;
+        private int ignoreCount;
+        private int hitCount = 0;
+        private State state = ENABLED_UNRESOLVED;
         @SuppressWarnings("rawtypes") private EventBinding binding;
 
         // Cached assumption that the global status of line breakpoint activity has not changed.
@@ -269,7 +273,9 @@ final class BreakpointFactory {
         @SuppressWarnings("rawtypes") private Class<? extends TruffleLanguage> condLangClass;
 
         BreakpointImpl(Object key, SourceSectionFilter query, int ignoreCount, boolean isOneShot) {
-            super(ENABLED_UNRESOLVED, ignoreCount, isOneShot);
+            super();
+            this.ignoreCount = ignoreCount;
+            this.isOneShot = isOneShot;
             this.locationKey = key;
             this.locationQuery = query;
             this.binding = instrumenter.attachListener(locationQuery, new BreakpointListener());
@@ -345,6 +351,31 @@ final class BreakpointFactory {
             }
         }
 
+        @Override
+        public boolean isOneShot() {
+            return isOneShot;
+        }
+
+        @Override
+        public int getIgnoreCount() {
+            return ignoreCount;
+        }
+
+        @Override
+        public void setIgnoreCount(int ignoreCount) {
+            this.ignoreCount = ignoreCount;
+        }
+
+        @Override
+        public int getHitCount() {
+            return hitCount;
+        }
+
+        @Override
+        public State getState() {
+            return state;
+        }
+
         @TruffleBoundary
         @Override
         public void dispose() {
@@ -356,6 +387,7 @@ final class BreakpointFactory {
         }
 
         /* EventNodeFactory for breakpoint condition */
+        @Override
         public EventNode create(EventContext context) {
             assert conditionSource != null;
             final Node instrumentedNode = context.getInstrumentedNode();
@@ -398,11 +430,11 @@ final class BreakpointFactory {
             if (TRACE) {
                 trace("STATE %s-->%s %s", getState().getName(), after.getName(), getShortDescription());
             }
-            setState(after);
+            this.state = after;
         }
 
         private void doBreak(Node node, VirtualFrame vFrame) {
-            if (incrHitCountCheckIgnore()) {
+            if (++hitCount > ignoreCount) {
                 breakpointCallback.haltedAt(node, vFrame.materialize(), "Breakpoint");
             }
         }
@@ -458,9 +490,11 @@ final class BreakpointFactory {
                 BreakpointImpl.this.nodeEnter(context.getInstrumentedNode(), frame);
             }
 
+            @Override
             public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
             }
 
+            @Override
             public void onReturnExceptional(EventContext context, VirtualFrame frame, Throwable exception) {
             }
 
@@ -499,6 +533,19 @@ final class BreakpointFactory {
                 }
             }
         }
-    }
 
+        @Override
+        public String toString() {
+            final StringBuilder sb = new StringBuilder(getClass().getSimpleName());
+            sb.append(" state=");
+            sb.append(getState() == null ? "<none>" : getState().getName());
+            if (isOneShot()) {
+                sb.append(", " + "One-Shot");
+            }
+            if (getCondition() != null) {
+                sb.append(", condition=\"" + getCondition() + "\"");
+            }
+            return sb.toString();
+        }
+    }
 }
