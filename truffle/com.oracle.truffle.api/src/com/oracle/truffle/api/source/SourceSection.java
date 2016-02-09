@@ -240,6 +240,17 @@ public final class SourceSection {
         }
     }
 
+    /**
+     * Copies this source sections with a different set of source section tags. The provided tag
+     * strings must be {@link String#intern() interned}.
+     *
+     * @param t source section tags
+     * @return a copy of the source section with different tags
+     */
+    public SourceSection withTags(String... t) {
+        return new SourceSection(kind, source, identifier, startLine, startColumn, charIndex, charLength, t);
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
