@@ -48,6 +48,17 @@ import com.oracle.truffle.api.nodes.Node;
 @SuppressWarnings("javadoc")
 public final class SuspendedEvent {
 
+    public enum HaltPosition {
+        /**
+         * The <em>halted Node</em> is the next non-instrumentation node to be executed.
+         */
+        BEFORE,
+        /**
+         * The <em>halted Node</em> was the most recent non-instrumentation node to be executed.
+         */
+        AFTER;
+    }
+
     private static final boolean TRACE = Boolean.getBoolean("truffle.debug.trace");
     private static final String TRACE_PREFIX = "Suspnd: ";
     private static final PrintStream OUT = System.out;
@@ -60,13 +71,15 @@ public final class SuspendedEvent {
 
     private final Debugger debugger;
     private final Node haltedNode;
+    private final HaltPosition haltPosition;
     private final MaterializedFrame haltedFrame;
     private final List<FrameInstance> stack;
     private final List<String> warnings;
 
-    SuspendedEvent(Debugger debugger, Node haltedNode, MaterializedFrame haltedFrame, List<FrameInstance> stack, List<String> warnings) {
+    SuspendedEvent(Debugger debugger, Node haltedNode, HaltPosition position, MaterializedFrame haltedFrame, List<FrameInstance> stack, List<String> warnings) {
         this.debugger = debugger;
         this.haltedNode = haltedNode;
+        this.haltPosition = position;
         this.haltedFrame = haltedFrame;
         this.stack = stack;
         this.warnings = warnings;
@@ -87,8 +100,19 @@ public final class SuspendedEvent {
         return debugger;
     }
 
+    /**
+     * The <em>instrumented</em> guest language node where execution is suspended.
+     */
     public Node getNode() {
         return haltedNode;
+    }
+
+    /**
+     * Returns whether execution is halted just before or just after execution of the node
+     * associated with this event.
+     */
+    public HaltPosition getPosition() {
+        return haltPosition;
     }
 
     public MaterializedFrame getFrame() {
