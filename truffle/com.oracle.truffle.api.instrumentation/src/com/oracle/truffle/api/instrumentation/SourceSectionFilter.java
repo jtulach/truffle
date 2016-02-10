@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 
@@ -242,15 +241,9 @@ public final class SourceSectionFilter {
 
         protected abstract int getOrder();
 
-        @SuppressWarnings("unused")
-        boolean isIncluded(SourceSection sourceSection) {
-            return true;
-        }
+        abstract boolean isIncluded(SourceSection sourceSection);
 
-        @SuppressWarnings("unused")
-        boolean isRootIncluded(SourceSection rootSection) {
-            return true;
-        }
+        abstract boolean isRootIncluded(SourceSection rootSection);
 
         public final int compareTo(EventFilterExpression o) {
             return o.getOrder() - getOrder();
@@ -276,6 +269,11 @@ public final class SourceSectionFilter {
                     }
                 }
                 return false;
+            }
+
+            @Override
+            boolean isIncluded(SourceSection sourceSection) {
+                return true;
             }
 
             @Override
@@ -311,6 +309,11 @@ public final class SourceSectionFilter {
                     }
                 }
                 return false;
+            }
+
+            @Override
+            boolean isIncluded(SourceSection sourceSection) {
+                return true;
             }
 
             @Override
@@ -361,6 +364,11 @@ public final class SourceSectionFilter {
             }
 
             @Override
+            boolean isRootIncluded(SourceSection rootSection) {
+                return true;
+            }
+
+            @Override
             protected int getOrder() {
                 return 4;
             }
@@ -392,6 +400,11 @@ public final class SourceSectionFilter {
                         }
                     }
                 }
+                return true;
+            }
+
+            @Override
+            boolean isRootIncluded(SourceSection rootSection) {
                 return true;
             }
 
