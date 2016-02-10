@@ -19,3 +19,4 @@ workingsets.xml
 *.swp
 findbugs.results
 .metadata/
+/eclipseformat.backup.zip
