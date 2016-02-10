@@ -48,7 +48,10 @@ public final class DebuggerInstrument extends TruffleInstrument {
         if (debugger == null && factory != null) {
             debugger = factory.create(engine, instrumenter);
         }
-        debugger.getClass();
+        if (debugger == null) {
+            throw new IllegalStateException("getDebugger() must return non-null");
+        }
+
         return debugger;
     }
 
