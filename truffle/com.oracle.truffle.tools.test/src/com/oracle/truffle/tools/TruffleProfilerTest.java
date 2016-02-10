@@ -37,7 +37,6 @@ import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.tools.TruffleProfiler.Counter;
 import com.oracle.truffle.tools.TruffleProfiler.Counter.TimeKind;
-import com.sun.xml.internal.ws.encoding.RootOnlyCodec;
 import com.oracle.truffle.tools.TruffleProfiler.TestHook;
 
 public class TruffleProfilerTest extends AbstractInstrumentationTest {
