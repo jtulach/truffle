@@ -272,7 +272,7 @@ suite = {
       "sourceDirs" : ["src"],
       "dependencies" : [
         "com.oracle.truffle.tools", 
-        "com.oracle.truffle.api.vm",
+        "com.oracle.truffle.api.debug",
         "JLINE"
       ],
       "checkstyle" : "com.oracle.truffle.api",
