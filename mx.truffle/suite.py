@@ -148,10 +148,7 @@ suite = {
     "com.oracle.truffle.api.debug" : {
       "subDir" : "truffle",
       "sourceDirs" : ["src"],
-      "dependencies" : [
-        "com.oracle.truffle.api.instrumentation",
-        "com.oracle.truffle.api.vm"
-      ],
+      "dependencies" : ["com.oracle.truffle.api.vm"],
       "checkstyle" : "com.oracle.truffle.api",
       "annotationProcessors" : ["INTERNAL_PROCESSOR"],
       "javaCompliance" : "1.7",
@@ -275,7 +272,6 @@ suite = {
       "sourceDirs" : ["src"],
       "dependencies" : [
         "com.oracle.truffle.tools", 
-        "com.oracle.truffle.api.debug",
         "com.oracle.truffle.api.vm",
         "JLINE"
       ],
