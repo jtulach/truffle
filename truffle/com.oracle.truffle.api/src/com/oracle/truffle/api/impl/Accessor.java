@@ -31,6 +31,7 @@ import java.io.OutputStream;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import java.util.Map;
+import java.util.Set;
 
 import com.oracle.truffle.api.Assumption;
 import com.oracle.truffle.api.CallTarget;
@@ -40,12 +41,13 @@ import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.instrument.Instrumenter;
+import com.oracle.truffle.api.instrument.Probe;
 import com.oracle.truffle.api.instrument.Visualizer;
 import com.oracle.truffle.api.instrument.WrapperNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
-import java.util.Set;
 
 /**
  * Communication between PolyglotEngine, TruffleLanguage API/SPI, and other services.
@@ -54,6 +56,7 @@ public abstract class Accessor {
     private static Accessor API;
     private static Accessor SPI;
     private static Accessor NODES;
+    private static Accessor INSTRUMENT;
     static Accessor INSTRUMENTHANDLER;
     private static Accessor DEBUG;
     private static Accessor OPTIMIZEDCALLTARGET;
@@ -111,6 +114,7 @@ public abstract class Accessor {
         }.getRootNode();
 
         try {
+            Class.forName("com.oracle.truffle.api.instrument.Instrumenter", true, Accessor.class.getClassLoader());
             Class.forName("com.oracle.truffle.api.debug.Debugger", true, Accessor.class.getClassLoader());
         } catch (ClassNotFoundException ex) {
             throw new IllegalStateException(ex);
@@ -128,6 +132,11 @@ public abstract class Accessor {
                 throw new IllegalStateException();
             }
             NODES = this;
+        } else if (this.getClass().getSimpleName().endsWith("Instrument")) {
+            if (INSTRUMENT != null) {
+                throw new IllegalStateException();
+            }
+            INSTRUMENT = this;
         } else if (this.getClass().getSimpleName().endsWith("InstrumentHandler")) {
             if (INSTRUMENTHANDLER != null) {
                 throw new IllegalStateException();
@@ -151,8 +160,8 @@ public abstract class Accessor {
         }
     }
 
-    protected Env attachEnv(Object vm, TruffleLanguage<?> language, OutputStream stdOut, OutputStream stdErr, InputStream stdIn) {
-        return API.attachEnv(vm, language, stdOut, stdErr, stdIn);
+    protected Env attachEnv(Object vm, TruffleLanguage<?> language, OutputStream stdOut, OutputStream stdErr, InputStream stdIn, Instrumenter instrumenter) {
+        return API.attachEnv(vm, language, stdOut, stdErr, stdIn, instrumenter);
     }
 
     protected Object eval(TruffleLanguage<?> l, Source s, Map<Source, CallTarget> cache) throws IOException {
@@ -211,6 +220,11 @@ public abstract class Accessor {
     }
 
     @SuppressWarnings("rawtypes")
+    protected Class<? extends TruffleLanguage> findLanguage(Probe probe) {
+        return INSTRUMENT.findLanguage(probe);
+    }
+
+    @SuppressWarnings("rawtypes")
     protected Class<? extends TruffleLanguage> findLanguage(Node node) {
         return NODES.findLanguage(node);
     }
@@ -244,6 +258,23 @@ public abstract class Accessor {
             vm = known;
         }
         return SPI.findLanguageImpl(vm, languageClass, mimeType);
+    }
+
+    protected Instrumenter getInstrumenter(Object known) {
+        Object vm;
+        if (known == null) {
+            vm = CURRENT_VM.get();
+            if (vm == null) {
+                return null;
+            }
+        } else {
+            vm = known;
+        }
+        return SPI.getInstrumenter(vm);
+    }
+
+    protected Instrumenter createInstrumenter(Object vm) {
+        return INSTRUMENT.createInstrumenter(vm);
     }
 
     protected void addInstrumentation(Object instrumentationHandler, Object key, Class<?> instrumentationClass) {
@@ -353,6 +384,10 @@ public abstract class Accessor {
 
     protected void dispose(TruffleLanguage<?> impl, Env env) {
         API.dispose(impl, env);
+    }
+
+    protected void probeAST(RootNode rootNode) {
+        INSTRUMENT.probeAST(rootNode);
     }
 
     @SuppressWarnings("rawtypes")
