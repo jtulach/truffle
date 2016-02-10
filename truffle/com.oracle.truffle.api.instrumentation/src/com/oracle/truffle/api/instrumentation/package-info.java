@@ -23,6 +23,12 @@
  * questions.
  */
 
+/*
+ @ApiInfo(
+ group="Stable"
+ )
+ */
+
 /**
  * The instrumentation API provides a way to introspect and inject behavior into interpreters
  * written using the Truffle framework.
