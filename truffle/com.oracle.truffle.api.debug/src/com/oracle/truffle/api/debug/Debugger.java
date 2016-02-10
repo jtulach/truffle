@@ -669,65 +669,67 @@ public final class Debugger {
         }
     }
 
-// beforeTagInstrument = instrumenter.attach(STEPPING_TAG, new StandardBeforeInstrumentListener() {
-//
-// @TruffleBoundary
-// @Override
-// public void onEnter(Probe probe, Node node, VirtualFrame vFrame) {
-// final int currentStackDepth = currentStackDepth();
-// if (currentStackDepth <= stackDepth) {
-// // HALT: stack depth unchanged or smaller; treat like StepInto
-// --unfinishedStepCount;
-// if (TRACE) {
-// strategyTrace("HALT BEFORE", "unfinished steps=%d stackDepth start=%d current=%d",
-// unfinishedStepCount, stackDepth, currentStackDepth);
-// }
-// // Test should run in fast path
-// if (unfinishedStepCount <= 0) {
-// halt(node, vFrame.materialize(), true);
-// }
-// } else {
-// // CONTINUE: Stack depth increased; don't count as a step
-// strategyTrace("STEP INTO", "unfinished steps=%d stackDepth start=%d current=%d",
-// unfinishedStepCount, stackDepth, currentStackDepth);
-// // Stop treating like StepInto, start treating like StepOut
-// replaceStrategy(new StepOverNested(unfinishedStepCount, stackDepth));
-// }
-// strategyTrace("RESUME BEFORE", "");
-// }
-// }, "Debugger StepOver");
+    // beforeTagInstrument = instrumenter.attach(STEPPING_TAG, new
+    // StandardBeforeInstrumentListener() {
+    //
+    // @TruffleBoundary
+    // @Override
+    // public void onEnter(Probe probe, Node node, VirtualFrame vFrame) {
+    // final int currentStackDepth = currentStackDepth();
+    // if (currentStackDepth <= stackDepth) {
+    // // HALT: stack depth unchanged or smaller; treat like StepInto
+    // --unfinishedStepCount;
+    // if (TRACE) {
+    // strategyTrace("HALT BEFORE", "unfinished steps=%d stackDepth start=%d current=%d",
+    // unfinishedStepCount, stackDepth, currentStackDepth);
+    // }
+    // // Test should run in fast path
+    // if (unfinishedStepCount <= 0) {
+    // halt(node, vFrame.materialize(), true);
+    // }
+    // } else {
+    // // CONTINUE: Stack depth increased; don't count as a step
+    // strategyTrace("STEP INTO", "unfinished steps=%d stackDepth start=%d current=%d",
+    // unfinishedStepCount, stackDepth, currentStackDepth);
+    // // Stop treating like StepInto, start treating like StepOut
+    // replaceStrategy(new StepOverNested(unfinishedStepCount, stackDepth));
+    // }
+    // strategyTrace("RESUME BEFORE", "");
+    // }
+    // }, "Debugger StepOver");
 
-// afterTagInstrument = instrumenter.attach(CALL_TAG, new StandardAfterInstrumentListener() {
-//
-// public void onReturnVoid(Probe probe, Node node, VirtualFrame vFrame) {
-// doHalt(node, vFrame.materialize());
-// }
-//
-// public void onReturnValue(Probe probe, Node node, VirtualFrame vFrame, Object result) {
-// doHalt(node, vFrame.materialize());
-// }
-//
-// public void onReturnExceptional(Probe probe, Node node, VirtualFrame vFrame, Throwable exception)
-// {
-// doHalt(node, vFrame.materialize());
-// }
-//
-// @TruffleBoundary
-// private void doHalt(Node node, MaterializedFrame mFrame) {
-// final int currentStackDepth = currentStackDepth();
-// if (currentStackDepth < stackDepth) {
-// // HALT: just "stepped out"
-// --unfinishedStepCount;
-// strategyTrace("HALT AFTER", "unfinished steps=%d stackDepth: start=%d current=%d",
-// unfinishedStepCount, stackDepth, currentStackDepth);
-// // Should run in fast path
-// if (unfinishedStepCount <= 0) {
-// halt(node, mFrame, false);
-// }
-// strategyTrace("RESUME AFTER", "");
-// }
-// }
-// }, "Debugger StepOver");
+    // afterTagInstrument = instrumenter.attach(CALL_TAG, new StandardAfterInstrumentListener() {
+    //
+    // public void onReturnVoid(Probe probe, Node node, VirtualFrame vFrame) {
+    // doHalt(node, vFrame.materialize());
+    // }
+    //
+    // public void onReturnValue(Probe probe, Node node, VirtualFrame vFrame, Object result) {
+    // doHalt(node, vFrame.materialize());
+    // }
+    //
+    // public void onReturnExceptional(Probe probe, Node node, VirtualFrame vFrame, Throwable
+    // exception)
+    // {
+    // doHalt(node, vFrame.materialize());
+    // }
+    //
+    // @TruffleBoundary
+    // private void doHalt(Node node, MaterializedFrame mFrame) {
+    // final int currentStackDepth = currentStackDepth();
+    // if (currentStackDepth < stackDepth) {
+    // // HALT: just "stepped out"
+    // --unfinishedStepCount;
+    // strategyTrace("HALT AFTER", "unfinished steps=%d stackDepth: start=%d current=%d",
+    // unfinishedStepCount, stackDepth, currentStackDepth);
+    // // Should run in fast path
+    // if (unfinishedStepCount <= 0) {
+    // halt(node, mFrame, false);
+    // }
+    // strategyTrace("RESUME AFTER", "");
+    // }
+    // }
+    // }, "Debugger StepOver");
 
     /**
      * Strategy: per-{@link #HALT_TAG} stepping, not into method calls, in effect while at increased
@@ -790,24 +792,25 @@ public final class Debugger {
         }
     }
 
-// beforeTagInstrument = instrumenter.attach(STEPPING_TAG, new StandardBeforeInstrumentListener() {
-// @TruffleBoundary
-// @Override
-// public void onEnter(Probe probe, Node node, VirtualFrame vFrame) {
-// final int currentStackDepth = currentStackDepth();
-// if (currentStackDepth <= startStackDepth) {
-// // At original step depth (or smaller) after being nested
-// --unfinishedStepCount;
-// strategyTrace("HALT AFTER", "unfinished steps=%d stackDepth start=%d current=%d",
-// unfinishedStepCount, stackDepth, currentStackDepth);
-// if (unfinishedStepCount <= 0) {
-// halt(node, vFrame.materialize(), false);
-// }
-// // TODO (mlvdv) fixme for multiple steps
-// strategyTrace("RESUME BEFORE", "");
-// }
-// }
-// }, "Debugger StepOverNested");
+    // beforeTagInstrument = instrumenter.attach(STEPPING_TAG, new
+    // StandardBeforeInstrumentListener() {
+    // @TruffleBoundary
+    // @Override
+    // public void onEnter(Probe probe, Node node, VirtualFrame vFrame) {
+    // final int currentStackDepth = currentStackDepth();
+    // if (currentStackDepth <= startStackDepth) {
+    // // At original step depth (or smaller) after being nested
+    // --unfinishedStepCount;
+    // strategyTrace("HALT AFTER", "unfinished steps=%d stackDepth start=%d current=%d",
+    // unfinishedStepCount, stackDepth, currentStackDepth);
+    // if (unfinishedStepCount <= 0) {
+    // halt(node, vFrame.materialize(), false);
+    // }
+    // // TODO (mlvdv) fixme for multiple steps
+    // strategyTrace("RESUME BEFORE", "");
+    // }
+    // }
+    // }, "Debugger StepOverNested");
 
     /**
      * Information and debugging state for a single Truffle execution (which make take place over
