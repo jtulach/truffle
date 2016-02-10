@@ -26,10 +26,10 @@ package com.oracle.truffle.api.instrumentation;
 
 import com.oracle.truffle.api.nodes.Node;
 
-/** Factory capable to create instance of a wrapper node for provided 
- * node. Usually there is no need to implement this factory manually - 
- * use {@link Instrumentable} annotation and it will generate the
- * factory for you.
+/**
+ * Factory capable to create instance of a wrapper node for provided node. Usually there is no need
+ * to implement this factory manually - use {@link Instrumentable} annotation and it will generate
+ * the factory for you.
  * 
  * @param <T> the type of node this factory operates on
  */

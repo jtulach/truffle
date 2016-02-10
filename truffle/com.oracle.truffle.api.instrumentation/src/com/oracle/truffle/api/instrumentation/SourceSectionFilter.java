@@ -75,9 +75,9 @@ public final class SourceSectionFilter {
         return new SourceSectionFilter(null, null).new Builder();
     }
 
-    /** Configure your own {@link SourceSectionFilter} before creating
-     * its instance. Specify various parameters by calling individual 
-     * {@link Builder} methods. When done, call {@link #build()}.
+    /**
+     * Configure your own {@link SourceSectionFilter} before creating its instance. Specify various
+     * parameters by calling individual {@link Builder} methods. When done, call {@link #build()}.
      */
     public final class Builder {
 
