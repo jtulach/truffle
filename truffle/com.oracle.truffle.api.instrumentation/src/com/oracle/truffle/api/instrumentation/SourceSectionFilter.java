@@ -72,10 +72,14 @@ public final class SourceSectionFilter {
      * @return a new builder to create new {@link SourceSectionFilter} instances
      */
     public static Builder newBuilder() {
-        return new Builder();
+        return new SourceSectionFilter(null, null).new Builder();
     }
 
-    public static final class Builder {
+    /** Configure your own {@link SourceSectionFilter} before creating
+     * its instance. Specify various parameters by calling individual 
+     * {@link Builder} methods. When done, call {@link #build()}.
+     */
+    public final class Builder {
 
         private List<EventFilterExpression> nodeExpressions = new ArrayList<>();
         private List<EventFilterExpression> rootNodeExpressions = new ArrayList<>();
@@ -180,7 +184,7 @@ public final class SourceSectionFilter {
                             nodeExpressions.toArray(new EventFilterExpression[nodeExpressions.size()]));
         }
 
-        private static void verifyNotNull(Object[] values) {
+        private void verifyNotNull(Object[] values) {
             if (values == null) {
                 throw new IllegalArgumentException("Given arguments must not be null.");
             }
