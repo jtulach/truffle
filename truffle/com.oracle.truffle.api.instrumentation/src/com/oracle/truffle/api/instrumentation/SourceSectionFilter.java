@@ -92,8 +92,8 @@ public final class SourceSectionFilter {
 
         /**
          * Add a filter for all source sections that declare one of the given mime-types. Mime-types
-         * which are compared must match exactly one of the mime-types specified in
-         * {@link TruffleLanguage.Registration#mimeType()}.
+         * which are compared must match exactly one of the mime-types specified by the target guest
+         * language.
          */
         public Builder mimeTypeIs(String... mimeTypes) {
             verifyNotNull(mimeTypes);

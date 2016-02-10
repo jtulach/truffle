@@ -36,8 +36,7 @@ import com.oracle.truffle.api.instrumentation.InstrumentationHandler.LanguageIns
  * <ul>
  * <li>by a call to dispose();</li>
  * <li>the instrumenter that created the binding is {@link EventBinding#dispose() disposed}; or</li>
- * <li>the PolyglotEngine that contains the instrumenter is {@link PolyglotEngine#dispose()
- * disposed}.</li>
+ * <li>the engine running the language is disposed.</li>
  * </ul>
  * If all bindings of a listener or factory are disposed then their methods are not invoked again by
  * the instrumentation framework.
