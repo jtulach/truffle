@@ -246,15 +246,15 @@ public final class SourceSection {
      * strings must be {@link String#intern() interned}. If the set tags match the provide tags no
      * copy will be created and just this instance is returned.
      *
-     * @param t source section tags
+     * @param tags source section tags
      * @return a copy of the source section with different tags
      */
-    public SourceSection withTags(String... t) {
-        if (sameTags(t)) {
+    public SourceSection withTags(@SuppressWarnings("hiding") String... tags) {
+        if (sameTags(tags)) {
             // optimize copying of tags if tags are unchanged
             return this;
         }
-        return new SourceSection(kind, source, identifier, startLine, startColumn, charIndex, charLength, t);
+        return new SourceSection(kind, source, identifier, startLine, startColumn, charIndex, charLength, tags);
     }
 
     @SuppressFBWarnings("ES_COMPARING_STRINGS_WITH_EQ")
