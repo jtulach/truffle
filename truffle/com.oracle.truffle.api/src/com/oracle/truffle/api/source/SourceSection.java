@@ -243,13 +243,30 @@ public final class SourceSection {
 
     /**
      * Copies this source sections with a different set of source section tags. The provided tag
-     * strings must be {@link String#intern() interned}.
+     * strings must be {@link String#intern() interned}. If the set tags match the provide tags no
+     * copy will be created and just this instance is returned.
      *
      * @param t source section tags
      * @return a copy of the source section with different tags
      */
     public SourceSection withTags(String... t) {
+        if (sameTags(t)) {
+            // optimize copying of tags if tags are unchanged
+            return this;
+        }
         return new SourceSection(kind, source, identifier, startLine, startColumn, charIndex, charLength, t);
+    }
+
+    private boolean sameTags(String... t) {
+        if (t.length == tags.length) {
+            for (int i = 0; i < tags.length; i++) {
+                if (t[i] != tags[i]) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
     }
 
     @Override
