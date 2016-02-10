@@ -257,6 +257,7 @@ public final class SourceSection {
         return new SourceSection(kind, source, identifier, startLine, startColumn, charIndex, charLength, t);
     }
 
+    @SuppressFBWarnings("ES_COMPARING_STRINGS_WITH_EQ")
     private boolean sameTags(String... t) {
         if (t.length == tags.length) {
             for (int i = 0; i < tags.length; i++) {
