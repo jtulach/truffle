@@ -194,20 +194,17 @@ public abstract class TruffleInstrument {
          * {@link #onCreate(com.oracle.truffle.api.instrumentation.TruffleInstrument.Env, com.oracle.truffle.api.instrumentation.Instrumenter)}
          * method - then the services are collected and cannot be changed anymore.
          * 
-         * @param <T> the type of service being registered and returned
          * @param service a service to be returned from associated
          *            {@link com.oracle.truffle.api.vm.PolyglotEngine.Instrument#lookup}
-         * @return the service that just has been registered
          * @throws IllegalStateException if the method is called later than from
          *             {@link #onCreate(com.oracle.truffle.api.instrumentation.TruffleInstrument.Env, com.oracle.truffle.api.instrumentation.Instrumenter) }
          *             method
          */
-        public <T> T registerService(T service) {
+        public void registerService(Object service) {
             if (services == null) {
                 throw new IllegalStateException();
             }
             services.add(service);
-            return service;
         }
 
         Object[] onCreate(TruffleInstrument instrumentation, Instrumenter instrumenter) {

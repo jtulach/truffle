@@ -53,7 +53,8 @@ public final class DebuggerExample extends TruffleInstrument {
     @Override
     protected void onCreate(Env env, Instrumenter instrumenter) {
         assert this.controller == null;
-        this.controller = env.registerService(new Controller(instrumenter));
+        this.controller = new Controller(instrumenter);
+        env.registerService(controller);
     }
 
     private static final class Controller extends DebuggerController {
