@@ -863,6 +863,19 @@ public class PolyglotEngine {
         }
 
         /**
+         * Lookup additional service provided by the instrument. Here is an example how to query for
+         * a hypothetical <code>DebuggerController</code>: {@codesnippet DebuggerExampleTest}
+         * 
+         * @param <T> the type of the service
+         * @param type class of the service that is being requested
+         * @return instance of requested type, or <code>null</code> if no such service is available
+         *         for the instrument
+         */
+        public <T> T lookup(Class<T> type) {
+            return SPI.getInstrumentationHandlerService(instrumentationHandler, this, type);
+        }
+
+        /**
          * Enables/disables the installed instrument in the engine.
          *
          * @param enabled <code>true</code> to enable <code>false</code> to disable
@@ -901,7 +914,6 @@ public class PolyglotEngine {
         public String toString() {
             return "Instrument [id=" + getId() + ", name=" + getName() + ", version=" + getVersion() + ", enabled=" + enabled + "]";
         }
-
     }
 
     /**
@@ -1136,6 +1148,11 @@ public class PolyglotEngine {
         protected Object getInstrumentationHandler(Object obj) {
             final PolyglotEngine vm = (PolyglotEngine) obj;
             return vm.instrumentationHandler;
+        }
+
+        @Override
+        protected <T> T getInstrumentationHandlerService(Object vm, Object key, Class<T> type) {
+            return super.getInstrumentationHandlerService(vm, key, type);
         }
 
         @Override
