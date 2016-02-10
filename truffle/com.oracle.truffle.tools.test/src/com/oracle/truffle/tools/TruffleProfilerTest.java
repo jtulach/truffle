@@ -37,6 +37,7 @@ import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.tools.TruffleProfiler.Counter;
 import com.oracle.truffle.tools.TruffleProfiler.Counter.TimeKind;
+import com.sun.xml.internal.ws.encoding.RootOnlyCodec;
 import com.oracle.truffle.tools.TruffleProfiler.TestHook;
 
 public class TruffleProfilerTest extends AbstractInstrumentationTest {
@@ -77,10 +78,14 @@ public class TruffleProfilerTest extends AbstractInstrumentationTest {
         counters = profiler.getCounters();
         Assert.assertEquals(4, counters.size());
 
-        Counter root = counters.get(source.createSection(null, 0, 140));
-        Counter leaf = counters.get(source.createSection(null, 17, 16));
-        Counter callfoo = counters.get(source.createSection(null, 47, 27));
-        Counter callbar = counters.get(source.createSection(null, 88, 27));
+        final SourceSection rootSection = source.createSection(null, 0, 140, "ROOT");
+        final SourceSection leafSection = source.createSection(null, 17, 16, "ROOT");
+        final SourceSection callfooSection = source.createSection(null, 47, 27, "ROOT");
+        final SourceSection callbarSection = source.createSection(null, 88, 27, "ROOT");
+        Counter root = counters.get(rootSection);
+        Counter leaf = counters.get(leafSection);
+        Counter callfoo = counters.get(callfooSection);
+        Counter callbar = counters.get(callbarSection);
 
         Assert.assertNotNull(root);
         Assert.assertNotNull(leaf);
@@ -111,10 +116,10 @@ public class TruffleProfilerTest extends AbstractInstrumentationTest {
             run(source);
         }
 
-        root = counters.get(source.createSection(null, 0, 140));
-        leaf = counters.get(source.createSection(null, 17, 16));
-        callfoo = counters.get(source.createSection(null, 47, 27));
-        callbar = counters.get(source.createSection(null, 88, 27));
+        root = counters.get(rootSection);
+        leaf = counters.get(leafSection);
+        callfoo = counters.get(callfooSection);
+        callbar = counters.get(callbarSection);
 
         Assert.assertEquals(10000L, root.getInvocations(testTimeKind));
         Assert.assertEquals(2000000L, leaf.getInvocations(testTimeKind));
