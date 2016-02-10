@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -53,6 +53,8 @@ import com.oracle.truffle.api.TruffleOptions;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.impl.Accessor;
+import com.oracle.truffle.api.instrument.Instrumenter;
+import com.oracle.truffle.api.instrument.Probe;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.interop.ForeignAccess;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -109,7 +111,8 @@ public class PolyglotEngine {
     private final OutputStream out;
     private final EventConsumer<?>[] handlers;
     private final Map<String, Object> globals;
-    private final Object instrumentationHandler;
+    private final Instrumenter instrumenter; // old instrumentation
+    private final Object instrumentationHandler; // new instrumentation
     private final Map<String, Instrument> instruments;
     private boolean disposed;
 
@@ -135,6 +138,7 @@ public class PolyglotEngine {
         this.handlers = null;
         this.globals = null;
         this.executor = null;
+        this.instrumenter = null;
         this.instrumentationHandler = null;
         this.instruments = null;
     }
@@ -150,6 +154,8 @@ public class PolyglotEngine {
         this.handlers = handlers;
         this.initThread = Thread.currentThread();
         this.globals = new HashMap<>(globals);
+        this.instrumenter = SPI.createInstrumenter(this);
+        // new instrumentation
         this.instrumentationHandler = SPI.createInstrumentationHandler(this, out, err, in);
         Map<String, Language> map = new HashMap<>();
         /* We want to create a language instance but per LanguageCache and not per mime type. */
@@ -930,7 +936,8 @@ public class PolyglotEngine {
         TruffleLanguage.Env getEnv(boolean create) {
             if (env == null && create) {
                 TruffleLanguage<?> impl = info.getImpl(true);
-                env = SPI.attachEnv(PolyglotEngine.this, impl, out, err, in);
+                env = SPI.attachEnv(PolyglotEngine.this, impl, out, err, in, instrumenter);
+
             }
             return env;
         }
@@ -964,9 +971,9 @@ public class PolyglotEngine {
         return null;
     }
 
-// TruffleLanguage<?> findLanguage(Probe probe) {
-// return findLanguage(SPI.findLanguage(probe));
-// }
+    TruffleLanguage<?> findLanguage(Probe probe) {
+        return findLanguage(SPI.findLanguage(probe));
+    }
 
     Env findEnv(Class<? extends TruffleLanguage> languageClazz) {
         for (Map.Entry<String, Language> entrySet : langs.entrySet()) {
@@ -1014,9 +1021,9 @@ public class PolyglotEngine {
         }
 
         @Override
-        protected Env attachEnv(Object obj, TruffleLanguage<?> language, OutputStream stdOut, OutputStream stdErr, InputStream stdIn) {
+        protected Env attachEnv(Object obj, TruffleLanguage<?> language, OutputStream stdOut, OutputStream stdErr, InputStream stdIn, Instrumenter instrumenter) {
             PolyglotEngine vm = (PolyglotEngine) obj;
-            return super.attachEnv(vm, language, stdOut, stdErr, stdIn);
+            return super.attachEnv(vm, language, stdOut, stdErr, stdIn, instrumenter);
         }
 
         @Override
@@ -1035,8 +1042,19 @@ public class PolyglotEngine {
         }
 
         @Override
+        protected Instrumenter createInstrumenter(Object vm) {
+            return super.createInstrumenter(vm);
+        }
+
+        @Override
         protected Object createInstrumentationHandler(Object vm, OutputStream out, OutputStream err, InputStream in) {
             return super.createInstrumentationHandler(vm, out, err, in);
+        }
+
+        @Override
+        protected Instrumenter getInstrumenter(Object obj) {
+            final PolyglotEngine vm = (PolyglotEngine) obj;
+            return vm.instrumenter;
         }
 
         @Override
@@ -1065,10 +1083,10 @@ public class PolyglotEngine {
             super.disposeInstrumentation(instrumentationHandler, key, cleanupRequired);
         }
 
-// @Override
-// protected Class<? extends TruffleLanguage> findLanguage(Probe probe) {
-// return super.findLanguage(probe);
-// }
+        @Override
+        protected Class<? extends TruffleLanguage> findLanguage(Probe probe) {
+            return super.findLanguage(probe);
+        }
 
         @Override
         protected Env findLanguage(Object obj, Class<? extends TruffleLanguage> languageClass) {

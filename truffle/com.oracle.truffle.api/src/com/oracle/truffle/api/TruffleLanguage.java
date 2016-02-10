@@ -359,13 +359,15 @@ public abstract class TruffleLanguage<C> {
         private final OutputStream err;
         private final OutputStream out;
         private final Object[] services;
+        private final Instrumenter instrumenter;
 
-        Env(Object vm, TruffleLanguage<?> lang, OutputStream out, OutputStream err, InputStream in) {
+        Env(Object vm, TruffleLanguage<?> lang, OutputStream out, OutputStream err, InputStream in, Instrumenter instrumenter) {
             this.vm = vm;
             this.in = in;
             this.err = err;
             this.out = out;
             this.lang = lang;
+            this.instrumenter = instrumenter;
             LinkedHashSet<Object> collectedServices = new LinkedHashSet<>();
             API.collectEnvServices(collectedServices, vm, lang, this);
             this.services = collectedServices.toArray();
@@ -434,10 +436,8 @@ public abstract class TruffleLanguage<C> {
             return err;
         }
 
-        @SuppressWarnings("static-method")
-        @Deprecated
         public Instrumenter instrumenter() {
-            return null;
+            return instrumenter;
         }
 
         /**
@@ -468,8 +468,8 @@ public abstract class TruffleLanguage<C> {
     @SuppressWarnings("rawtypes")
     private static final class AccessAPI extends Accessor {
         @Override
-        protected Env attachEnv(Object vm, TruffleLanguage<?> language, OutputStream stdOut, OutputStream stdErr, InputStream stdIn) {
-            Env env = new Env(vm, language, stdOut, stdErr, stdIn);
+        protected Env attachEnv(Object vm, TruffleLanguage<?> language, OutputStream stdOut, OutputStream stdErr, InputStream stdIn, Instrumenter instrumenter) {
+            Env env = new Env(vm, language, stdOut, stdErr, stdIn, instrumenter);
             return env;
         }
 

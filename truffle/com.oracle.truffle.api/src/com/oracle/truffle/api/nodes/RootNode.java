@@ -165,8 +165,10 @@ public abstract class RootNode extends Node {
         }
     }
 
-    @Deprecated
     public final void applyInstrumentation() {
+        if (isInstrumentable()) {
+            Node.ACCESSOR.probeAST(this);
+        }
     }
 
     /**
