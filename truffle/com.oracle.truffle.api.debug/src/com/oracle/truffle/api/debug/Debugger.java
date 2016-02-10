@@ -1083,8 +1083,8 @@ public final class Debugger {
     static final class AccessorDebug extends Accessor {
 
         @Override
-        protected Closeable executionStart(Object vm, int currentDepth, final Object d, Source s) {
-            final Debugger debugger = find((PolyglotEngine) vm, false);
+        protected Closeable executionStart(Object vm, int currentDepth, final boolean initializeDebugger, Source s) {
+            final Debugger debugger = find((PolyglotEngine) vm, initializeDebugger);
             if (debugger == null) {
                 return new Closeable() {
                     @Override

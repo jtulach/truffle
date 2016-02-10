@@ -182,6 +182,15 @@ public class PolyglotEngine {
         return Collections.unmodifiableMap(instr);
     }
 
+    private boolean isDebuggerOn() {
+        for (EventConsumer<?> handler : handlers) {
+            if (handler.type.getSimpleName().endsWith("ExecutionEvent")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Creation of new Truffle virtual machine. Use the {@link Builder} methods to configure your
      * virtual machine and then create one using {@link Builder#build()}:
@@ -470,7 +479,7 @@ public class PolyglotEngine {
 
     @SuppressWarnings("try")
     private Object evalImpl(TruffleLanguage<?>[] fillLang, Source s, Language l) throws IOException {
-        try (Closeable d = SPI.executionStart(this, -1, null, s)) {
+        try (Closeable d = SPI.executionStart(this, -1, isDebuggerOn(), s)) {
             TruffleLanguage<?> langImpl = l.getImpl(true);
             fillLang[0] = langImpl;
             return SPI.eval(langImpl, s, l.cache);
@@ -481,7 +490,7 @@ public class PolyglotEngine {
     final Object invokeForeign(final Node foreignNode, VirtualFrame frame, final TruffleObject receiver) throws IOException {
         Object res;
         if (executor == null) {
-            try (final Closeable c = SPI.executionStart(PolyglotEngine.this, -1, null, null)) {
+            try (final Closeable c = SPI.executionStart(PolyglotEngine.this, -1, false, null)) {
                 final Object[] args = ForeignAccess.getArguments(frame).toArray();
                 res = ForeignAccess.execute(foreignNode, frame, receiver, args);
             }
@@ -502,7 +511,7 @@ public class PolyglotEngine {
             @SuppressWarnings("try")
             @Override
             protected Object compute() throws IOException {
-                try (final Closeable c = SPI.executionStart(PolyglotEngine.this, -1, null, null)) {
+                try (final Closeable c = SPI.executionStart(PolyglotEngine.this, -1, false, null)) {
                     final Object[] args = ForeignAccess.getArguments(materialized).toArray();
                     RootNode node = SymbolInvokerImpl.createTemporaryRoot(TruffleLanguage.class, foreignNode, receiver, args.length);
                     final CallTarget target = Truffle.getRuntime().createCallTarget(node);
@@ -745,7 +754,7 @@ public class PolyglotEngine {
                 @SuppressWarnings("try")
                 @Override
                 protected Object compute() throws IOException {
-                    try (final Closeable c = SPI.executionStart(PolyglotEngine.this, -1, null, null)) {
+                    try (final Closeable c = SPI.executionStart(PolyglotEngine.this, -1, false, null)) {
                         List<Object> arr = new ArrayList<>();
                         arr.addAll(Arrays.asList(args));
                         for (;;) {
@@ -919,7 +928,7 @@ public class PolyglotEngine {
         @SuppressWarnings("try")
         public Value getGlobalObject() {
             checkThread();
-            try (Closeable d = SPI.executionStart(PolyglotEngine.this, -1, null, null)) {
+            try (Closeable d = SPI.executionStart(PolyglotEngine.this, -1, false, null)) {
                 Object res = SPI.languageGlobal(getEnv(true));
                 return res == null ? null : new Value(new TruffleLanguage[]{info.getImpl(true)}, res);
             } catch (IOException ex) {
@@ -1111,9 +1120,9 @@ public class PolyglotEngine {
         }
 
         @Override
-        protected Closeable executionStart(Object obj, int currentDepth, Object debugger, Source s) {
+        protected Closeable executionStart(Object obj, int currentDepth, boolean initializeDebugger, Source s) {
             PolyglotEngine vm = (PolyglotEngine) obj;
-            return super.executionStart(vm, -1, debugger, s);
+            return super.executionStart(vm, -1, initializeDebugger, s);
         }
 
         @Override
