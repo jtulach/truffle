@@ -51,8 +51,8 @@ import com.oracle.truffle.api.source.Source;
  * <p>
  * After the instrumentation is {@link #onDispose(Env) disposed} the {@link Instrumenter} passed in
  * {@link #onCreate(Env, Instrumenter) onCreate} must not be used anymore. Bindings created by the
- * instrumentation are disposed automatically as soon as the instrumentation is disposed. There is
- * no need to dispose them manually {@link TruffleInstrument#onDispose(Env) on dispose}.
+ * instrumentation are disposed as soon as the instrumentation is disposed. There is no need to
+ * dispose them manually {@link TruffleInstrument#onDispose(Env) on dispose}.
  * </p>
  *
  * <p>
@@ -124,9 +124,8 @@ public abstract class TruffleInstrument {
     }
 
     /**
-     * Represents the environment of a {@link TruffleInstrument}. Provides ways and means to access
-     * input, output and error streams. Also allows to parse arbitrary code from other Truffle
-     * languages.
+     * Provides ways and means to access input, output and error streams. Also allows to parse
+     * arbitrary code from other Truffle languages.
      */
     public static final class Env {
 
@@ -190,7 +189,7 @@ public abstract class TruffleInstrument {
     }
 
     /**
-     * Annotation to register {@link TruffleInstrument instrumentation} instances for automatic
+     * Annotation to register an {@link TruffleInstrument instrument} implementations for automatic
      * discovery.
      */
     @Retention(RetentionPolicy.SOURCE)

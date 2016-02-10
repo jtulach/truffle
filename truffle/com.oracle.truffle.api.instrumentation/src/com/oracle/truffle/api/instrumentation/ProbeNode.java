@@ -39,8 +39,10 @@ import com.oracle.truffle.api.source.SourceSection;
 
 /**
  * <p>
- * Class provided by {@link InstrumentableFactory#createWrapper(Node, ProbeNode)} to notify the
- * instrumentation API about execution events.
+ * Represents an event sink for instrumentation events that is embedded in the ast using wrappers if
+ * needed. Instances of this class are provided by
+ * {@link InstrumentableFactory#createWrapper(Node, ProbeNode)} to notify the instrumentation API
+ * about execution events.
  * </p>
  *
  * The recommended use of this node for implementing {@link WrapperNode wrapper nodes} looks as

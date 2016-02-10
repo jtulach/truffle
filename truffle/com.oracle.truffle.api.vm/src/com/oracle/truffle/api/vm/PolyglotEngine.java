@@ -813,6 +813,13 @@ public class PolyglotEngine {
         }
     }
 
+    /**
+     * Represents a handle to a given installed instrumentation. With the handle it is possible to
+     * get metadata provided by the instrument. Also it is possible to
+     * {@link Instrument#setEnabled(boolean)} enable/disable a given instrument.
+     *
+     * @see PolyglotEngine#getInstruments()
+     */
     public final class Instrument {
 
         private final InstrumentCache info;
@@ -823,14 +830,23 @@ public class PolyglotEngine {
             this.info = cache;
         }
 
+        /**
+         * @return the id of the instrument
+         */
         public String getId() {
             return info.getId();
         }
 
+        /**
+         * @return a human readable name of the installed instrument.
+         */
         public String getName() {
             return info.getName();
         }
 
+        /**
+         * @return the version of the installed instrument.
+         */
         public String getVersion() {
             return info.getVersion();
         }
@@ -839,10 +855,18 @@ public class PolyglotEngine {
             return info;
         }
 
+        /**
+         * @return <code>true</code> if the underlying instrument is enabled else <code>false</code>
+         */
         public boolean isEnabled() {
             return enabled;
         }
 
+        /**
+         * Enables/disables the installed instrument in the engine.
+         *
+         * @param enabled <code>true</code> to enable <code>false</code> to disable
+         */
         public void setEnabled(final boolean enabled) {
             checkThread();
             if (this.enabled != enabled) {

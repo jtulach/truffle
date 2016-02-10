@@ -30,9 +30,9 @@ import com.oracle.truffle.api.nodes.NodeCost;
 import com.oracle.truffle.api.nodes.NodeInfo;
 
 /**
- * An event node is created for each source location by a {@link EventNodeFactory factory} to allow
- * caching using local state. If you event node implementation is stateless consider using a
- * {@link EventListener listener} instead.
+ * An event node created by an {@link EventNodeFactory} for a specific locations of a guest language
+ * program to listen to instrumentation events. In addition to {@link EventListener listeners} event
+ * nodes allow to store state for a particular {@link EventContext program location}.
  */
 @NodeInfo(cost = NodeCost.NONE)
 @SuppressWarnings("unused")
@@ -42,24 +42,35 @@ public abstract class EventNode extends Node {
     }
 
     /**
-     * Invoked before an instrumented node is executed. The provided frame is the frame of
-     * instrumented node.
+     * Invoked immediately before the {@link EventContext#getInstrumentedNode() instrumented node}
+     * is executed. The order in which multiple event listeners are notified matches the order they
+     * are {@link Instrumenter#attachListener(SourceSectionFilter, EventListener) attached}.
+     *
+     * @param frame the current frame used in the instrumented node
      */
     protected void onEnter(VirtualFrame frame) {
         // do nothing by default
     }
 
     /**
-     * Invoked after an instrumented node is successfully executed. The provided frame is the frame
-     * of instrumented node.
+     * Invoked immediatly after an {@link EventContext#getInstrumentedNode() instrumented node} is
+     * successfully executed. The order in which multiple event listeners are notified matches the
+     * order they are {@link Instrumenter#attachListener(SourceSectionFilter, EventListener)
+     * attached}.
+     *
+     * @param frame the frame that was used for executing instrumented node
      */
     protected void onReturnValue(VirtualFrame frame, Object result) {
         // do nothing by default
     }
 
     /**
-     * Invoked after an instrumented node did not successfully execute. The provided frame is the
-     * frame of instrumented node.
+     * Invoked immediately after an {@link EventContext#getInstrumentedNode() instrumented node} did
+     * not successfully execute. The order in which multiple event listeners are notified matches
+     * the order they are {@link Instrumenter#attachListener(SourceSectionFilter, EventListener)
+     * attached}.
+     *
+     * @param frame the frame that was used for executing instrumented node
      */
     protected void onReturnExceptional(VirtualFrame frame, Throwable exception) {
         // do nothing by default
@@ -69,8 +80,11 @@ public abstract class EventNode extends Node {
      * Invoked when an event node is removed from the AST. This happens if the underlying binding,
      * language/instrument or engine is disposed. Event nodes are removed lazily. This means that
      * {@link #onDispose(VirtualFrame)} is invoked the next time the particular part of the AST is
-     * executed. If the instrumented AST is not invoked anymore after it was disposed then
-     * {@link #onDispose(VirtualFrame)} is not executed.
+     * executed. If the {@link EventContext#getInstrumentedNode() instrumented node} is not invoked
+     * anymore after it was disposed then {@link #onDispose(VirtualFrame)} might or might not be
+     * executed.
+     *
+     * @param frame the frame that was used for executing instrumented node
      */
     protected void onDispose(VirtualFrame frame) {
     }

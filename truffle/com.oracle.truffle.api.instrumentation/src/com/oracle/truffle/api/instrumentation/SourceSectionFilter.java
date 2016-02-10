@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 
@@ -69,7 +70,7 @@ public final class SourceSectionFilter {
      * @see Builder#lineIs(int)
      * @see Builder#build()
      *
-     * @return a new builder to create
+     * @return a new builder to create new {@link SourceSectionFilter} instances
      */
     public static Builder newBuilder() {
         return new Builder();
@@ -90,7 +91,9 @@ public final class SourceSectionFilter {
         }
 
         /**
-         * Add a filter for all source sections that declare one of the given mime-types.
+         * Add a filter for all source sections that declare one of the given mime-types. Mime-types
+         * which are compared must match exactly one of the mime-types specified in
+         * {@link TruffleLanguage.Registration#mimeType()}.
          */
         public Builder mimeTypeIs(String... mimeTypes) {
             verifyNotNull(mimeTypes);

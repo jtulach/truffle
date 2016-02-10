@@ -73,6 +73,7 @@ public final class SourceSection {
      * @param startColumn the 1-based number of the start column of the section
      * @param charIndex the 0-based index of the first character of the section
      * @param charLength the length of the section in number of characters
+     * @param tags the assigned tags for the source section
      */
     SourceSection(String kind, Source source, String identifier, int startLine, int startColumn, int charIndex, int charLength, String[] tags) {
         this.kind = kind;
