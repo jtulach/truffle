@@ -73,12 +73,16 @@ final class InstrumentationHandler {
      */
     private final Map<Object, AbstractInstrumenter> instrumentations = new HashMap<>();
 
-    private final Env env;
-
     private boolean initialized;
 
-    private InstrumentationHandler(Env env) {
-        this.env = env;
+    private final OutputStream out;
+    private final OutputStream err;
+    private final InputStream in;
+
+    private InstrumentationHandler(OutputStream out, OutputStream err, InputStream in) {
+        this.out = out;
+        this.err = err;
+        this.in = in;
     }
 
     void installRootNode(RootNode root) {
@@ -93,7 +97,7 @@ final class InstrumentationHandler {
     }
 
     void addInstrumentation(Object key, Class<?> clazz) {
-        addInstrumenter(key, new InstrumentationInstrumenter(clazz));
+        addInstrumenter(key, new InstrumentationInstrumenter(clazz, out, err, in));
     }
 
     void disposeInstrumentation(Object key, boolean cleanupRequired) {
@@ -540,9 +544,11 @@ final class InstrumentationHandler {
         private final Class<?> instrumentationClass;
         private Object[] services;
         private TruffleInstrument instrumentation;
+        private final Env env;
 
-        InstrumentationInstrumenter(Class<?> instrumentationClass) {
+        InstrumentationInstrumenter(Class<?> instrumentationClass, OutputStream out, OutputStream err, InputStream in) {
             this.instrumentationClass = instrumentationClass;
+            this.env = new Env(this, out, err, in);
         }
 
         @Override
@@ -550,12 +556,12 @@ final class InstrumentationHandler {
             return true;
         }
 
-        Env getEnv() {
-            return env;
-        }
-
         Class<?> getInstrumentationClass() {
             return instrumentationClass;
+        }
+
+        Env getEnv() {
+            return env;
         }
 
         @Override
@@ -571,7 +577,7 @@ final class InstrumentationHandler {
                 return;
             }
             try {
-                services = env.onCreate(instrumentation, this);
+                services = env.onCreate(instrumentation);
             } catch (Throwable e) {
                 failInstrumentationInitialization(String.format("Failed calling onCreate of instrumentation class %s", instrumentationClass.getName()), e);
                 return;
@@ -705,7 +711,7 @@ final class InstrumentationHandler {
 
         @Override
         protected Object createInstrumentationHandler(Object vm, OutputStream out, OutputStream err, InputStream in) {
-            return new InstrumentationHandler(new Env(out, err, in));
+            return new InstrumentationHandler(out, err, in);
         }
 
         @Override

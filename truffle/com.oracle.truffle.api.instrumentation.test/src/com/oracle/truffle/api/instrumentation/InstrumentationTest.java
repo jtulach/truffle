@@ -67,7 +67,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
         private static int count;
 
         @Override
-        protected void onCreate(Env env, Instrumenter instrumenter) {
+        protected void onCreate(Env env) {
             count++;
         }
     }
@@ -88,7 +88,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
     @Registration(name = "name", version = "version", id = "testMetadataType1")
     public static class MetadataInstrumentation extends TruffleInstrument {
         @Override
-        protected void onCreate(Env env, Instrumenter instrumenter) {
+        protected void onCreate(Env env) {
         }
     }
 
@@ -107,7 +107,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
     @Registration
     public static class MetadataInstrumentation2 extends TruffleInstrument {
         @Override
-        protected void onCreate(Env env, Instrumenter instrumenter) {
+        protected void onCreate(Env env) {
         }
     }
 
@@ -161,7 +161,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
         }
 
         @Override
-        protected void onCreate(Env env, Instrumenter instrumenter) {
+        protected void onCreate(Env env) {
             onCreateCounter++;
         }
 
@@ -312,7 +312,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
     public static class TestInstrumentationException1 extends TruffleInstrument {
 
         @Override
-        protected void onCreate(Env env, Instrumenter instrumenter) {
+        protected void onCreate(Env env) {
             throw new MyLanguageException();
         }
 
@@ -344,8 +344,8 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
         static int returnedValue = 0;
 
         @Override
-        protected void onCreate(Env env, Instrumenter instrumenter) {
-            instrumenter.attachListener(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.EXPRESSION).build(), new EventListener() {
+        protected void onCreate(Env env) {
+            env.getInstrumenter().attachListener(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.EXPRESSION).build(), new EventListener() {
 
                 public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
                     returnedValue++;
@@ -388,8 +388,8 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
         static int onEnter = 0;
 
         @Override
-        protected void onCreate(Env env, Instrumenter instrumenter) {
-            instrumenter.attachListener(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.EXPRESSION).build(), new EventListener() {
+        protected void onCreate(Env env) {
+            env.getInstrumenter().attachListener(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.EXPRESSION).build(), new EventListener() {
 
                 public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
                     throw new MyLanguageException();
@@ -465,8 +465,8 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
         static int onReturnExceptional = 0;
 
         @Override
-        protected void onCreate(Env env, Instrumenter instrumenter) {
-            instrumenter.attachFactory(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.EXPRESSION).build(), new EventNodeFactory() {
+        protected void onCreate(Env env) {
+            env.getInstrumenter().attachFactory(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.EXPRESSION).build(), new EventNodeFactory() {
                 public EventNode create(EventContext context) {
                     createCalls++;
                     return new EventNode() {
@@ -517,8 +517,8 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
         static int onStatement = 0;
 
         @Override
-        protected void onCreate(final Env env, Instrumenter instrumenter) {
-            instrumenter.attachFactory(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.STATEMENT).build(), new EventNodeFactory() {
+        protected void onCreate(final Env env) {
+            env.getInstrumenter().attachFactory(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.STATEMENT).build(), new EventNodeFactory() {
                 public EventNode create(EventContext context) {
 
                     final CallTarget target;
@@ -541,7 +541,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
                 }
             });
 
-            instrumenter.attachListener(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.EXPRESSION).build(), new EventListener() {
+            env.getInstrumenter().attachListener(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.EXPRESSION).build(), new EventListener() {
 
                 public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
                 }
@@ -584,8 +584,8 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
         static int onStatement = 0;
 
         @Override
-        protected void onCreate(final Env env, Instrumenter instrumenter) {
-            instrumenter.attachFactory(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.STATEMENT).build(), new EventNodeFactory() {
+        protected void onCreate(final Env env) {
+            env.getInstrumenter().attachFactory(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.STATEMENT).build(), new EventNodeFactory() {
                 public EventNode create(EventContext context) {
 
                     final CallTarget target;
@@ -608,7 +608,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
                 }
             });
 
-            instrumenter.attachListener(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.EXPRESSION).build(), new EventListener() {
+            env.getInstrumenter().attachListener(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.EXPRESSION).build(), new EventListener() {
 
                 public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
                 }
@@ -643,8 +643,8 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
         static int onStatement = 0;
 
         @Override
-        protected void onCreate(final Env env, Instrumenter instrumenter) {
-            instrumenter.attachListener(SourceSectionFilter.newBuilder().build(), new EventListener() {
+        protected void onCreate(final Env env) {
+            env.getInstrumenter().attachListener(SourceSectionFilter.newBuilder().build(), new EventListener() {
                 public void onEnter(EventContext context, VirtualFrame frame) {
                     onStatement++;
                 }
@@ -677,8 +677,8 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
         static int onStatement = 0;
 
         @Override
-        protected void onCreate(final Env env, Instrumenter instrumenter) {
-            instrumenter.attachListener(SourceSectionFilter.newBuilder().build(), new EventListener() {
+        protected void onCreate(final Env env) {
+            env.getInstrumenter().attachListener(SourceSectionFilter.newBuilder().build(), new EventListener() {
                 public void onEnter(EventContext context, VirtualFrame frame) {
                     onStatement++;
                 }

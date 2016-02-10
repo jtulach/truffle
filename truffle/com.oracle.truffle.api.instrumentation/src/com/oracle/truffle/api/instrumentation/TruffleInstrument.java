@@ -31,30 +31,29 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.source.Source;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * <p>
  * This instrumentation service provider interface (SPI) provides a way to observe and inject
  * behavior into interpreters written using the Truffle framework. A registered instrumentation can
  * get created and disposed mulitple times by the runtime system. But only one instance is active
- * per runtime system. When the instrumentation gets created then
- * {@link #onCreate(Env, Instrumenter)} and when it is disposed {@link #onDispose(Env)} gets
- * invoked. Instrumentations can bind listeners to the execution of guest languages by using the
- * {@link Instrumenter instrumenter} class that is passed as parameter
- * {@link #onCreate(Env, Instrumenter)}. For each instrumentation instance
- * {@link #onCreate(Env, Instrumenter)} and {@link #onDispose(Env)} is invoked exactly once.
+ * per runtime system. When the instrumentation gets created then {@link #onCreate(Env)} and when it
+ * is disposed {@link #onDispose(Env)} gets invoked. Instrumentations can bind listeners to the
+ * execution of guest languages by using the {@link Instrumenter instrumenter} class that is passed
+ * as parameter {@link #onCreate(Env)}. For each instrumentation instance {@link #onCreate(Env)} and
+ * {@link #onDispose(Env)} is invoked exactly once.
  * </p>
  *
  * <p>
  * After the instrumentation is {@link #onDispose(Env) disposed} the {@link Instrumenter} passed in
- * {@link #onCreate(Env, Instrumenter) onCreate} must not be used anymore. Bindings created by the
- * instrumentation are disposed as soon as the instrumentation is disposed. There is no need to
- * dispose them manually {@link TruffleInstrument#onDispose(Env) on dispose}.
+ * {@link #onCreate(Env) onCreate} must not be used anymore. Bindings created by the instrumentation
+ * are disposed as soon as the instrumentation is disposed. There is no need to dispose them
+ * manually {@link TruffleInstrument#onDispose(Env) on dispose}.
  * </p>
  *
  * <p>
@@ -67,13 +66,13 @@ import java.util.List;
  * <pre>
  * &#064;Registration(name = Coverage.NAME, version = Coverage.VERSION, instrumentType = Coverage.TYPE)
  * public final class Coverage extends Instrumentation {
- * 
+ *
  *     public static final String NAME = &quot;sample-coverage&quot;;
  *     public static final String TYPE = &quot;coverage&quot;;
  *     public static final String VERSION = &quot;coverage&quot;;
- * 
+ *
  *     private final Set&lt;SourceSection&gt; coverage = new HashSet&lt;&gt;();
- * 
+ *
  *     &#064;Override
  *     protected void onCreate(Env env, Instrumenter instrumenter) {
  *         instrumenter.attachFactory(SourceSectionFilter.newBuilder() //
@@ -81,7 +80,7 @@ import java.util.List;
  *             public EventNode create(final EventContext context) {
  *                 return new EventNode() {
  *                     &#064;CompilationFinal private boolean visited;
- * 
+ *
  *                     &#064;Override
  *                     public void onReturnValue(VirtualFrame vFrame, Object result) {
  *                         if (!visited) {
@@ -94,12 +93,12 @@ import java.util.List;
  *             }
  *         });
  *     }
- * 
+ *
  *     &#064;Override
  *     protected void onDispose(Env env) {
  *         // print result
  *     }
- * 
+ *
  * }
  * </pre>
  */
@@ -107,24 +106,29 @@ public abstract class TruffleInstrument {
 
     /**
      * Method invoked if the instrumentation is allocated and used by the runtime system. Invoked
-     * exactly once per {@link TruffleInstrument} instance. The method may
-     * {@link Env#registerService(java.lang.Object) register} additional <em>services</em> - e.g.
-     * objects to be exposes via {@link com.oracle.truffle.api.vm.PolyglotEngine.Instrument#lookup}
-     * query. For example to expose a debugger one could define an abstract debugger controller:
-     * 
+     * exactly once per {@link TruffleInstrument} instance.
+     *
+     * <p>
+     * The method may {@link Env#registerService(java.lang.Object) register} additional
+     * <em>services</em> - e.g. objects to be exposes via
+     * {@link com.oracle.truffle.api.vm.PolyglotEngine.Instrument#lookup} query. For example to
+     * expose a debugger one could define an abstract debugger controller:
+     * </p>
+     *
      * {@codesnippet DebuggerController}
-     * 
+     *
      * and then implement it, instantiate and @link Env#registerService(java.lang.Object) register}
      * in own's instrument
-     * {@link #onCreate(com.oracle.truffle.api.instrumentation.TruffleInstrument.Env, com.oracle.truffle.api.instrumentation.Instrumenter)
-     * onCreate} method:
-     * 
+     * {@link #onCreate(com.oracle.truffle.api.instrumentation.TruffleInstrument.Env) onCreate}
+     * method:
+     *
      * {@codesnippet DebuggerExample}
      *
      * @param env environment information for the instrumentation
-     * @param instrumenter to attach event bindings to the runtime system
+     *
+     * @see Env#getInstrumenter()
      */
-    protected abstract void onCreate(Env env, Instrumenter instrumenter);
+    protected abstract void onCreate(Env env);
 
     /**
      * Method invoked if the instrument is disabled or the underlying engine is disposed. Invoked
@@ -143,15 +147,26 @@ public abstract class TruffleInstrument {
      */
     public static final class Env {
 
+        private final Instrumenter instrumenter;
         private final InputStream in;
         private final OutputStream err;
         private final OutputStream out;
         private List<Object> services;
 
-        Env(OutputStream out, OutputStream err, InputStream in) {
+        Env(Instrumenter instrumenter, OutputStream out, OutputStream err, InputStream in) {
+            this.instrumenter = instrumenter;
             this.in = in;
             this.err = err;
             this.out = out;
+        }
+
+        /**
+         * Returns the instrumenter which lets you instrument guest language ASTs.
+         *
+         * @see Instrumenter
+         */
+        public Instrumenter getInstrumenter() {
+            return instrumenter;
         }
 
         /**
@@ -186,18 +201,18 @@ public abstract class TruffleInstrument {
 
         /**
          * Registers additional service. This method can be called multiple time, but only during
-         * {@link #onCreate(com.oracle.truffle.api.instrumentation.TruffleInstrument.Env, com.oracle.truffle.api.instrumentation.Instrumenter)
+         * {@link #onCreate(com.oracle.truffle.api.instrumentation.TruffleInstrument.Env)
          * initialization of the instrument}. These services are made available to users via
          * {@link com.oracle.truffle.api.vm.PolyglotEngine.Instrument#lookup} query method.
-         * 
+         *
          * This method can only be called from
-         * {@link #onCreate(com.oracle.truffle.api.instrumentation.TruffleInstrument.Env, com.oracle.truffle.api.instrumentation.Instrumenter)}
-         * method - then the services are collected and cannot be changed anymore.
-         * 
+         * {@link #onCreate(com.oracle.truffle.api.instrumentation.TruffleInstrument.Env)} method -
+         * then the services are collected and cannot be changed anymore.
+         *
          * @param service a service to be returned from associated
          *            {@link com.oracle.truffle.api.vm.PolyglotEngine.Instrument#lookup}
          * @throws IllegalStateException if the method is called later than from
-         *             {@link #onCreate(com.oracle.truffle.api.instrumentation.TruffleInstrument.Env, com.oracle.truffle.api.instrumentation.Instrumenter) }
+         *             {@link #onCreate(com.oracle.truffle.api.instrumentation.TruffleInstrument.Env) }
          *             method
          */
         public void registerService(Object service) {
@@ -207,11 +222,11 @@ public abstract class TruffleInstrument {
             services.add(service);
         }
 
-        Object[] onCreate(TruffleInstrument instrumentation, Instrumenter instrumenter) {
+        Object[] onCreate(TruffleInstrument instrumentation) {
             List<Object> arr = new ArrayList<>();
             services = arr;
             try {
-                instrumentation.onCreate(this, instrumenter);
+                instrumentation.onCreate(this);
             } finally {
                 services = null;
             }
@@ -263,9 +278,9 @@ public abstract class TruffleInstrument {
 
         /**
          * Whether or not the annotated instrumentation should be enabled by default. If autostart
-         * is <code>true</code> then {@link TruffleInstrument#onCreate(Env, Instrumenter)} is
-         * invoked for this instrument just before the first guest language code is executed. If
-         * autostart is <code>false</code> then the instrument needs to be enabled using the engine.
+         * is <code>true</code> then {@link TruffleInstrument#onCreate(Env)} is invoked for this
+         * instrument just before the first guest language code is executed. If autostart is
+         * <code>false</code> then the instrument needs to be enabled using the engine.
          */
         boolean autostart() default false;
 

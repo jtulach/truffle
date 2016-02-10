@@ -41,7 +41,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.EventNode;
 import com.oracle.truffle.api.instrumentation.EventNodeFactory;
-import com.oracle.truffle.api.instrumentation.Instrumenter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter.Builder;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
@@ -76,7 +75,7 @@ public class TruffleProfiler extends TruffleInstrument {
     private boolean disposed;
 
     @Override
-    protected void onCreate(final Env env, Instrumenter instrumenter) {
+    protected void onCreate(final Env env) {
         if (!isEnabled()) {
             return;
         }
@@ -88,7 +87,7 @@ public class TruffleProfiler extends TruffleInstrument {
             filterBuilder.mimeTypeIs(mimeTypes);
         }
 
-        instrumenter.attachFactory(filterBuilder.tagIs(ROOT_TAG).build(), new EventNodeFactory() {
+        env.getInstrumenter().attachFactory(filterBuilder.tagIs(ROOT_TAG).build(), new EventNodeFactory() {
             public EventNode create(EventContext context) {
                 return createCountingNode(context);
             }
