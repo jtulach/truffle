@@ -47,11 +47,10 @@ public final class DebuggerInstrument extends TruffleInstrument {
     public Debugger getDebugger(PolyglotEngine engine, Factory factory) {
         if (debugger == null && factory != null) {
             debugger = factory.create(engine, instrumenter);
+            if (debugger == null) {
+                throw new NullPointerException();
+            }
         }
-        if (debugger == null) {
-            throw new IllegalStateException("getDebugger() must return non-null");
-        }
-
         return debugger;
     }
 
