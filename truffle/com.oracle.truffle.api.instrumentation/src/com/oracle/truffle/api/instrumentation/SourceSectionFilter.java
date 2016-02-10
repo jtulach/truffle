@@ -412,6 +412,10 @@ public final class SourceSectionFilter {
 
             SourceSectionEquals(SourceSection... sourceSection) {
                 this.sourceSections = sourceSection;
+                // clear tags
+                for (int i = 0; i < sourceSection.length; i++) {
+                    sourceSections[i] = sourceSection[i].withTags();
+                }
             }
 
             @Override
@@ -419,8 +423,9 @@ public final class SourceSectionFilter {
                 if (s == null) {
                     return false;
                 }
+                SourceSection withoutTags = s.withTags();
                 for (SourceSection compareSection : sourceSections) {
-                    if (s.equals(compareSection)) {
+                    if (withoutTags.equals(compareSection)) {
                         return true;
                     }
                 }
