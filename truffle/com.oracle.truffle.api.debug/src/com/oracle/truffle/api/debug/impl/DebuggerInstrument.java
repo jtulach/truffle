@@ -31,7 +31,7 @@ import com.oracle.truffle.api.instrumentation.TruffleInstrument.Registration;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.vm.PolyglotEngine;
 
-@Registration(id = DebuggerInstrument.ID, autostart = true)
+@Registration(id = DebuggerInstrument.ID)
 public final class DebuggerInstrument extends TruffleInstrument {
     public static final String ID = "debugger";
 

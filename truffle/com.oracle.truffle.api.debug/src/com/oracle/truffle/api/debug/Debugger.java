@@ -108,7 +108,13 @@ public final class Debugger {
         if (instrument == null) {
             throw new IllegalStateException();
         }
+        if (create) {
+            instrument.setEnabled(true);
+        }
         final DebuggerInstrument debugInstrument = instrument.lookup(DebuggerInstrument.class);
+        if (debugInstrument == null) {
+            return null;
+        }
         return debugInstrument.getDebugger(engine, create ? FACTORY : null);
     }
 
