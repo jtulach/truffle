@@ -26,7 +26,6 @@ final class InstrumentCache {
     private final String id;
     private final String name;
     private final String version;
-    private final boolean autostart;
 
     static {
         List<InstrumentCache> instruments = null;
@@ -52,7 +51,6 @@ final class InstrumentCache {
         this.className = info.getProperty(prefix + "className");
         this.name = info.getProperty(prefix + "name");
         this.version = info.getProperty(prefix + "version");
-        this.autostart = Boolean.parseBoolean(info.getProperty(prefix + "autostart"));
         String loadedId = info.getProperty(prefix + "id");
         if (loadedId.equals("")) {
             /* use class name default id */
@@ -110,10 +108,6 @@ final class InstrumentCache {
 
     String getId() {
         return id;
-    }
-
-    boolean isAutostart() {
-        return autostart;
     }
 
     String getName() {

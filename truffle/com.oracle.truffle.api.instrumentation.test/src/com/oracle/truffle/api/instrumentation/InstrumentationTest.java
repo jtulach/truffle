@@ -47,32 +47,6 @@ import com.oracle.truffle.api.vm.PolyglotEngine.Instrument;
 public class InstrumentationTest extends AbstractInstrumentationTest {
 
     /*
-     * Test that instrumentations are invoked at startup once.
-     */
-    @Test
-    public void testAutostart() throws IOException {
-        Assert.assertTrue(engine.getInstruments().get("testAutostart").isEnabled());
-        assertEnabledInstrument("testAutostart");
-        AutostartInstrumentation.count = 0;
-        // we assume lazy start here
-        run("STATEMENT");
-        Assert.assertEquals(1, AutostartInstrumentation.count);
-        run("EXPRESSION");
-        Assert.assertEquals(1, AutostartInstrumentation.count);
-    }
-
-    @Registration(name = "testAutostart", version = "", autostart = true, id = "testAutostart")
-    public static class AutostartInstrumentation extends TruffleInstrument {
-
-        private static int count;
-
-        @Override
-        protected void onCreate(Env env) {
-            count++;
-        }
-    }
-
-    /*
      * Test that metadata is properly propagated to InstrumenationDescriptor objects.
      */
     @Test

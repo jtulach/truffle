@@ -45,6 +45,7 @@ public class TruffleProfilerTest extends AbstractInstrumentationTest {
 
     @Before
     public void setupProfiler() throws IOException {
+        engine.getInstruments().get(TruffleProfiler.ID).setEnabled(true);
         TruffleProfiler.setTestHook(new TestHook() {
             public void onCreate(TruffleProfiler p) {
                 profiler = p;

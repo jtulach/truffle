@@ -50,7 +50,7 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.tools.TruffleProfiler.Counter.TimeKind;
 
-@Registration(id = TruffleProfiler.ID, autostart = true)
+@Registration(id = TruffleProfiler.ID)
 public class TruffleProfiler extends TruffleInstrument {
 
     public static final String ID = "truffle_profiler";

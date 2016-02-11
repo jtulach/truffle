@@ -276,14 +276,6 @@ public abstract class TruffleInstrument {
          */
         String version() default "";
 
-        /**
-         * Whether or not the annotated instrumentation should be enabled by default. If autostart
-         * is <code>true</code> then {@link TruffleInstrument#onCreate(Env)} is invoked for this
-         * instrument just before the first guest language code is executed. If autostart is
-         * <code>false</code> then the instrument needs to be enabled using the engine.
-         */
-        boolean autostart() default false;
-
     }
 
     static {

@@ -184,9 +184,6 @@ public class PolyglotEngine {
         for (InstrumentCache cache : instrumentCaches) {
             Instrument instrument = new Instrument(cache);
             instr.put(cache.getId(), instrument);
-            if (cache.isAutostart()) {
-                instrument.setEnabled(true);
-            }
         }
         return Collections.unmodifiableMap(instr);
     }
@@ -865,7 +862,7 @@ public class PolyglotEngine {
         /**
          * Lookup additional service provided by the instrument. Here is an example how to query for
          * a hypothetical <code>DebuggerController</code>: {@codesnippet DebuggerExampleTest}
-         * 
+         *
          * @param <T> the type of the service
          * @param type class of the service that is being requested
          * @return instance of requested type, or <code>null</code> if no such service is available
