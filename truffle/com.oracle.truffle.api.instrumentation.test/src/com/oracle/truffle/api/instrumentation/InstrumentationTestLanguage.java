@@ -192,7 +192,7 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
             SourceSection sourceSection = source.createSection(null, startIndex, current - startIndex, tag);
             BaseNode[] childArray = children.toArray(new BaseNode[children.size()]);
             BaseNode node = createNode(tag, firstParameterIdent, sourceSection, childArray);
-            node.assignSourceSection(sourceSection);
+            node.setSourceSection(sourceSection);
             return node;
         }
 
@@ -427,6 +427,17 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
     }
 
     public abstract static class BaseNode extends Node {
+
+        private SourceSection sourceSection;
+
+        public void setSourceSection(SourceSection sourceSection) {
+            this.sourceSection = sourceSection;
+        }
+
+        @Override
+        public SourceSection getSourceSection() {
+            return sourceSection;
+        }
 
         public abstract Object execute(VirtualFrame frame);
 
