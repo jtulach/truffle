@@ -68,7 +68,7 @@ public abstract class SLStatementNode extends Node {
     }
 
     protected SLStatementNode(SLStatementNode delegate) {
-        super(delegate.getSourceSection());
+        this(delegate.getSourceSection());
     }
 
     /**
