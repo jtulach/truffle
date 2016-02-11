@@ -56,9 +56,15 @@ import com.oracle.truffle.api.source.SourceSection;
 @NodeInfo(language = "Simple Language", description = "The abstract base node for all statements")
 @Instrumentable(factory = SLStatementNodeWrapper.class)
 public abstract class SLStatementNode extends Node {
+    private final SourceSection section;
 
     public SLStatementNode(SourceSection src) {
-        super(src);
+        section = src;
+    }
+
+    @Override
+    public SourceSection getSourceSection() {
+        return section;
     }
 
     protected SLStatementNode(SLStatementNode delegate) {
