@@ -360,7 +360,6 @@ public abstract class TruffleLanguage<C> {
         private final OutputStream out;
         private final Object[] services;
         private final Instrumenter instrumenter;
-        private final Object[] services;
         private final Map<String, Object> config;
 
         Env(Object vm, TruffleLanguage<?> lang, OutputStream out, OutputStream err, InputStream in, Instrumenter instrumenter, Map<String, Object> config) {

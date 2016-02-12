@@ -39,8 +39,10 @@ public final class DebuggerInstrument extends TruffleInstrument {
     private Instrumenter instrumenter;
 
     @Override
-    protected void onCreate(Env env, Instrumenter originalInstrumenter) {
-        this.instrumenter = originalInstrumenter;
+    // protected void onCreate(Env env, Instrumenter originalInstrumenter) {
+    protected void onCreate(Env env) {
+        // TODO (mlvdv) FIXME
+        // this.instrumenter = originalInstrumenter;
         Source.setFileCaching(true);
     }
 

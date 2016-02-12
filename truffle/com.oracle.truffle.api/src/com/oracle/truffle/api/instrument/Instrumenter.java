@@ -156,7 +156,6 @@ public final class Instrumenter {
      * </ul>
      */
     public abstract static class Tool {
-        // TODO (mlvdv) still thinking about the most appropriate name for this class of tools
 
         private ToolState toolState = ToolState.UNINSTALLED;
 
@@ -549,7 +548,6 @@ public final class Instrumenter {
         return instrument;
     }
 
-    // TODO (mlvdv) allow multiple <em>before</em> instruments without performance hit?
     /**
      * Sets the current "<em>before</em>" TagInstrument; there can be no more than one in effect.
      * <ul>
@@ -574,7 +572,6 @@ public final class Instrumenter {
         return beforeTagInstrument;
     }
 
-    // TODO (mlvdv) allow multiple <em>after</em> instruments without performance hit?
     /**
      * Sets the current "<em>after</em>" TagInstrument; there can be no more than one in effect.
      * <ul>

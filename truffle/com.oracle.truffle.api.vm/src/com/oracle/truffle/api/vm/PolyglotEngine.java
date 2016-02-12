@@ -115,8 +115,8 @@ public class PolyglotEngine {
     private final Object instrumentationHandler; // new instrumentation
     private final Map<String, Instrument> instruments;
     private final List<Object[]> config;
-    private final Debugger debugger;
->    private boolean disposed;
+    // private final Object debugger;
+    private boolean disposed;
 
     static {
         try {
@@ -159,7 +159,7 @@ public class PolyglotEngine {
         this.globals = new HashMap<>(globals);
         this.instrumenter = SPI.createInstrumenter(this);
         this.config = config;
-        this.debugger = SPI.createDebugger(this, this.instrumenter);
+        // this.debugger = SPI.createDebugger(this, this.instrumenter);
         // new instrumentation
         this.instrumentationHandler = SPI.createInstrumentationHandler(this, out, err, in);
         Map<String, Language> map = new HashMap<>();

@@ -115,7 +115,6 @@ public abstract class Accessor {
 
         try {
             Class.forName("com.oracle.truffle.api.instrument.Instrumenter", true, Accessor.class.getClassLoader());
-            Class.forName("com.oracle.truffle.api.debug.Debugger", true, Accessor.class.getClassLoader());
         } catch (ClassNotFoundException ex) {
             throw new IllegalStateException(ex);
         }
