@@ -104,6 +104,7 @@ public class SLDebugTest {
             }
         }).setOut(os).build();
         debugger = Debugger.find(engine);
+        assertNotNull("Debugger found", debugger);
 
         onEvent(new Callable<Void>() {
             @Override

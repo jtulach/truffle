@@ -41,6 +41,7 @@ public final class DebuggerInstrument extends TruffleInstrument {
     @Override
     protected void onCreate(Env env) {
         this.instrumenter = env.getInstrumenter();
+        env.registerService(this);
         Source.setFileCaching(true);
     }
 
