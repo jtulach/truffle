@@ -64,9 +64,6 @@ public class TruffleProfiler extends TruffleInstrument {
 
     private boolean timingDisabled = Boolean.getBoolean("truffle.profiling.timingDisabled");
 
-    @SuppressWarnings("unused") private String includeSources = ""; // TODO implement
-    @SuppressWarnings("unused") private String excludeSources = ""; // TODO implement
-
     // TODO temporary solution until TruffleRuntime#getCallerFrame() is fast
     // I am aware that this is not thread safe.
     private Counter activeCounter;
