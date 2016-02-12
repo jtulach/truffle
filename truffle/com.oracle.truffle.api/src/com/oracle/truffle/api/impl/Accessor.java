@@ -35,6 +35,7 @@ import java.util.Set;
 
 import com.oracle.truffle.api.Assumption;
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
@@ -319,6 +320,7 @@ public abstract class Accessor {
     @SuppressWarnings("unused")
     protected Closeable executionStart(Object vm, int currentDepth, Debugger debugger, Source s) {
         vm.getClass();
+        CompilerAsserts.neverPartOfCompilation();
         final Object prev = CURRENT_VM.get();
         final Closeable debugClose = DEBUG.executionStart(vm, prev == null ? 0 : -1, debugger, s);
         if (!(vm == previousVM.get())) {
