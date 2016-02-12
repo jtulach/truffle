@@ -318,7 +318,7 @@ public abstract class Accessor {
     protected Closeable executionStart(Object vm, int currentDepth, boolean debugger, Source s) {
         vm.getClass();
         final Object prev = CURRENT_VM.get();
-        final Closeable debugClose = DEBUG.executionStart(vm, prev == null ? 0 : -1, debugger, s);
+        final Closeable debugClose = DEBUG == null ? null : DEBUG.executionStart(vm, prev == null ? 0 : -1, debugger, s);
         if (!(vm == previousVM.get())) {
             previousVM = new WeakReference<>(vm);
             oneVM.invalidate();
@@ -331,7 +331,9 @@ public abstract class Accessor {
             @Override
             public void close() throws IOException {
                 CURRENT_VM.set(prev);
-                debugClose.close();
+                if (debugClose != null) {
+                    debugClose.close();
+                }
             }
         }
         return new ContextCloseable();
