@@ -89,7 +89,7 @@ public class ThreadSafetyTest {
 
         @Child private ValueNode child;
 
-        public TestRootNode(ValueNode child) {
+        TestRootNode(ValueNode child) {
             super(TestingLanguage.class, null, null);
             this.child = child;
         }
@@ -102,8 +102,7 @@ public class ThreadSafetyTest {
 
     abstract static class ValueNode extends Node {
 
-        public ValueNode() {
-            super(null);
+        ValueNode() {
         }
 
         abstract int execute(VirtualFrame frame);
@@ -114,11 +113,11 @@ public class ThreadSafetyTest {
         @Child private ValueNode child;
         private final Random random;
 
-        public RewritingNode(ValueNode child) {
+        RewritingNode(ValueNode child) {
             this(child, new Random());
         }
 
-        public RewritingNode(ValueNode child, Random random) {
+        RewritingNode(ValueNode child, Random random) {
             this.child = child;
             this.random = random;
         }
@@ -139,7 +138,7 @@ public class ThreadSafetyTest {
         @Child private ValueNode child;
         private final Random random;
 
-        public OtherRewritingNode(ValueNode child, Random random) {
+        OtherRewritingNode(ValueNode child, Random random) {
             this.child = child;
             this.random = random;
         }

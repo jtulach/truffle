@@ -36,7 +36,6 @@ import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.EventNode;
 import com.oracle.truffle.api.instrumentation.EventNodeFactory;
 import com.oracle.truffle.api.instrumentation.InstrumentationTestLanguage;
-import com.oracle.truffle.api.instrumentation.Instrumenter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument.Registration;
@@ -50,7 +49,7 @@ public class StatementProfilerExample extends TruffleInstrument {
     private final Map<SourceSection, Counter> counters = Collections.synchronizedMap(new HashMap<SourceSection, Counter>());
 
     @Override
-    protected void onCreate(Env env, Instrumenter instrumenter) {
+    protected void onCreate(Env env) {
         for (Class<? extends ProfilerFrontEnd> frontEnd : installedFrontEnds) {
             try {
                 frontEnd.newInstance().onAttach(this);
@@ -58,7 +57,7 @@ public class StatementProfilerExample extends TruffleInstrument {
                 throw new RuntimeException(e);
             }
         }
-        instrumenter.attachFactory(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.STATEMENT).build(), new EventNodeFactory() {
+        env.getInstrumenter().attachFactory(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.STATEMENT).build(), new EventNodeFactory() {
             public EventNode create(final EventContext context) {
                 return new EventNode() {
                     private final Counter counter = createCounter(context.getInstrumentedSourceSection());

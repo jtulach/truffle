@@ -27,11 +27,9 @@ package com.oracle.truffle.api.instrumentation;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 
 /**
- * As opposed to an {@link EventListener event listener} an {@link EventNode event node factory}
- * gets invoked to install a {@link EventNode node} for a source location. The factory might be
- * invoked multiple times for a single source location but the location does never change for a
- * particular returned event node. This allows cache compilation constant values per source
- * location.
+ * Event node factories are factories of event nodes for a {@link EventContext program location}.
+ * The factory might be invoked multiple times for one and the same source location but the location
+ * does never change for a particular returned event node.
  *
  * <p>
  * For example it makes sense to register a performance counter on {@link #create(EventContext) } and

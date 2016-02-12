@@ -25,13 +25,12 @@
 package com.oracle.truffle.api.instrumentation;
 
 /**
- * Interface to the runtime system to attach {@link EventBinding bindings} from
- * {@link EventNodeFactory} and {@link EventListener} instances to a set of runtime events specified
- * by a {@link SourceSectionFilter}.
+ * Provides the capabilities to attach {@link EventNodeFactory} and {@link EventListener} instances
+ * for a set of source locations specified by a {@link SourceSectionFilter}. The result of an
+ * attachment is a {@link EventBinding binding}.
  *
- * When the {@link TruffleInstrument instrument} which has passed the {@link Instrumenter
- * instrumenter} is {@link TruffleInstrument#onDispose(TruffleInstrument.Env) disposed}, then all
- * bindings it has created are disposed automatically.
+ * @see #attachFactory(SourceSectionFilter, EventNodeFactory)
+ * @see #attachListener(SourceSectionFilter, EventListener)
  */
 public abstract class Instrumenter {
 
@@ -39,14 +38,14 @@ public abstract class Instrumenter {
     }
 
     /**
-     * Attaches a {@link EventNodeFactory factory} to the current runtime system and returns a
-     * {@link EventBinding binding} which represents a handle to the attachment.
+     * Starts event notification for a given {@link EventNodeFactory factory} and returns a
+     * {@link EventBinding binding} which represents a handle to dispose the notification.
      */
     public abstract <T extends EventNodeFactory> EventBinding<T> attachFactory(SourceSectionFilter filter, T factory);
 
     /**
-     * Attaches a {@link EventListener listener} to the current runtime system and returns a
-     * {@link EventBinding binding} which represents a handle to the attachment.
+     * Starts event notification for a given {@link EventListener listeenr} and returns a
+     * {@link EventBinding binding} which represents a handle to dispose the notification.
      */
     public abstract <T extends EventListener> EventBinding<T> attachListener(SourceSectionFilter filter, T listener);
 

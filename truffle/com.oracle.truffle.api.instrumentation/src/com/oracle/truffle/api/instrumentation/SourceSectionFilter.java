@@ -69,13 +69,17 @@ public final class SourceSectionFilter {
      * @see Builder#lineIs(int)
      * @see Builder#build()
      *
-     * @return a new builder to create
+     * @return a new builder to create new {@link SourceSectionFilter} instances
      */
     public static Builder newBuilder() {
-        return new Builder();
+        return new SourceSectionFilter(null, null).new Builder();
     }
 
-    public static final class Builder {
+    /**
+     * Configure your own {@link SourceSectionFilter} before creating its instance. Specify various
+     * parameters by calling individual {@link Builder} methods. When done, call {@link #build()}.
+     */
+    public final class Builder {
 
         private List<EventFilterExpression> nodeExpressions = new ArrayList<>();
         private List<EventFilterExpression> rootNodeExpressions = new ArrayList<>();
@@ -90,7 +94,9 @@ public final class SourceSectionFilter {
         }
 
         /**
-         * Add a filter for all source sections that declare one of the given mime-types.
+         * Add a filter for all source sections that declare one of the given mime-types. Mime-types
+         * which are compared must match exactly one of the mime-types specified by the target guest
+         * language.
          */
         public Builder mimeTypeIs(String... mimeTypes) {
             verifyNotNull(mimeTypes);
@@ -178,7 +184,7 @@ public final class SourceSectionFilter {
                             nodeExpressions.toArray(new EventFilterExpression[nodeExpressions.size()]));
         }
 
-        private static void verifyNotNull(Object[] values) {
+        private void verifyNotNull(Object[] values) {
             if (values == null) {
                 throw new IllegalArgumentException("Given arguments must not be null.");
             }
@@ -259,15 +265,9 @@ public final class SourceSectionFilter {
 
         protected abstract int getOrder();
 
-        @SuppressWarnings("unused")
-        boolean isIncluded(SourceSection sourceSection) {
-            return true;
-        }
+        abstract boolean isIncluded(SourceSection sourceSection);
 
-        @SuppressWarnings("unused")
-        boolean isRootIncluded(SourceSection rootSection) {
-            return true;
-        }
+        abstract boolean isRootIncluded(SourceSection rootSection);
 
         public final int compareTo(EventFilterExpression o) {
             return o.getOrder() - getOrder();
@@ -297,6 +297,11 @@ public final class SourceSectionFilter {
                     }
                 }
                 return false;
+            }
+
+            @Override
+            boolean isIncluded(SourceSection sourceSection) {
+                return true;
             }
 
             @Override
@@ -346,6 +351,11 @@ public final class SourceSectionFilter {
                     }
                 }
                 return false;
+            }
+
+            @Override
+            boolean isIncluded(SourceSection sourceSection) {
+                return true;
             }
 
             @Override
@@ -401,6 +411,11 @@ public final class SourceSectionFilter {
             }
 
             @Override
+            boolean isRootIncluded(SourceSection rootSection) {
+                return true;
+            }
+
+            @Override
             protected int getOrder() {
                 return 4;
             }
@@ -441,6 +456,11 @@ public final class SourceSectionFilter {
             }
 
             @Override
+            boolean isRootIncluded(SourceSection rootSection) {
+                return true;
+            }
+
+            @Override
             protected int getOrder() {
                 return 5;
             }
@@ -462,6 +482,10 @@ public final class SourceSectionFilter {
 
             SourceSectionEquals(SourceSection... sourceSection) {
                 this.sourceSections = sourceSection;
+                // clear tags
+                for (int i = 0; i < sourceSection.length; i++) {
+                    sourceSections[i] = sourceSection[i].withTags();
+                }
             }
 
             @Override
@@ -469,8 +493,9 @@ public final class SourceSectionFilter {
                 if (s == null) {
                     return false;
                 }
+                SourceSection withoutTags = s.withTags();
                 for (SourceSection compareSection : sourceSections) {
-                    if (s.equals(compareSection)) {
+                    if (withoutTags.equals(compareSection)) {
                         return true;
                     }
                 }

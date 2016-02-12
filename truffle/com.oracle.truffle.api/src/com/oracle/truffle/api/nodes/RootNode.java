@@ -66,6 +66,7 @@ public abstract class RootNode extends Node {
         this(language, sourceSection, frameDescriptor, true);
     }
 
+    @SuppressWarnings("deprecation")
     private RootNode(Class<? extends TruffleLanguage> language, SourceSection sourceSection, FrameDescriptor frameDescriptor, boolean checkLanguage) {
         super(sourceSection);
         if (checkLanguage) {
@@ -195,13 +196,13 @@ public abstract class RootNode extends Node {
 
         private final Object value;
 
-        public Constant(Object value) {
+        Constant(Object value) {
             super(TruffleLanguage.class, null, null);
             this.value = value;
         }
 
         @Override
-        public Object execute(VirtualFrame vf) {
+        public Object execute(VirtualFrame frame) {
             return value;
         }
     }

@@ -81,8 +81,15 @@ public class InstrumentableTest {
     @Instrumentable(factory = TestNode2Wrapper.class)
     public abstract static class TestNode2 extends Node {
 
+        private final SourceSection sourceSection;
+
         public TestNode2(SourceSection sourceSection) {
-            assignSourceSection(sourceSection);
+            this.sourceSection = sourceSection;
+        }
+
+        @Override
+        public SourceSection getSourceSection() {
+            return sourceSection;
         }
 
         public abstract void execute1();

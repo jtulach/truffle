@@ -33,11 +33,13 @@ import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 
 /**
- * Represents the context of an instrumentation event occurred in {@link EventListener} or
- * {@link EventNodeFactory}.
+ * Represents the context of an instrumentation event.
  *
  * Instances of {@link EventContext} should be neither stored, cached nor hashed. The equality and
  * hashing behavior is undefined.
+ *
+ * @see EventNodeFactory
+ * @see EventListener
  */
 public final class EventContext {
 
@@ -63,10 +65,8 @@ public final class EventContext {
     }
 
     /**
-     * Accessor to the instrumented node at which the event occurred. Instrumentation languages that
-     * are specific to guest languages may decide to cast this node to their corresponding guest
-     * language implementation specific type.
-     *
+     * Accessor to the instrumented node at which the event occurred. The returned AST must not be
+     * mutated by the user.
      * <p>
      * <b>Performance note:</b> this is method may be invoked in compiled code and is guaranteed to
      * always return a compilation constant .

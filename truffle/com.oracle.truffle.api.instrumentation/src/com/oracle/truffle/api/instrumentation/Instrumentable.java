@@ -35,19 +35,28 @@ import com.oracle.truffle.api.source.SourceSection;
 
 /**
  * <p>
- * Marks a guest language AST node class as instrumentable. An instrumentable node must provide a
- * {@link SourceSection} and a {@link #factory() wrapper factory} to create a wrapper for the
- * instrumentable node. Wrapper factories can be inherited by subclasses.
+ * Marks a guest language AST node class as instrumentable which allows instrumentations to listen
+ * to before and after execution events. An instrumentable node must provide a {@link SourceSection}
+ * and a {@link #factory() wrapper factory} to create a wrapper for the instrumentable node. Wrapper
+ * factories can be inherited by subclasses.
  * </p>
  * <p>
- * {@link Instrumentable} nodes must extend {@link Node}. The instrumentation framework will
- * {@link Node#replace(Node) replace} the instrumentable node with a {@link WrapperNode} and
- * delegate to the original node. For that at least one method starting with execute must be
- * non-private and non-final.
+ * {@link Instrumentable} nodes must extend {@link Node}. The instrumentation framework will, when
+ * needed during execution, {@link Node#replace(Node) replace} the instrumentable node with a
+ * {@link WrapperNode} and delegate to the original node. After the replacement of an instrumentable
+ * node with a wrapper we refer to the original node as an instrumented node.
+ * </p>
+ * <p>
+ * Wrappers can be generated automatically using an annotation processor. For that a class literal
+ * named {WrappedNode}Wrapper must be used. If the referenced class was not found on the classpath
+ * it will get generated. If the automatically generated wrapper factory and wrapper classes are not
+ * suitable for the needs of the guest language then {@link InstrumentableFactory} can also be
+ * implemented manually and referenced in {@link #factory()} using a class literal.
  * </p>
  * <p>
  * Example for a minimal implementation of an {@link Instrumentable instrumentable} node with a
- * generated wrapper.
+ * generated wrapper. For that at least one method starting with execute must be non-private and
+ * non-final.
  *
  * <pre>
  * &#064;Instrumentable(factory = BaseNodeWrapper.class)

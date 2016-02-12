@@ -60,7 +60,7 @@ public final class NodeUtil {
     private static final class RecursiveNodeIterator implements Iterator<Node> {
         private final List<Iterator<Node>> iteratorStack = new ArrayList<>();
 
-        public RecursiveNodeIterator(final Node node) {
+        RecursiveNodeIterator(final Node node) {
             iteratorStack.add(new Iterator<Node>() {
 
                 private boolean visited;
@@ -830,7 +830,7 @@ public final class NodeUtil {
         public int count;
         private final NodeCountFilter filter;
 
-        public NodeCounter(NodeCountFilter filter) {
+        NodeCounter(NodeCountFilter filter) {
             this.filter = filter;
         }
 

@@ -27,28 +27,40 @@ package com.oracle.truffle.api.instrumentation;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 /**
- * A listener attached by an {@link Instrumenter} using a {@link SourceSectionFilter} to specific
- * locations of a guest language program. Listeners are shared across all source locations specified
- * by the {@link SourceSectionFilter}. Use event listeners if your instrumentation does not need to
- * store state per source location. If it is recommended to use a {@link EventNodeFactory} instead.
+ * A listener attached by an {@link Instrumenter} to specific locations of a guest language program
+ * to listen to instrumentation events.
  */
 public interface EventListener {
 
     /**
-     * Invoked before an instrumented node is executed. The provided frame is the frame of
-     * instrumented node.
+     * Invoked immediately before the {@link EventContext#getInstrumentedNode() instrumented node}
+     * is executed. The order in which multiple event listeners are notified matches the order they
+     * are {@link Instrumenter#attachListener(SourceSectionFilter, EventListener) attached}.
+     *
+     * @param context indicating the current location in the guest language AST
+     * @param frame the frame that was used for executing instrumented node
      */
     void onEnter(EventContext context, VirtualFrame frame);
 
     /**
-     * Invoked after an instrumented node is successfully executed. The provided frame is the frame
-     * of instrumented node.
+     * Invoked immediatly after an {@link EventContext#getInstrumentedNode() instrumented node} is
+     * successfully executed. The order in which multiple event listeners are notified matches the
+     * order they are {@link Instrumenter#attachListener(SourceSectionFilter, EventListener)
+     * attached}.
+     *
+     * @param context indicating the current location in the guest language AST
+     * @param frame the frame that was used for executing instrumented node
      */
     void onReturnValue(EventContext context, VirtualFrame frame, Object result);
 
     /**
-     * Invoked after an instrumented node did not successfully execute. The provided frame is the
-     * frame of instrumented node.
+     * Invoked immediately after an {@link EventContext#getInstrumentedNode() instrumented node} did
+     * not successfully execute. The order in which multiple event listeners are notified matches
+     * the order they are {@link Instrumenter#attachListener(SourceSectionFilter, EventListener)
+     * attached}.
+     *
+     * @param context indicating the current location in the guest language AST
+     * @param frame the frame that was used for executing instrumented node
      */
     void onReturnExceptional(EventContext context, VirtualFrame frame, Throwable exception);
 

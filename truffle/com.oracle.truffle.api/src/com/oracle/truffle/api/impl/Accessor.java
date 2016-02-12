@@ -110,7 +110,7 @@ public abstract class Accessor {
             }
         };
         lng.hashCode();
-        new Node(null) {
+        new Node() {
         }.getRootNode();
 
         try {
@@ -160,8 +160,8 @@ public abstract class Accessor {
         }
     }
 
-    protected Env attachEnv(Object vm, TruffleLanguage<?> language, OutputStream stdOut, OutputStream stdErr, InputStream stdIn, Instrumenter instrumenter) {
-        return API.attachEnv(vm, language, stdOut, stdErr, stdIn, instrumenter);
+    protected Env attachEnv(Object vm, TruffleLanguage<?> language, OutputStream stdOut, OutputStream stdErr, InputStream stdIn, Instrumenter instrumenter, Map<String, Object> config) {
+        return API.attachEnv(vm, language, stdOut, stdErr, stdIn, instrumenter, config);
     }
 
     protected Object eval(TruffleLanguage<?> l, Source s, Map<Source, CallTarget> cache) throws IOException {
@@ -212,6 +212,10 @@ public abstract class Accessor {
 
     protected WrapperNode createWrapperNode(Node node, TruffleLanguage<?> language) {
         return API.createWrapperNode(node, language);
+    }
+
+    protected boolean isMimeTypeSupported(Object vm, String mimeType) {
+        return SPI.isMimeTypeSupported(vm, mimeType);
     }
 
     @SuppressWarnings("rawtypes")
