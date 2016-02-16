@@ -101,8 +101,8 @@ public class SLNodeFactory {
     private static final String[] ROOT_TAGS = {Debugger.ROOT_TAG};
     private static final String[] BLOCK_TAGS = {Debugger.BLOCK_TAG};
     private static final String[] STATEMENT_TAGS = {Debugger.HALT_TAG};
-    private static final String[] CALL_TAGS = {Debugger.CALL_TAG, Debugger.HALT_TAG};
-    private static final String[] EXPRESSION_TAGS = {Debugger.EXPR_TAG, Debugger.HALT_TAG};
+    private static final String[] CALL_TAGS = {Debugger.CALL_TAG};
+    private static final String[] EXPRESSION_TAGS = {Debugger.EXPR_TAG};
 
     /**
      * Local variable names that are visible in the current block. Variables are not visible outside
