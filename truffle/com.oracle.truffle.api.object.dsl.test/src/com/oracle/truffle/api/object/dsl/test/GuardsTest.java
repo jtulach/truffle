@@ -54,8 +54,8 @@ public class GuardsTest {
 
     }
 
-    private static final GuardsTestLayout LAYOUT = GuardsTestLayoutImpl.INSTANCE;
-    private static final GuardsTestNegativeLayout NEGATIVE_LAYOUT = GuardsTestNegativeLayoutImpl.INSTANCE;
+    private static final GuardsTestLayout LAYOUT = Layouts.GUARDSTEST;
+    private static final GuardsTestNegativeLayout NEGATIVE_LAYOUT = Layouts.GUARDSTESTNEGATIVE;
 
     @Test
     public void testGuardDynamicObjectPositive() {

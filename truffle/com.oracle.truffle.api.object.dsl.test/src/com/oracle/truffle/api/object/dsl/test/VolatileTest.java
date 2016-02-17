@@ -49,7 +49,7 @@ public class VolatileTest {
 
     }
 
-    private static final VolatileTestLayout LAYOUT = VolatileTestLayoutImpl.INSTANCE;
+    private static final VolatileTestLayout LAYOUT = Layouts.VOLATILETEST;
 
     @Test
     public void testGetVolatile() {

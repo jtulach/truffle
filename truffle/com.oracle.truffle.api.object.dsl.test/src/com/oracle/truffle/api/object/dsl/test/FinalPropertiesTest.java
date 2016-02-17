@@ -42,7 +42,7 @@ public class FinalPropertiesTest {
 
     }
 
-    private static final FinalPropertiesTestLayout LAYOUT = FinalPropertiesTestLayoutImpl.INSTANCE;
+    private static final FinalPropertiesTestLayout LAYOUT = Layouts.FINALPROPERTIESTEST;
 
     @Test
     public void testCreate() {

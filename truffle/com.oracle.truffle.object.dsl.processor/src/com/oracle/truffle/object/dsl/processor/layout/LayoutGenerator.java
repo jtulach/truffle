@@ -33,6 +33,7 @@ import com.oracle.truffle.object.dsl.processor.layout.model.PropertyModel;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class LayoutGenerator {
 
@@ -46,31 +47,17 @@ public class LayoutGenerator {
     }
 
     public void generate(final PrintStream stream) {
-        stream.printf("package %s;%n", layout.getPackageName());
-        stream.println();
-        stream.println("import java.util.EnumSet;");
-        stream.println("import com.oracle.truffle.api.object.*;");
-        stream.println("import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;");
-        stream.println("import com.oracle.truffle.api.CompilerAsserts;");
-        stream.println("import java.util.concurrent.atomic.*;");
-        stream.printf("import %s;%n", layout.getInterfaceFullName());
-
-        if (layout.getSuperLayout() != null) {
-            stream.printf("import %s.%sLayoutImpl;%n", layout.getSuperLayout().getPackageName(), layout.getSuperLayout().getName());
-        }
-
-        stream.println();
-        stream.printf("public class %sLayoutImpl", layout.getName());
+        stream.printf("public static final %s %s = new %sLayoutImpl();%n", layout.getInterfaceFullName(), layout.getName().toUpperCase(Locale.ENGLISH), layout.getName());
+        stream.printf("private static class %sLayoutImpl", layout.getName());
 
         if (layout.getSuperLayout() != null) {
             stream.printf(" extends %sLayoutImpl", layout.getSuperLayout().getName());
         }
 
-        stream.printf(" implements %sLayout {%n", layout.getName());
+        stream.printf(" implements %s {%n", layout.getInterfaceFullName());
 
-        stream.println("    ");
-        stream.printf("    public static final %sLayout INSTANCE = new %sLayoutImpl();%n", layout.getName(), layout.getName());
-        stream.println("    ");
+        stream.println();
+        stream.println();
 
         final String typeSuperclass;
 

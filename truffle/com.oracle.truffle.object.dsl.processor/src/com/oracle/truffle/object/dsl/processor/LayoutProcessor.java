@@ -41,7 +41,13 @@ import javax.tools.Diagnostic.Kind;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.PackageElement;
+import javax.lang.model.element.QualifiedNameable;
 
 @SupportedAnnotationTypes("com.oracle.truffle.api.object.dsl.Layout")
 @SupportedSourceVersion(SourceVersion.RELEASE_7)
@@ -49,29 +55,45 @@ public class LayoutProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnvironment) {
+        Set<PackageElement> packages = new HashSet<>();
+        
         for (Element element : roundEnvironment.getElementsAnnotatedWith(Layout.class)) {
-            processLayout((TypeElement) element);
+            packages.add(findPkg(element));
         }
+        
+        for (PackageElement pe : packages) {
+            TypeElement[] arr = findLayoutElements(pe, new TreeSet<TypeElement>(new TypeComparator())).toArray(new TypeElement[0]);
+                processLayouts(pe, arr);
+        }
+        
 
         return true;
     }
 
-    private void processLayout(TypeElement layoutElement) {
+    private void processLayouts(PackageElement pe, TypeElement... elements) {
         try {
-            final LayoutParser parser = new LayoutParser(this);
-            parser.parse(layoutElement);
-
-            final LayoutModel layout = parser.build();
-
-            final LayoutGenerator generator = new LayoutGenerator(layout);
-
-            final JavaFileObject output = processingEnv.getFiler().createSourceFile(generator.getGeneratedClassName(), layoutElement);
-
+            String fqn = pe.getQualifiedName() + ".Layouts";
+            final JavaFileObject output = processingEnv.getFiler().createSourceFile(fqn, elements);
             try (PrintStream stream = new PrintStream(output.openOutputStream(), false, "UTF8")) {
-                generator.generate(stream);
+                stream.println("package " + pe + ";\n");
+                stream.println("import java.util.EnumSet;");
+                stream.println("import com.oracle.truffle.api.object.*;");
+                stream.println("import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;");
+                stream.println("import com.oracle.truffle.api.CompilerAsserts;");
+                stream.println("import java.util.concurrent.atomic.*;");
+                stream.println("final class Layouts {\n");
+                stream.println("  private Layouts() {}\n");
+                for (TypeElement element : elements) {
+                    final LayoutParser parser = new LayoutParser(this);
+                    parser.parse(element);
+                    final LayoutModel layout = parser.build();
+                    final LayoutGenerator generator = new LayoutGenerator(layout);
+                    generator.generate(stream);
+                }
+                stream.println("}");
             }
         } catch (IOException e) {
-            reportError(layoutElement, "IO error %s while writing code generated from @Layout", e.getMessage());
+            reportError(elements[0], "IO error %s while writing code generated from @Layout", e.getMessage());
         }
     }
 
@@ -80,4 +102,29 @@ public class LayoutProcessor extends AbstractProcessor {
         processingEnv.getMessager().printMessage(Kind.ERROR, message, element);
     }
 
+    private PackageElement findPkg(Element element) {
+        for (;;) {
+            if (element.getKind() == ElementKind.PACKAGE) {
+                return (PackageElement) element;
+            }
+            element = element.getEnclosingElement();
+        }
+    }
+
+    private Set<TypeElement> findLayoutElements(Element element, Set<TypeElement> collectTo) {
+        if (element.getAnnotation(Layout.class) != null) {
+            collectTo.add((TypeElement) element);
+        }
+        for (Element enclosedElement : element.getEnclosedElements()) {
+            findLayoutElements(enclosedElement, collectTo);
+        }
+        return collectTo;
+    }
+
+    private static class TypeComparator implements Comparator<QualifiedNameable>{
+        @Override
+        public int compare(QualifiedNameable o1, QualifiedNameable o2) {
+            return o1.getQualifiedName().toString().compareTo(o2.getQualifiedName().toString());
+        }
+    }
 }
