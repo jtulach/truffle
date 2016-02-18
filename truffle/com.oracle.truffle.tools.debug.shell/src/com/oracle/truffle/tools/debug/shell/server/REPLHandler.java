@@ -36,7 +36,6 @@ import com.oracle.truffle.api.frame.FrameInstance;
 import com.oracle.truffle.api.frame.FrameInstance.FrameAccess;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.instrument.Visualizer;
 import com.oracle.truffle.api.instrumentation.InstrumentationUtils.ASTPrinter;
 import com.oracle.truffle.api.instrumentation.InstrumentationUtils.LocationPrinter;
 import com.oracle.truffle.api.nodes.Node;
@@ -46,6 +45,7 @@ import com.oracle.truffle.api.vm.PolyglotEngine.Language;
 import com.oracle.truffle.tools.debug.shell.REPLMessage;
 import com.oracle.truffle.tools.debug.shell.server.REPLServer.BreakpointInfo;
 import com.oracle.truffle.tools.debug.shell.server.REPLServer.Context;
+import com.oracle.truffle.tools.debug.shell.server.REPLServer.Visualizer;
 
 /**
  * Server-side REPL implementation of an {@linkplain REPLMessage "op"}.
@@ -128,7 +128,7 @@ public abstract class REPLHandler {
         final REPLMessage infoMessage = new REPLMessage(REPLMessage.OP, REPLMessage.FRAME_INFO);
         infoMessage.put(REPLMessage.FRAME_NUMBER, Integer.toString(number));
         infoMessage.put(REPLMessage.SOURCE_LOCATION, replServer.getLocationPrinter().displaySourceLocation(node));
-        infoMessage.put(REPLMessage.METHOD_NAME, replServer.getVisualizer().displayMethodName(node));
+        infoMessage.put(REPLMessage.METHOD_NAME, replServer.getCurrentContext().getVisualizer().displayMethodName(node));
 
         if (node != null) {
             SourceSection section = node.getSourceSection();
@@ -149,7 +149,7 @@ public abstract class REPLHandler {
 
         @Override
         public REPLMessage[] receive(REPLMessage request, REPLServer replServer) {
-            final Visualizer visualizer = replServer.getVisualizer();
+            final Visualizer visualizer = replServer.getCurrentContext().getVisualizer();
             final ArrayList<REPLMessage> replies = new ArrayList<>();
             final Context currentContext = replServer.getCurrentContext();
             final List<FrameInstance> stack = currentContext.getStack();
@@ -427,7 +427,7 @@ public abstract class REPLHandler {
             reply.put(REPLMessage.DEBUG_LEVEL, Integer.toString(serverContext.getLevel()));
 
             final String source = request.get(REPLMessage.CODE);
-            final Visualizer visualizer = replServer.getVisualizer();
+            final Visualizer visualizer = replServer.getCurrentContext().getVisualizer();
             final Integer frameNumber = request.getIntValue(REPLMessage.FRAME_NUMBER);
             final boolean stepInto = REPLMessage.TRUE.equals(request.get(REPLMessage.STEP_INTO));
             try {
@@ -486,7 +486,7 @@ public abstract class REPLHandler {
             if (frameNumber < 0 || frameNumber > stack.size()) {
                 return finishReplyFailed(createReply(), "frame number " + frameNumber + " out of range");
             }
-            final Visualizer visualizer = replServer.getVisualizer();
+            final Visualizer visualizer = replServer.getCurrentContext().getVisualizer();
 
             MaterializedFrame frame;
             Node node;

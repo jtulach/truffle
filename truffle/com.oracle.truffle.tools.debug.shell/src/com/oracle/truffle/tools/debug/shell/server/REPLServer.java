@@ -36,19 +36,20 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.WeakHashMap;
 
+import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.debug.Breakpoint;
 import com.oracle.truffle.api.debug.Breakpoint.State;
 import com.oracle.truffle.api.debug.Debugger;
 import com.oracle.truffle.api.debug.ExecutionEvent;
 import com.oracle.truffle.api.debug.SuspendedEvent;
 import com.oracle.truffle.api.frame.FrameInstance;
+import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.instrument.Visualizer;
-import com.oracle.truffle.api.instrument.impl.DefaultVisualizer;
 import com.oracle.truffle.api.instrumentation.InstrumentationUtils;
 import com.oracle.truffle.api.instrumentation.InstrumentationUtils.ASTPrinter;
 import com.oracle.truffle.api.instrumentation.InstrumentationUtils.LocationPrinter;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.LineLocation;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
@@ -94,6 +95,7 @@ public final class REPLServer {
     private final Map<String, REPLHandler> handlerMap = new HashMap<>();
     private ASTPrinter astPrinter = new InstrumentationUtils.ASTPrinter();
     private LocationPrinter locationPrinter = new InstrumentationUtils.LocationPrinter();
+    private Visualizer visualizer = new Visualizer();
 
     /** Languages sorted by name. */
     private final TreeSet<Language> engineLanguages = new TreeSet<>(new Comparator<Language>() {
@@ -108,12 +110,10 @@ public final class REPLServer {
 
     // TODO (mlvdv) Language-specific
     private PolyglotEngine.Language defaultLanguage;
-    private final Visualizer visualizer;
 
     private Map<Integer, BreakpointInfo> breakpoints = new WeakHashMap<>();
 
-    public REPLServer(String defaultMIMEType, Visualizer visualizer) {
-        this.visualizer = visualizer == null ? new DefaultVisualizer() : visualizer;
+    public REPLServer(String defaultMIMEType) {
         this.engine = PolyglotEngine.newBuilder().onEvent(onHalted).onEvent(onExec).build();
         this.db = Debugger.find(this.engine);
         engineLanguages.addAll(engine.getLanguages().values());
@@ -319,6 +319,13 @@ public final class REPLServer {
             return event.getNode();
         }
 
+        /**
+         * Get access to display methods appropriate to the language at halted node.
+         */
+        Visualizer getVisualizer() {
+            return visualizer;
+        }
+
         Object call(String name, boolean stepInto, List<String> argList) throws IOException {
             Value symbol = engine.findGlobalSymbol(name);
             if (symbol == null) {
@@ -499,10 +506,6 @@ public final class REPLServer {
 
     Context getCurrentContext() {
         return currentServerContext;
-    }
-
-    Visualizer getVisualizer() {
-        return visualizer;
     }
 
     // TODO (mlvdv) language-specific
@@ -699,6 +702,92 @@ public final class REPLServer {
             sb.append(" locn=(" + describeLocation());
             sb.append(") " + describeState());
             return sb.toString();
+        }
+    }
+
+    static class Visualizer {
+
+        /**
+         * A short description of a source location in terms of source + line number.
+         */
+        String displaySourceLocation(Node node) {
+            if (node == null) {
+                return "<unknown>";
+            }
+            SourceSection section = node.getSourceSection();
+            boolean estimated = false;
+            if (section == null) {
+                section = node.getEncapsulatingSourceSection();
+                estimated = true;
+            }
+            if (section == null) {
+                return "<error: source location>";
+            }
+            return section.getShortDescription() + (estimated ? "~" : "");
+        }
+
+        /**
+         * Describes the name of the method containing a node.
+         */
+        String displayMethodName(Node node) {
+            if (node == null) {
+                return null;
+            }
+            RootNode root = node.getRootNode();
+            if (root == null) {
+                return "unknown";
+            }
+            return root.getCallTarget().toString();
+        }
+
+        /**
+         * The name of the method.
+         */
+        String displayCallTargetName(CallTarget callTarget) {
+            return callTarget.toString();
+        }
+
+        /**
+         * Converts a value in the guest language to a display string. If
+         *
+         * @param trim if {@code > 0}, them limit size of String to either the value of trim or the
+         *            number of characters in the first line, whichever is lower.
+         */
+        String displayValue(Object value, int trim) {
+            if (value == null) {
+                return "<empty>";
+            }
+            return trim(value.toString(), trim);
+        }
+
+        /**
+         * Converts a slot identifier in the guest language to a display string.
+         */
+        String displayIdentifier(FrameSlot slot) {
+            return slot.getIdentifier().toString();
+        }
+
+        /**
+         * Trims text if {@code trim > 0} to the shorter of {@code trim} or the length of the first
+         * line of test. Identity if {@code trim <= 0}.
+         */
+        protected String trim(String text, int trim) {
+            if (trim == 0) {
+                return text;
+            }
+            final String[] lines = text.split("\n");
+            String result = lines[0];
+            if (lines.length == 1) {
+                if (result.length() <= trim) {
+                    return result;
+                }
+                if (trim <= 3) {
+                    return result.substring(0, Math.min(result.length() - 1, trim - 1));
+                } else {
+                    return result.substring(0, trim - 4) + "...";
+                }
+            }
+            return (result.length() < trim - 3 ? result : result.substring(0, trim - 4)) + "...";
         }
     }
 }
