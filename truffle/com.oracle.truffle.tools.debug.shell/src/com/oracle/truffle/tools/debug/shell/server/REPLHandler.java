@@ -679,13 +679,8 @@ public abstract class REPLHandler {
         @Override
         public REPLMessage[] receive(REPLMessage request, REPLServer replServer) {
             final REPLMessage reply = createReply();
-            Integer repeat = request.getIntValue(REPLMessage.REPEAT);
-            if (repeat == null) {
-                repeat = 1;
-            }
-            final String countMessage = repeat == 1 ? "" : "<" + repeat + ">";
-            replServer.getCurrentContext().prepareStepOut(repeat);
-            return finishReplySucceeded(reply, "StepOut " + countMessage + " enabled");
+            replServer.getCurrentContext().prepareStepOut();
+            return finishReplySucceeded(reply, "StepOut enabled");
         }
     };
 

@@ -470,8 +470,8 @@ public final class REPLServer {
             return language.getName();
         }
 
-        void prepareStepOut(int repeat) {
-            event.prepareStepOut(repeat);
+        void prepareStepOut() {
+            event.prepareStepOut();
         }
 
         void prepareStepInto(int repeat) {

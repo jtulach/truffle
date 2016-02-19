@@ -755,13 +755,6 @@ public abstract class REPLRemoteCommand extends REPLCommand {
 
     public static final REPLRemoteCommand STEP_OUT_CMD = new REPLRemoteCommand("finish", null, "(StepOut) return from function") {
 
-        private final String[] help = new String[]{"finish: (StepOut) return from function", "finish <n>: (StepOut) return from function <n> times"};
-
-        @Override
-        public String[] getHelp() {
-            return help;
-        }
-
         @Override
         public REPLMessage createRequest(REPLClientContext context, String[] args) {
             if (context.level() == 0) {
@@ -770,21 +763,6 @@ public abstract class REPLRemoteCommand extends REPLCommand {
             }
             final REPLMessage request = new REPLMessage();
             request.put(REPLMessage.OP, REPLMessage.STEP_OUT);
-
-            if (args.length >= 2) {
-                final String nText = args[1];
-                try {
-                    final int nSteps = Integer.parseInt(nText);
-                    if (nSteps > 0) {
-                        request.put(REPLMessage.REPEAT, Integer.toString(nSteps));
-                    } else {
-                        return null;
-                    }
-                } catch (NumberFormatException e) {
-                    context.displayFailReply("Count \"" + nText + "\" not recognized");
-                    return null;
-                }
-            }
             return request;
         }
 

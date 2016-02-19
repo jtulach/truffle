@@ -272,31 +272,9 @@ public final class Debugger {
      * mode.</li>
      * </ul>
      */
-    @Deprecated
     @TruffleBoundary
     void prepareStepOut() {
-        debugContext.setStrategy(new StepOut(1));
-    }
-
-    /**
-     * Prepare to execute in StepOut mode when guest language program execution resumes. In this
-     * mode:
-     * <ul>
-     * <li>User breakpoints are enabled.</li>
-     * <li>Execution will continue until either:
-     * <ol>
-     * <li>execution arrives at the nearest enclosing call site on the stack, <strong>or</strong></li>
-     * <li>execution completes.</li>
-     * </ol>
-     * <li>StepOut mode persists only through one resumption, and reverts by default to Continue
-     * mode.</li>
-     * </ul>
-     *
-     * @param stepCount the number of times to perform StepOut before halting
-     */
-    @TruffleBoundary
-    void prepareStepOut(int stepCount) {
-        debugContext.setStrategy(new StepOut(stepCount));
+        debugContext.setStrategy(new StepOut());
     }
 
     /**
@@ -536,6 +514,13 @@ public final class Debugger {
         private int startStackDepth;
         private EventBinding<?> afterCallBinding;
 
+        StepOut() {
+            super();
+            this.unfinishedStepCount = 1;
+        }
+
+        // TODO (mlvdv) not yet fully supported
+        @SuppressWarnings("unused")
         StepOut(int stepCount) {
             super();
             this.unfinishedStepCount = stepCount;
