@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,15 +22,32 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.instrument;
+package com.oracle.truffle.api.instrumentation.examples;
 
-import com.oracle.truffle.api.nodes.ControlFlowException;
+import com.oracle.truffle.api.instrumentation.EventContext;
+import com.oracle.truffle.api.vm.PolyglotEngine;
 
 /**
- * Controls breaking out of an execution context, such as a shell or eval.
+ * Publicly exposed API of a debugger. Provides operations that its clients can use to control the
+ * execution. Put this class into an API package of your instrument. The clients shall use
+ * {@link PolyglotEngine.Instrument#lookup(java.lang.Class)} with
+ * <code>DebuggerController.<b>class</b></code> parameter to obtain the interface.
  */
-@Deprecated
-public final class KillException extends ControlFlowException {
+public interface DebuggerController {
+    public static final String ID = "example-debugger";
 
-    private static final long serialVersionUID = 3163641880088766957L;
+    public void installBreakpoint(int i, Callback callback);
+
+    public void stepInto(Callback callback);
+
+    public void stepOut(Callback callback);
+
+    public void stepOver(Callback callback);
+
+    public interface Callback {
+
+        void halted(DebuggerController debugger, EventContext haltedAt);
+
+    }
+
 }

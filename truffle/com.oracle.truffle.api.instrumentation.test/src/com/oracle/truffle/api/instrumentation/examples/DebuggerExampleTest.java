@@ -35,6 +35,7 @@ import com.oracle.truffle.api.instrumentation.AbstractInstrumentationTest;
 import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.InstrumentationTestLanguage;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
+
 import com.oracle.truffle.api.instrumentation.examples.DebuggerController.Callback;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.vm.PolyglotEngine.Instrument;
@@ -46,16 +47,10 @@ public final class DebuggerExampleTest extends AbstractInstrumentationTest {
 
     @Before
     public void setupDebugger() throws IOException {
-        // BEGIN: DebuggerExampleTest
-        Instrument instrument = engine.getInstruments().get(DebuggerExample.ID);
+        Instrument instrument = engine.getInstruments().get(DebuggerController.ID);
         instrument.setEnabled(true);
         debugger = instrument.lookup(DebuggerController.class);
-        // END: DebuggerExampleTest
         assertNotNull("Debugger interface found", debugger);
-        DebuggerExample itself = instrument.lookup(DebuggerExample.class);
-        assertNull("Debugger instrument itself isn't found", itself);
-        TruffleInstrument instr = instrument.lookup(TruffleInstrument.class);
-        assertNull("Instrument itself isn't found", instr);
         assertEvalOut("", ""); // ensure debugger gets loaded
     }
 

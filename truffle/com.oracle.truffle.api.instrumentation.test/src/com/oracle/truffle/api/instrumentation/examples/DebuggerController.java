@@ -33,18 +33,16 @@ import com.oracle.truffle.api.vm.PolyglotEngine;
  * {@link PolyglotEngine.Instrument#lookup(java.lang.Class)} with
  * <code>DebuggerController.<b>class</b></code> parameter to obtain the interface.
  */
-// BEGIN: DebuggerController
-public abstract class DebuggerController {
-    DebuggerController() {
-    }
+public interface DebuggerController {
+    String ID = "example-debugger";
 
-    public abstract void installBreakpoint(int i, Callback callback);
+    void installBreakpoint(int i, Callback callback);
 
-    public abstract void stepInto(Callback callback);
+    void stepInto(Callback callback);
 
-    public abstract void stepOut(Callback callback);
+    void stepOut(Callback callback);
 
-    public abstract void stepOver(Callback callback);
+    void stepOver(Callback callback);
 
     public interface Callback {
 
@@ -53,4 +51,3 @@ public abstract class DebuggerController {
     }
 
 }
-// END: DebuggerController

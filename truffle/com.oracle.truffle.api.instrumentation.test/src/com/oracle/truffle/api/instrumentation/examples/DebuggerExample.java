@@ -45,199 +45,192 @@ import com.oracle.truffle.api.instrumentation.TruffleInstrument.Registration;
  * {@link DebuggerExampleTest clients} can use to talk to the debugger is exposed in a separate
  * {@link DebuggerController} interface.
  */
-// BEGIN: DebuggerExample
-@Registration(id = DebuggerExample.ID)
-public final class DebuggerExample extends TruffleInstrument {
-    private Controller controller;
+@Registration(id = DebuggerController.ID)
+public final class DebuggerExample extends TruffleInstrument implements DebuggerController {
+    private Instrumenter instrumenter;
+    private EventBinding<?> stepping;
+
+    private Callback currentStatementCallback;
 
     @Override
     protected void onCreate(Env env) {
-        assert this.controller == null;
-        this.controller = new Controller(env.getInstrumenter());
-        env.registerService(controller);
-    }
-
-    private static final class Controller extends DebuggerController {
-        private final Instrumenter instrumenter;
-        private EventBinding<?> stepping;
-        private Callback currentStatementCallback;
-
-        Controller(Instrumenter instrumenter) {
-            this.instrumenter = instrumenter;
-        }
-
-        // FINISH: DebuggerExample
-
-        @Override
-        public void installBreakpoint(int line, final Callback callback) {
-            instrumenter.attachListener(SourceSectionFilter.newBuilder().lineIs(line).tagIs(InstrumentationTestLanguage.STATEMENT).build(), new Breakpoint(callback));
-        }
-
-        @Override
-        public void stepInto(Callback next) {
-            runToNextStatement(new StepIntoCallback(next));
-        }
-
-        @Override
-        public void stepOver(Callback next) {
-            runToNextStatement(new StepOverCallback(next));
-        }
-
-        @Override
-        public void stepOut(Callback next) {
-            runToNextStatement(new StepOutCallback(next));
-        }
-
-        @TruffleBoundary
-        private void ontStatementStep(EventContext context) {
-            Callback callback = currentStatementCallback;
-            if (callback != null) {
-                currentStatementCallback = null;
-                callback.halted(this, context);
-            }
-        }
-
-        private void runToNextStatement(Callback callback) {
-            setStepping(true);
-            if (currentStatementCallback != null) {
-                throw new IllegalStateException("Debug command already scheduled.");
-            }
-            this.currentStatementCallback = callback;
-        }
-
-        private void setStepping(boolean stepping) {
-            EventBinding<?> step = this.stepping;
-            if (stepping) {
-                if (step == null) {
-                    this.stepping = instrumenter.attachListener(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.STATEMENT).build(), new Stepping());
-                }
-            } else {
-                if (step != null && !step.isDisposed()) {
-                    step.dispose();
-                    this.stepping = null;
-                }
-            }
-        }
-
-        @TruffleBoundary
-        private static int currentStackDepth() {
-            final int[] count = {0};
-            Truffle.getRuntime().iterateFrames(new FrameInstanceVisitor<Void>() {
-                @Override
-                public Void visitFrame(FrameInstance frameInstance) {
-                    count[0] = count[0] + 1;
-                    return null;
-                }
-            });
-            return count[0] == 0 ? 0 : count[0] + 1;
-        }
-
-        private final class Breakpoint implements ExecutionEventListener {
-            private final Callback delegate;
-
-            private Breakpoint(Callback callback) {
-                this.delegate = callback;
-            }
-
-            public void onEnter(EventContext context, VirtualFrame frame) {
-                CompilerDirectives.transferToInterpreter();
-                onBreakpoint(delegate, context);
-            }
-
-            @TruffleBoundary
-            protected void onBreakpoint(final Callback callback, EventContext context) {
-                callback.halted(Controller.this, context);
-            }
-
-            public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
-            }
-
-            public void onReturnExceptional(EventContext context, VirtualFrame frame, Throwable exception) {
-            }
-        }
-
-        private class Stepping implements ExecutionEventListener {
-
-            public void onEnter(EventContext context, VirtualFrame frame) {
-                ontStatementStep(context);
-            }
-
-            public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
-            }
-
-            public void onReturnExceptional(EventContext context, VirtualFrame frame, Throwable exception) {
-            }
-        }
-
-        private abstract class StepCallBack implements Callback {
-
-            private final Callback delegate;
-
-            StepCallBack(Callback delegate) {
-                this.delegate = delegate;
-            }
-
-            public void halted(DebuggerController debugger, EventContext haltedAt) {
-                if (shouldHalt()) {
-                    currentStatementCallback = null;
-                    delegate.halted(debugger, haltedAt);
-                } else {
-                    currentStatementCallback = this;
-                }
-            }
-
-            protected abstract boolean shouldHalt();
-
-        }
-
-        private class StepOverCallback extends StepCallBack {
-
-            protected final int stackDepth;
-
-            StepOverCallback(Callback delegate) {
-                super(delegate);
-                this.stackDepth = currentStackDepth();
-            }
-
-            @Override
-            protected boolean shouldHalt() {
-                return currentStackDepth() <= stackDepth;
-            }
-        }
-
-        private class StepOutCallback extends StepCallBack {
-
-            protected final int stackDepth;
-
-            StepOutCallback(Callback delegate) {
-                super(delegate);
-                this.stackDepth = currentStackDepth();
-            }
-
-            @Override
-            protected boolean shouldHalt() {
-                return currentStackDepth() < stackDepth;
-            }
-
-        }
-
-        private class StepIntoCallback extends StepCallBack {
-
-            StepIntoCallback(Callback delegate) {
-                super(delegate);
-            }
-
-            @Override
-            protected boolean shouldHalt() {
-                return true;
-            }
-
-        }
+        assert this.instrumenter == null;
+        this.instrumenter = env.getInstrumenter();
     }
 
     @Override
     protected void onDispose(Env env) {
     }
 
-    public static final String ID = "example-debugger";
+    public boolean isStepping() {
+        return stepping != null;
+    }
+
+    public void installBreakpoint(int line, final Callback callback) {
+        instrumenter.attachListener(SourceSectionFilter.newBuilder().lineIs(line).tagIs(InstrumentationTestLanguage.STATEMENT).build(), new Breakpoint(callback));
+    }
+
+    public void stepInto(Callback next) {
+        runToNextStatement(new StepIntoCallback(next));
+    }
+
+    public void stepOver(Callback next) {
+        runToNextStatement(new StepOverCallback(next));
+    }
+
+    public void stepOut(Callback next) {
+        runToNextStatement(new StepOutCallback(next));
+    }
+
+    public void run() {
+        currentStatementCallback = null;
+        setStepping(false);
+    }
+
+    @TruffleBoundary
+    private void ontStatementStep(EventContext context) {
+        Callback callback = currentStatementCallback;
+        if (callback != null) {
+            currentStatementCallback = null;
+            callback.halted(DebuggerExample.this, context);
+        }
+    }
+
+    private void runToNextStatement(Callback callback) {
+        setStepping(true);
+        if (currentStatementCallback != null) {
+            throw new IllegalStateException("Debug command already scheduled.");
+        }
+        this.currentStatementCallback = callback;
+    }
+
+    private void setStepping(boolean stepping) {
+        EventBinding<?> step = this.stepping;
+        if (stepping) {
+            if (step == null) {
+                this.stepping = instrumenter.attachListener(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.STATEMENT).build(), new Stepping());
+            }
+        } else {
+            if (step != null && !step.isDisposed()) {
+                step.dispose();
+                this.stepping = null;
+            }
+        }
+    }
+
+    @TruffleBoundary
+    private static int currentStackDepth() {
+        final int[] count = {0};
+        Truffle.getRuntime().iterateFrames(new FrameInstanceVisitor<Void>() {
+            @Override
+            public Void visitFrame(FrameInstance frameInstance) {
+                count[0] = count[0] + 1;
+                return null;
+            }
+        });
+        return count[0] == 0 ? 0 : count[0] + 1;
+    }
+
+    private final class Breakpoint implements ExecutionEventListener {
+        private final Callback delegate;
+
+        private Breakpoint(Callback callback) {
+            this.delegate = callback;
+        }
+
+        public void onEnter(EventContext context, VirtualFrame frame) {
+            CompilerDirectives.transferToInterpreter();
+            onBreakpoint(delegate, context);
+        }
+
+        @TruffleBoundary
+        protected void onBreakpoint(final Callback callback, EventContext context) {
+            callback.halted(DebuggerExample.this, context);
+        }
+
+        public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
+        }
+
+        public void onReturnExceptional(EventContext context, VirtualFrame frame, Throwable exception) {
+        }
+    }
+
+    private class Stepping implements ExecutionEventListener {
+
+        public void onEnter(EventContext context, VirtualFrame frame) {
+            ontStatementStep(context);
+        }
+
+        public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
+        }
+
+        public void onReturnExceptional(EventContext context, VirtualFrame frame, Throwable exception) {
+        }
+    }
+
+    private abstract class StepCallBack implements Callback {
+
+        private final Callback delegate;
+
+        StepCallBack(Callback delegate) {
+            this.delegate = delegate;
+        }
+
+        public void halted(DebuggerController debugger, EventContext haltedAt) {
+            if (shouldHalt()) {
+                currentStatementCallback = null;
+                delegate.halted(debugger, haltedAt);
+            } else {
+                currentStatementCallback = this;
+            }
+        }
+
+        protected abstract boolean shouldHalt();
+
+    }
+
+    private class StepOverCallback extends StepCallBack {
+
+        protected final int stackDepth;
+
+        StepOverCallback(Callback delegate) {
+            super(delegate);
+            this.stackDepth = currentStackDepth();
+        }
+
+        @Override
+        protected boolean shouldHalt() {
+            return currentStackDepth() <= stackDepth;
+        }
+    }
+
+    private class StepOutCallback extends StepCallBack {
+
+        protected final int stackDepth;
+
+        StepOutCallback(Callback delegate) {
+            super(delegate);
+            this.stackDepth = currentStackDepth();
+        }
+
+        @Override
+        protected boolean shouldHalt() {
+            return currentStackDepth() < stackDepth;
+        }
+
+    }
+
+    private class StepIntoCallback extends StepCallBack {
+
+        StepIntoCallback(Callback delegate) {
+            super(delegate);
+        }
+
+        @Override
+        protected boolean shouldHalt() {
+            return true;
+        }
+
+    }
+
 }
