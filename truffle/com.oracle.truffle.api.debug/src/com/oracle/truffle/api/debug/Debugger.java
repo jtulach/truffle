@@ -38,7 +38,6 @@ import com.oracle.truffle.api.KillException;
 import com.oracle.truffle.api.QuitException;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.debug.SuspendedEvent.HaltPosition;
 import com.oracle.truffle.api.debug.impl.DebuggerInstrument;
 import com.oracle.truffle.api.frame.FrameInstance;
 import com.oracle.truffle.api.frame.FrameInstance.FrameAccess;
@@ -141,7 +140,7 @@ public final class Debugger {
         /**
          * Passes control to the debugger with execution suspended.
          */
-        void haltedAt(Node astNode, HaltPosition position, MaterializedFrame mFrame, String haltReason);
+        void haltedAt(Node astNode, MaterializedFrame mFrame, String haltReason);
     }
 
     interface WarningLog {
@@ -155,8 +154,8 @@ public final class Debugger {
     private final BreakpointCallback breakpointCallback = new BreakpointCallback() {
 
         @TruffleBoundary
-        public void haltedAt(Node astNode, HaltPosition position, MaterializedFrame mFrame, String haltReason) {
-            debugContext.halt(astNode, mFrame, position, haltReason);
+        public void haltedAt(Node astNode, MaterializedFrame mFrame, String haltReason) {
+            debugContext.halt(astNode, mFrame, true, haltReason);
         }
     };
 
@@ -342,8 +341,8 @@ public final class Debugger {
         }
 
         @TruffleBoundary
-        final void halt(Node astNode, HaltPosition position, MaterializedFrame mFrame) {
-            context.halt(astNode, mFrame, position, this.getClass().getSimpleName());
+        final void halt(Node astNode, MaterializedFrame mFrame, boolean before) {
+            context.halt(astNode, mFrame, before, this.getClass().getSimpleName());
         }
 
         @TruffleBoundary
@@ -442,7 +441,7 @@ public final class Debugger {
                     }
                     // Should run in fast path
                     if (unfinishedStepCount <= 0) {
-                        halt(context.getInstrumentedNode(), HaltPosition.BEFORE, frame.materialize());
+                        halt(context.getInstrumentedNode(), frame.materialize(), true);
                     }
                     if (TRACE) {
                         strategyTrace("RESUME BEFORE", "stack=%d,%d", startStackDepth, currentStackDepth());
@@ -478,7 +477,7 @@ public final class Debugger {
             if (currentStackDepth < startStackDepth) {
                 // HALT: just "stepped out"
                 if (unfinishedStepCount <= 0) {
-                    halt(context.getInstrumentedNode(), HaltPosition.AFTER, frame);
+                    halt(context.getInstrumentedNode(), frame, false);
                 }
             }
             if (TRACE) {
@@ -553,7 +552,7 @@ public final class Debugger {
             if (currentStackDepth < startStackDepth) {
                 // HALT: just "stepped out"
                 if (unfinishedStepCount <= 0) {
-                    halt(context.getInstrumentedNode(), HaltPosition.AFTER, frame);
+                    halt(context.getInstrumentedNode(), frame, false);
                 }
             }
             if (TRACE) {
@@ -606,7 +605,7 @@ public final class Debugger {
                         }
                         // Test should run in fast path
                         if (unfinishedStepCount <= 0) {
-                            halt(context.getInstrumentedNode(), HaltPosition.BEFORE, frame.materialize());
+                            halt(context.getInstrumentedNode(), frame.materialize(), true);
                         }
                     } else {
                         // CONTINUE: Stack depth increased; don't count as a step
@@ -640,7 +639,7 @@ public final class Debugger {
                     }
                     // Test should run in fast path
                     if (unfinishedStepCount <= 0) {
-                        halt(context.getInstrumentedNode(), HaltPosition.AFTER, frame.materialize());
+                        halt(context.getInstrumentedNode(), frame.materialize(), false);
                     }
                     if (TRACE) {
                         strategyTrace("RESUME AFTER", "stack=%d,%d", startStackDepth, currentStackDepth());
@@ -759,7 +758,7 @@ public final class Debugger {
                             strategyTrace("HALT BEFORE", "stack=%d,%d unfinished=%d", startStackDepth, currentStackDepth(), unfinishedStepCount);
                         }
                         if (unfinishedStepCount <= 0) {
-                            halt(context.getInstrumentedNode(), HaltPosition.BEFORE, frame.materialize());
+                            halt(context.getInstrumentedNode(), frame.materialize(), true);
                         }
                         // TODO (mlvdv) fixme for multiple steps
                     }
@@ -901,7 +900,7 @@ public final class Debugger {
          * @param before {@code true} if halted <em>before</em> the node, else <em>after</em>.
          */
         @TruffleBoundary
-        void halt(Node astNode, MaterializedFrame mFrame, HaltPosition position, String haltReason) {
+        void halt(Node astNode, MaterializedFrame mFrame, boolean before, String haltReason) {
             assert running;
             assert haltedNode == null;
             assert haltedFrame == null;
@@ -962,13 +961,13 @@ public final class Debugger {
 
             if (TRACE) {
                 final String reason = haltReason == null ? "" : haltReason + "";
-                final String where = position.toString();
+                final String where = before ? "BEFORE" : "AFTER";
                 contextTrace("HALT %s : (%s) stack base=%d", where, reason, contextStackBase);
             }
 
             try {
                 // Pass control to the debug client with current execution suspended
-                ACCESSOR.dispatchEvent(engine, new SuspendedEvent(Debugger.this, haltedNode, position, haltedFrame, contextStack, recentWarnings));
+                ACCESSOR.dispatchEvent(engine, new SuspendedEvent(Debugger.this, haltedNode, haltedFrame, contextStack, recentWarnings));
                 // Debug client finished normally, execution resumes
                 // Presume that the client has set a new strategy (or default to Continue)
                 running = true;

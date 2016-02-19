@@ -49,7 +49,6 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.debug.Breakpoint.State;
 import com.oracle.truffle.api.debug.Debugger.BreakpointCallback;
 import com.oracle.truffle.api.debug.Debugger.WarningLog;
-import com.oracle.truffle.api.debug.SuspendedEvent.HaltPosition;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.EventContext;
@@ -434,9 +433,9 @@ final class BreakpointFactory {
             this.state = after;
         }
 
-        private void doBreak(Node node, VirtualFrame frame) {
+        private void doBreak(Node node, VirtualFrame vFrame) {
             if (++hitCount > ignoreCount) {
-                breakpointCallback.haltedAt(node, HaltPosition.BEFORE, frame.materialize(), "Breakpoint");
+                breakpointCallback.haltedAt(node, vFrame.materialize(), "Breakpoint");
             }
         }
 
