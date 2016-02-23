@@ -87,9 +87,9 @@ public class InheritanceTest {
 
     }
 
-    private static final BaseLayout BASE_LAYOUT = BaseLayoutImpl.INSTANCE;
-    private static final MiddleLayout MIDDLE_LAYOUT = MiddleLayoutImpl.INSTANCE;
-    private static final TopLayout TOP_LAYOUT = TopLayoutImpl.INSTANCE;
+    private static final BaseLayout BASE_LAYOUT = Layouts.BASE;
+    private static final MiddleLayout MIDDLE_LAYOUT = Layouts.MIDDLE;
+    private static final TopLayout TOP_LAYOUT = Layouts.TOP;
 
     @Test
     public void testBase() {

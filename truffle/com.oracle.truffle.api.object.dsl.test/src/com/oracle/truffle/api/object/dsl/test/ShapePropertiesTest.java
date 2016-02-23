@@ -58,7 +58,7 @@ public class ShapePropertiesTest {
 
     }
 
-    private static final ShapePropertiesTestLayout LAYOUT = ShapePropertiesTestLayoutImpl.INSTANCE;
+    private static final ShapePropertiesTestLayout LAYOUT = Layouts.SHAPEPROPERTIESTEST;
 
     @Test
     public void testCreate() {

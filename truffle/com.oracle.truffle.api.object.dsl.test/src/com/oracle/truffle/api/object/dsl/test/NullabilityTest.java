@@ -49,7 +49,7 @@ public class NullabilityTest {
 
     }
 
-    private static final NullabilityTestLayout LAYOUT = NullabilityTestLayoutImpl.INSTANCE;
+    private static final NullabilityTestLayout LAYOUT = Layouts.NULLABILITYTEST;
 
     @Test
     public void testCreateNonNull() {

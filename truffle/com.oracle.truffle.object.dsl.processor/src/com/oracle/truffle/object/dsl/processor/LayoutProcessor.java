@@ -24,6 +24,7 @@ package com.oracle.truffle.object.dsl.processor;
 
 import com.oracle.truffle.api.object.dsl.Layout;
 import com.oracle.truffle.object.dsl.processor.model.LayoutModel;
+import com.oracle.truffle.object.dsl.processor.model.PropertyModel;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
@@ -32,12 +33,21 @@ import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeKind;
 import javax.tools.JavaFileObject;
 import javax.tools.Diagnostic.Kind;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.PackageElement;
+import javax.lang.model.element.QualifiedNameable;
 
 @SupportedAnnotationTypes("com.oracle.truffle.api.object.dsl.Layout")
 @SupportedSourceVersion(SourceVersion.RELEASE_7)
@@ -45,29 +55,149 @@ public class LayoutProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnvironment) {
+        Set<PackageElement> packages = new HashSet<>();
+
         for (Element element : roundEnvironment.getElementsAnnotatedWith(Layout.class)) {
-            processLayout((TypeElement) element);
+            packages.add(findPkg(element));
+        }
+
+        for (PackageElement pe : packages) {
+            TypeElement[] arr = findLayoutElements(pe, new TreeSet<TypeElement>(new TypeComparator())).toArray(new TypeElement[0]);
+            processLayouts(pe, arr);
         }
 
         return true;
     }
 
-    private void processLayout(TypeElement layoutElement) {
-        try {
+    private void processLayouts(PackageElement pe, TypeElement... elements) {
+        final List<LayoutModel> layouts = new ArrayList<>();
+
+        for (TypeElement element : elements) {
             final LayoutParser parser = new LayoutParser(this);
-            parser.parse(layoutElement);
+            parser.parse(element);
+            layouts.add(parser.build());
+        }
 
-            final LayoutModel layout = parser.build();
-
-            final LayoutGenerator generator = new LayoutGenerator(layout);
-
-            final JavaFileObject output = processingEnv.getFiler().createSourceFile(generator.getGeneratedClassName(), layoutElement);
-
+        try {
+            String fqn = pe.getQualifiedName() + ".Layouts";
+            final JavaFileObject output = processingEnv.getFiler().createSourceFile(fqn, elements);
             try (PrintStream stream = new PrintStream(output.openOutputStream(), false, "UTF8")) {
-                generator.generate(stream);
+                stream.println("package " + pe.getQualifiedName() + ";");
+                stream.println();
+
+                boolean needsAtomicInteger = false;
+                boolean needsAtomicBoolean = false;
+                boolean needsAtomicReference = false;
+                boolean needsIncompatibleLocationException = false;
+                boolean needsFinalLocationException = false;
+                boolean needsHiddenKey = false;
+                boolean needsEnumSet = false;
+                boolean needsBoundary = false;
+                boolean needsLayout = false;
+                boolean needsLocationModifier = false;
+                boolean needsProperty = false;
+
+                for (LayoutModel layout : layouts) {
+                    for (PropertyModel property : layout.getProperties()) {
+                        if (!property.hasIdentifier()) {
+                            needsHiddenKey = true;
+                        }
+
+                        if (property.isVolatile()) {
+                            if (property.getType().getKind() == TypeKind.INT) {
+                                needsAtomicInteger = true;
+                            } else if (property.getType().getKind() == TypeKind.BOOLEAN) {
+                                needsAtomicBoolean = true;
+                            } else {
+                                needsAtomicReference = true;
+                            }
+                        } else {
+                            if (property.hasSetter()) {
+                                if (!property.isShapeProperty()) {
+                                    needsIncompatibleLocationException = true;
+                                    needsFinalLocationException = true;
+                                }
+                            }
+                        }
+                    }
+
+                    needsEnumSet |= layout.hasFinalProperties() || layout.hasNonNullableProperties();
+                    needsBoundary |= !layout.getShapeProperties().isEmpty();
+                    needsLayout |= layout.getSuperLayout() == null;
+                    needsLocationModifier |= layout.hasFinalProperties() || layout.hasNonNullableProperties();
+                    needsProperty |= !layout.getInstanceProperties().isEmpty();
+                }
+
+                if (needsEnumSet) {
+                    stream.println("import java.util.EnumSet;");
+                }
+
+                if (needsAtomicBoolean) {
+                    stream.println("import java.util.concurrent.atomic.AtomicBoolean;");
+                }
+
+                if (needsAtomicInteger) {
+                    stream.println("import java.util.concurrent.atomic.AtomicInteger;");
+                }
+
+                if (needsAtomicReference) {
+                    stream.println("import java.util.concurrent.atomic.AtomicReference;");
+                }
+
+                stream.println("import com.oracle.truffle.api.CompilerAsserts;");
+
+                if (needsBoundary) {
+                    stream.println("import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;");
+                }
+
+                stream.println("import com.oracle.truffle.api.object.DynamicObject;");
+                stream.println("import com.oracle.truffle.api.object.DynamicObjectFactory;");
+
+                if (needsFinalLocationException) {
+                    stream.println("import com.oracle.truffle.api.object.FinalLocationException;");
+                }
+
+                if (needsHiddenKey) {
+                    stream.println("import com.oracle.truffle.api.object.HiddenKey;");
+                }
+
+                if (needsIncompatibleLocationException) {
+                    stream.println("import com.oracle.truffle.api.object.IncompatibleLocationException;");
+                }
+
+                if (needsLayout) {
+                    stream.println("import com.oracle.truffle.api.object.Layout;");
+                }
+
+                if (needsLocationModifier) {
+                    stream.println("import com.oracle.truffle.api.object.LocationModifier;");
+                }
+
+                stream.println("import com.oracle.truffle.api.object.ObjectType;");
+
+                if (needsProperty) {
+                    stream.println("import com.oracle.truffle.api.object.Property;");
+                }
+
+                stream.println("import com.oracle.truffle.api.object.Shape;");
+
+                stream.println();
+
+                stream.println("public final class Layouts {");
+                stream.println();
+                stream.println("    private Layouts() {");
+                stream.println("    }");
+                stream.println();
+
+                for (LayoutModel layout : layouts) {
+                    final LayoutGenerator generator = new LayoutGenerator(layout);
+                    generator.generate(stream);
+                }
+
+                stream.println("}");
             }
         } catch (IOException e) {
-            reportError(layoutElement, "IO error %s while writing code generated from @Layout", e.getMessage());
+            reportError(elements[0], "IO error %s while writing code generated from @Layout", e.getMessage());
         }
     }
 
@@ -76,4 +206,30 @@ public class LayoutProcessor extends AbstractProcessor {
         processingEnv.getMessager().printMessage(Kind.ERROR, message, element);
     }
 
+    private static PackageElement findPkg(Element element) {
+        Element elementN = element;
+        for (;;) {
+            if (elementN.getKind() == ElementKind.PACKAGE) {
+                return (PackageElement) elementN;
+            }
+            elementN = elementN.getEnclosingElement();
+        }
+    }
+
+    private Set<TypeElement> findLayoutElements(Element element, Set<TypeElement> collectTo) {
+        if (element.getAnnotation(Layout.class) != null) {
+            collectTo.add((TypeElement) element);
+        }
+        for (Element enclosedElement : element.getEnclosedElements()) {
+            findLayoutElements(enclosedElement, collectTo);
+        }
+        return collectTo;
+    }
+
+    private static class TypeComparator implements Comparator<QualifiedNameable> {
+        @Override
+        public int compare(QualifiedNameable o1, QualifiedNameable o2) {
+            return o1.getQualifiedName().toString().compareTo(o2.getQualifiedName().toString());
+        }
+    }
 }

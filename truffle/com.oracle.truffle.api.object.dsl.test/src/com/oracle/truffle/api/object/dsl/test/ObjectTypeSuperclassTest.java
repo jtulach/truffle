@@ -49,7 +49,7 @@ public class ObjectTypeSuperclassTest {
 
     }
 
-    private static final ObjectTypeSuperclassTestLayout LAYOUT = ObjectTypeSuperclassTestLayoutImpl.INSTANCE;
+    private static final ObjectTypeSuperclassTestLayout LAYOUT = Layouts.OBJECTTYPESUPERCLASSTEST;
 
     @Test
     public void testInstanceOf() {

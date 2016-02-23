@@ -87,7 +87,7 @@ public class TypesTest {
 
     }
 
-    private static final TypesTestLayout LAYOUT = TypesTestLayoutImpl.INSTANCE;
+    private static final TypesTestLayout LAYOUT = Layouts.TYPESTEST;
 
     private static DynamicObject create() {
         return LAYOUT.createTypesTest(

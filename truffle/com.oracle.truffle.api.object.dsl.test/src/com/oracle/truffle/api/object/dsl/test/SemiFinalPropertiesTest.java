@@ -44,7 +44,7 @@ public class SemiFinalPropertiesTest {
 
     }
 
-    private static final SemiFinalPropertiesTestLayout LAYOUT = SemiFinalPropertiesTestLayoutImpl.INSTANCE;
+    private static final SemiFinalPropertiesTestLayout LAYOUT = Layouts.SEMIFINALPROPERTIESTEST;
 
     @Test
     public void testCreate() {

@@ -44,7 +44,7 @@ public class BasicTest {
 
     }
 
-    private static final BasicTestLayout LAYOUT = BasicTestLayoutImpl.INSTANCE;
+    private static final BasicTestLayout LAYOUT = Layouts.BASICTEST;
 
     @Test
     public void testCreate() {

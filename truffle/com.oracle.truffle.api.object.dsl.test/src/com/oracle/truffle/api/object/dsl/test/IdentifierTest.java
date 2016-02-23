@@ -46,7 +46,7 @@ public class IdentifierTest {
 
     }
 
-    private static final IdentifierTestLayout LAYOUT = IdentifierTestLayoutImpl.INSTANCE;
+    private static final IdentifierTestLayout LAYOUT = Layouts.IDENTIFIERTEST;
 
     @Test
     public void testContainsKey() {
