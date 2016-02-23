@@ -390,7 +390,7 @@ public abstract class Accessor {
     protected void collectEnvServices(Set<Object> collectTo, Object vm, TruffleLanguage<?> impl, Env context) {
         INSTRUMENTHANDLER.collectEnvServices(collectTo, vm, impl, context);
     }
-    
+
     protected void attachToInstrumentation(Object vm, TruffleLanguage<?> impl, Env context) {
         INSTRUMENTHANDLER.attachToInstrumentation(vm, impl, context);
     }
