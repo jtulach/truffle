@@ -37,6 +37,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.Executor;
@@ -299,7 +300,7 @@ public class PolyglotEngine {
          * @return instance of this builder
          */
         public Builder onEvent(EventConsumer<?> handler) {
-            handler.getClass();
+            Objects.requireNonNull(handler);
             handlers.add(handler);
             return this;
         }
@@ -526,6 +527,7 @@ public class PolyglotEngine {
     final Object invokeForeign(final Node foreignNode, VirtualFrame frame, final TruffleObject receiver) throws IOException {
         assertNoTruffle();
         Object res;
+        CompilerAsserts.neverPartOfCompilation();
         if (executor == null) {
             try (final Closeable c = SPI.executionStart(PolyglotEngine.this, -1, false, null)) {
                 final Object[] args = ForeignAccess.getArguments(frame).toArray();

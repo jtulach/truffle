@@ -336,7 +336,7 @@ public final class InstrumentableProcessor extends AbstractProcessor {
                 wrappedExecuteMethods.add(method);
             } else {
                 if (modifiers.contains(Modifier.ABSTRACT) && !methodName.equals("getSourceSection") //
-                && !methodName.equals(METHOD_GET_NODE_COST)) {
+                                && !methodName.equals(METHOD_GET_NODE_COST)) {
                     emitError(sourceType, String.format("Unable to implement unknown abstract method %s in generated wrapper node.", ElementUtils.createReferenceName(method)));
                     return null;
                 }

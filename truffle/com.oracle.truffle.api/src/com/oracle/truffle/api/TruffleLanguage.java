@@ -235,7 +235,7 @@ public abstract class TruffleLanguage<C> {
      * {@linkplain Instrumenter#probe(Node) probing}.
      * <p>
      * <b>Note:</b> instrumentation requires a appropriate {@link WrapperNode}
-     *
+     * 
      * @see WrapperNode
      */
     protected abstract boolean isInstrumentable(Node node);

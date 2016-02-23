@@ -32,8 +32,8 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventContext;
-import com.oracle.truffle.api.instrumentation.EventNode;
-import com.oracle.truffle.api.instrumentation.EventNodeFactory;
+import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
+import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.instrumentation.InstrumentationTestLanguage;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
@@ -58,9 +58,9 @@ public final class CoverageExample extends TruffleInstrument {
     @Override
     protected void onCreate(final Env env) {
         final PrintStream out = new PrintStream(env.out());
-        env.getInstrumenter().attachFactory(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.EXPRESSION).build(), new EventNodeFactory() {
-            public EventNode create(final EventContext context) {
-                return new EventNode() {
+        env.getInstrumenter().attachFactory(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.EXPRESSION).build(), new ExecutionEventNodeFactory() {
+            public ExecutionEventNode create(final EventContext context) {
+                return new ExecutionEventNode() {
                     @CompilationFinal private boolean visited;
 
                     @Override

@@ -38,8 +38,8 @@ import com.oracle.truffle.api.source.SourceSection;
  * Instances of {@link EventContext} should be neither stored, cached nor hashed. The equality and
  * hashing behavior is undefined.
  *
- * @see EventNodeFactory
- * @see EventListener
+ * @see ExecutionEventNodeFactory
+ * @see ExecutionEventListener
  */
 public final class EventContext {
 

@@ -101,12 +101,21 @@ public final class SourceSection {
     }
 
     /**
-     * Returns a set of tags that are associated with this source section as array. The returned
-     * array must be considered read-only. All elements of the array were asserted to be non-null
-     * and interned for faster comparison.
+     * Returns <code>true</code> if the source section is tagged the given tag. The given tag must
+     * be interned using {@link String#intern()} an non null.
+     *
+     * @param tag the tag to search for
+     * @return <code>true</code> if tag was found else <code>false</code>
      */
-    public String[] getTags() {
-        return tags;
+    @SuppressFBWarnings("ES_COMPARING_PARAMETER_STRING_WITH_EQ")
+    public boolean hasTag(String tag) {
+        assert tag.intern() == tag;
+        for (int i = 0; i < tags.length; i++) {
+            if (tags[i] == tag) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

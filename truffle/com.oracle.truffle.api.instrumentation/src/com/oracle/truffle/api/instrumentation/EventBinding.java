@@ -30,7 +30,7 @@ import com.oracle.truffle.api.instrumentation.InstrumentationHandler.LanguageIns
 
 /**
  * Represents a binding from a {@link SourceSectionFilter} instance for a particular
- * {@link EventListener} or {@link EventNodeFactory}.
+ * {@link ExecutionEventListener} or {@link ExecutionEventNodeFactory}.
  *
  * A binding is active until disposed, either:
  * <ul>
@@ -42,7 +42,7 @@ import com.oracle.truffle.api.instrumentation.InstrumentationHandler.LanguageIns
  * the instrumentation framework.
  *
  * @param <T> represents the concrete type of the element bound. Either an implementation of
- *            {@link EventListener} or {@link EventNodeFactory}.
+ *            {@link ExecutionEventListener} or {@link ExecutionEventNodeFactory}.
  */
 public final class EventBinding<T> {
 
@@ -68,8 +68,8 @@ public final class EventBinding<T> {
     }
 
     /**
-     * Returns the bound element, either a {@link EventNodeFactory factory} or a
-     * {@link EventListener listener} implementation.
+     * Returns the bound element, either a {@link ExecutionEventNodeFactory factory} or a
+     * {@link ExecutionEventListener listener} implementation.
      */
     public T getElement() {
         return element;

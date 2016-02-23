@@ -128,7 +128,7 @@ public final class NodeUtil {
 
     @SuppressWarnings("deprecation")
     static Node deepCopyImpl(Node orig) {
-        CompilerAsserts.neverPartOfCompilation();
+        CompilerAsserts.neverPartOfCompilation("do not call Node.deepCopyImpl from compiled code");
         final Node clone = orig.copy();
         NodeClass nodeClass = clone.getNodeClass();
 
@@ -166,7 +166,7 @@ public final class NodeUtil {
     }
 
     public static List<Node> findNodeChildren(Node node) {
-        CompilerAsserts.neverPartOfCompilation();
+        CompilerAsserts.neverPartOfCompilation("do not call Node.findNodeChildren from compiled code");
         List<Node> nodes = new ArrayList<>();
         NodeClass nodeClass = node.getNodeClass();
 
@@ -201,7 +201,7 @@ public final class NodeUtil {
 
     @SuppressWarnings("deprecation")
     static boolean replaceChild(Node parent, Node oldChild, Node newChild, boolean adopt) {
-        CompilerAsserts.neverPartOfCompilation();
+        CompilerAsserts.neverPartOfCompilation("do not replace Node child from compiled code");
         NodeClass nodeClass = parent.getNodeClass();
 
         for (NodeFieldAccessor nodeField : nodeClass.getChildFields()) {
@@ -312,7 +312,7 @@ public final class NodeUtil {
      * @return {@code true} if all children were visited, {@code false} otherwise
      */
     public static boolean forEachChild(Node parent, NodeVisitor visitor) {
-        CompilerAsserts.neverPartOfCompilation();
+        CompilerAsserts.neverPartOfCompilation("do not iterate over Node children from compiled code");
         Objects.requireNonNull(visitor);
         NodeClass parentNodeClass = parent.getNodeClass();
 
@@ -618,17 +618,7 @@ public final class NodeUtil {
      */
     public static String printSyntaxTags(final Object node) {
         if ((node instanceof Node) && ((Node) node).getSourceSection() != null) {
-            String[] tags = ((Node) node).getSourceSection().getTags();
-            final StringBuilder sb = new StringBuilder();
-            String prefix = "";
-            sb.append("[");
-            for (String tag : tags) {
-                sb.append(prefix);
-                prefix = ",";
-                sb.append(tag.toString());
-            }
-            sb.append("]");
-            return sb.toString();
+            return ((Node) node).getSourceSection().toString();
         }
         return "";
     }

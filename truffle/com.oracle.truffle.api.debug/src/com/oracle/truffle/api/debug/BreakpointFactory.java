@@ -52,9 +52,9 @@ import com.oracle.truffle.api.debug.Debugger.WarningLog;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.EventContext;
-import com.oracle.truffle.api.instrumentation.EventListener;
-import com.oracle.truffle.api.instrumentation.EventNode;
-import com.oracle.truffle.api.instrumentation.EventNodeFactory;
+import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
+import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
+import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.instrumentation.Instrumenter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.nodes.DirectCallNode;
@@ -250,7 +250,7 @@ final class BreakpointFactory {
         breakpoints.remove(breakpoint.getKey());
     }
 
-    private final class BreakpointImpl extends Breakpoint implements EventNodeFactory {
+    private final class BreakpointImpl extends Breakpoint implements ExecutionEventNodeFactory {
 
         private static final String SHOULD_NOT_HAPPEN = "BreakpointImpl:  should not happen";
 
@@ -388,7 +388,7 @@ final class BreakpointFactory {
 
         /* EventNodeFactory for breakpoint condition */
         @Override
-        public EventNode create(EventContext context) {
+        public ExecutionEventNode create(EventContext context) {
             assert conditionSource != null;
             final Node instrumentedNode = context.getInstrumentedNode();
             if (condLangClass == null) {
@@ -480,7 +480,7 @@ final class BreakpointFactory {
         }
 
         /** Attached to implement an unconditional breakpoint. */
-        private final class BreakpointListener implements EventListener {
+        private final class BreakpointListener implements ExecutionEventListener {
 
             @Override
             public void onEnter(EventContext context, VirtualFrame frame) {
@@ -505,7 +505,7 @@ final class BreakpointFactory {
         }
 
         /** Attached to implement a conditional breakpoint. */
-        private class BreakpointConditionEventNode extends EventNode {
+        private class BreakpointConditionEventNode extends ExecutionEventNode {
             @Child DirectCallNode callNode;
             final Node instrumentedNode;
 

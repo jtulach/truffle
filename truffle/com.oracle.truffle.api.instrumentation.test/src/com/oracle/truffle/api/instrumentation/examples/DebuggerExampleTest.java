@@ -65,7 +65,7 @@ public final class DebuggerExampleTest extends AbstractInstrumentationTest {
         debugger.installBreakpoint(1, new Callback() {
             @Override
             public void halted(DebuggerController d, EventContext haltedAt) {
-                Assert.assertTrue(containsTag(haltedAt.getInstrumentedSourceSection().getTags(), InstrumentationTestLanguage.STATEMENT));
+                Assert.assertTrue(haltedAt.getInstrumentedSourceSection().hasTag(InstrumentationTestLanguage.STATEMENT));
                 Assert.assertEquals(1, haltedAt.getInstrumentedSourceSection().getStartLine());
                 breakpointHit.set(true);
             }
@@ -123,7 +123,7 @@ public final class DebuggerExampleTest extends AbstractInstrumentationTest {
     }
 
     private static void assertLineAt(EventContext haltedAt, int index) {
-        Assert.assertTrue(containsTag(haltedAt.getInstrumentedSourceSection().getTags(), InstrumentationTestLanguage.STATEMENT));
+        Assert.assertTrue(haltedAt.getInstrumentedSourceSection().hasTag(InstrumentationTestLanguage.STATEMENT));
         Assert.assertEquals(index, haltedAt.getInstrumentedSourceSection().getStartLine());
     }
 

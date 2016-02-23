@@ -48,7 +48,7 @@ import com.oracle.truffle.api.impl.Accessor;
 import com.oracle.truffle.api.instrument.SyntaxTag;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.EventContext;
-import com.oracle.truffle.api.instrumentation.EventListener;
+import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
 import com.oracle.truffle.api.instrumentation.Instrumenter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.nodes.Node;
@@ -451,7 +451,7 @@ public final class Debugger {
         protected void setStrategy(final int startStackDepth) {
             this.startStackDepth = startStackDepth;
             strategyTrace("STRATEGY", "repeat=%d stack=%d", unfinishedStepCount, startStackDepth);
-            beforeHaltBinding = instrumenter.attachListener(HALT_FILTER, new EventListener() {
+            beforeHaltBinding = instrumenter.attachListener(HALT_FILTER, new ExecutionEventListener() {
 
                 public void onEnter(EventContext context, VirtualFrame frame) {
                     // HALT: just before {@link #HALT_TAG}
@@ -475,7 +475,7 @@ public final class Debugger {
                 }
             });
             // When stepping causes a return, expected behavior is to halt again at the call
-            afterCallBinding = instrumenter.attachListener(CALL_FILTER, new EventListener() {
+            afterCallBinding = instrumenter.attachListener(CALL_FILTER, new ExecutionEventListener() {
 
                 public void onEnter(EventContext context, VirtualFrame frame) {
                 }
@@ -549,7 +549,7 @@ public final class Debugger {
         protected void setStrategy(final int startStackDepth) {
             this.startStackDepth = startStackDepth;
             strategyTrace("STRATEGY", "repeat=%d stack=%d", unfinishedStepCount, startStackDepth);
-            afterCallBinding = instrumenter.attachListener(CALL_FILTER, new EventListener() {
+            afterCallBinding = instrumenter.attachListener(CALL_FILTER, new ExecutionEventListener() {
 
                 public void onEnter(EventContext context, VirtualFrame frame) {
                 }
@@ -613,7 +613,7 @@ public final class Debugger {
         protected void setStrategy(final int startStackDepth) {
             this.startStackDepth = startStackDepth;
             strategyTrace("STRATEGY", "repeat=%d stack=%d", unfinishedStepCount, startStackDepth);
-            beforeHaltBinding = instrumenter.attachListener(HALT_FILTER, new EventListener() {
+            beforeHaltBinding = instrumenter.attachListener(HALT_FILTER, new ExecutionEventListener() {
 
                 public void onEnter(EventContext context, VirtualFrame frame) {
                     final int currentStackDepth = currentStackDepth();
@@ -645,7 +645,7 @@ public final class Debugger {
                 }
 
             });
-            afterCallBinding = instrumenter.attachListener(CALL_FILTER, new EventListener() {
+            afterCallBinding = instrumenter.attachListener(CALL_FILTER, new ExecutionEventListener() {
 
                 public void onEnter(EventContext context, VirtualFrame frame) {
                 }
@@ -767,7 +767,7 @@ public final class Debugger {
         @Override
         protected void setStrategy(final int stackDepth) {
             strategyTrace("STRATEGY", "repeat=%d stack=%d", unfinishedStepCount, startStackDepth);
-            beforeHaltBinding = instrumenter.attachListener(HALT_FILTER, new EventListener() {
+            beforeHaltBinding = instrumenter.attachListener(HALT_FILTER, new ExecutionEventListener() {
 
                 public void onEnter(EventContext context, VirtualFrame frame) {
                     final int currentStackDepth = currentStackDepth();
@@ -956,19 +956,11 @@ public final class Debugger {
                             if (sourceSection != null && !sourceSection.getIdentifier().equals("<unknown>")) {
                                 frames.add(frameInstance);
                             } else if (TRACE) {
-                                if (callNode != null) {
-                                    contextTrace("HIDDEN frame added: " + callNode);
-                                } else {
-                                    contextTrace("HIDDEN frame added");
-                                }
+                                contextTrace("HIDDEN frame added: " + callNode);
                                 frames.add(frameInstance);
                             }
                         } else if (TRACE) {
-                            if (callNode != null) {
-                                contextTrace("HIDDEN frame added: " + callNode);
-                            } else {
-                                contextTrace("HIDDEN frame added");
-                            }
+                            contextTrace("HIDDEN frame added");
                             frames.add(frameInstance);
                         }
                         stackIndex++;

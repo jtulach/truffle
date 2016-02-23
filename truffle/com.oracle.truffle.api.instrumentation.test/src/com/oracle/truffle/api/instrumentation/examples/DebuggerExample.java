@@ -32,7 +32,7 @@ import com.oracle.truffle.api.frame.FrameInstanceVisitor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.EventContext;
-import com.oracle.truffle.api.instrumentation.EventListener;
+import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
 import com.oracle.truffle.api.instrumentation.InstrumentationTestLanguage;
 import com.oracle.truffle.api.instrumentation.Instrumenter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
@@ -62,7 +62,7 @@ public final class DebuggerExample extends TruffleInstrument {
         private EventBinding<?> stepping;
         private Callback currentStatementCallback;
 
-        public Controller(Instrumenter instrumenter) {
+        Controller(Instrumenter instrumenter) {
             this.instrumenter = instrumenter;
         }
 
@@ -132,7 +132,7 @@ public final class DebuggerExample extends TruffleInstrument {
             return count[0] == 0 ? 0 : count[0] + 1;
         }
 
-        private final class Breakpoint implements EventListener {
+        private final class Breakpoint implements ExecutionEventListener {
             private final Callback delegate;
 
             private Breakpoint(Callback callback) {
@@ -156,7 +156,7 @@ public final class DebuggerExample extends TruffleInstrument {
             }
         }
 
-        private class Stepping implements EventListener {
+        private class Stepping implements ExecutionEventListener {
 
             public void onEnter(EventContext context, VirtualFrame frame) {
                 ontStatementStep(context);

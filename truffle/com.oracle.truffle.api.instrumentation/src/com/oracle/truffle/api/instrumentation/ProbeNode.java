@@ -29,8 +29,6 @@ import java.io.PrintStream;
 import com.oracle.truffle.api.Assumption;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.KillException;
-import com.oracle.truffle.api.QuitException;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.InstrumentableFactory.WrapperNode;
@@ -172,11 +170,11 @@ public final class ProbeNode extends Node {
     ProbeNode.EventChainNode createEventChainCallback(EventBinding<?> binding) {
         ProbeNode.EventChainNode next;
         Object element = binding.getElement();
-        if (element instanceof EventListener) {
-            next = new EventFilterChainNode(binding, (EventListener) element);
+        if (element instanceof ExecutionEventListener) {
+            next = new EventFilterChainNode(binding, (ExecutionEventListener) element);
         } else {
-            assert element instanceof EventNodeFactory;
-            EventNode eventNode = createEventNode(binding, element);
+            assert element instanceof ExecutionEventNodeFactory;
+            ExecutionEventNode eventNode = createEventNode(binding, element);
             if (eventNode == null) {
                 // error occured creating the event node
                 return null;
@@ -186,10 +184,10 @@ public final class ProbeNode extends Node {
         return next;
     }
 
-    private EventNode createEventNode(EventBinding<?> binding, Object element) {
-        EventNode eventNode;
+    private ExecutionEventNode createEventNode(EventBinding<?> binding, Object element) {
+        ExecutionEventNode eventNode;
         try {
-            eventNode = ((EventNodeFactory) element).create(context);
+            eventNode = ((ExecutionEventNodeFactory) element).create(context);
             if (eventNode.getParent() != null) {
                 throw new IllegalStateException(String.format("Returned EventNode %s was already adopted by another AST.", eventNode));
             }
@@ -276,8 +274,6 @@ public final class ProbeNode extends Node {
         final void onEnter(EventContext context, VirtualFrame frame) {
             try {
                 innerOnEnter(context, frame);
-            } catch (QuitException | KillException ex) {
-                throw ex;
             } catch (Throwable t) {
                 if (!seenException) {
                     CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -300,8 +296,6 @@ public final class ProbeNode extends Node {
         final void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
             try {
                 innerOnReturnValue(context, frame, result);
-            } catch (QuitException | KillException ex) {
-                throw ex;
             } catch (Throwable t) {
                 if (!seenException) {
                     CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -324,8 +318,6 @@ public final class ProbeNode extends Node {
         final void onReturnExceptional(EventContext context, VirtualFrame frame, Throwable exception) {
             try {
                 innerOnReturnExceptional(context, frame, exception);
-            } catch (QuitException | KillException ex) {
-                throw ex;
             } catch (Throwable t) {
                 if (!seenException) {
                     CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -349,9 +341,9 @@ public final class ProbeNode extends Node {
 
     private static class EventFilterChainNode extends ProbeNode.EventChainNode {
 
-        private final EventListener listener;
+        private final ExecutionEventListener listener;
 
-        EventFilterChainNode(EventBinding<?> binding, EventListener listener) {
+        EventFilterChainNode(EventBinding<?> binding, ExecutionEventListener listener) {
             super(binding);
             this.listener = listener;
         }
@@ -379,9 +371,9 @@ public final class ProbeNode extends Node {
 
     private static class EventProviderChainNode extends ProbeNode.EventChainNode {
 
-        @Child private EventNode eventNode;
+        @Child private ExecutionEventNode eventNode;
 
-        EventProviderChainNode(EventBinding<?> binding, EventNode eventNode) {
+        EventProviderChainNode(EventBinding<?> binding, ExecutionEventNode eventNode) {
             super(binding);
             this.eventNode = eventNode;
         }

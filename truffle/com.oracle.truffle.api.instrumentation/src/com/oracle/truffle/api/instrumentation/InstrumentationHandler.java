@@ -29,12 +29,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 
 import com.oracle.truffle.api.CallTarget;
@@ -49,7 +49,6 @@ import com.oracle.truffle.api.nodes.NodeVisitor;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
-import java.util.Set;
 
 /**
  * Central coordinator class for the Truffle instrumentation framework. Allocated once per engine.
@@ -58,7 +57,6 @@ final class InstrumentationHandler {
 
     /* Enable trace output to stdout. */
     private static final boolean TRACE = Boolean.getBoolean("truffle.instrumentation.trace");
-    private static final String TRACE_PREFIX = "Instr.";
 
     /* All roots that were initialized (executed at least once) */
     private final Map<RootNode, Void> roots = Collections.synchronizedMap(new WeakHashMap<RootNode, Void>());
@@ -103,7 +101,7 @@ final class InstrumentationHandler {
 
     void disposeInstrumentation(Object key, boolean cleanupRequired) {
         if (TRACE) {
-            trace("BEGIN dispose instrumenter %n", key);
+            trace("Dispose instrumenter %n", key);
         }
         AbstractInstrumenter disposedInstrumenter = instrumentations.get(key);
         List<EventBinding<?>> disposedBindings = new ArrayList<>();
@@ -125,7 +123,7 @@ final class InstrumentationHandler {
         }
 
         if (TRACE) {
-            trace("END dispose instrumenter %n", key);
+            trace("Disposed instrumenter %n", key);
         }
     }
 
@@ -145,7 +143,7 @@ final class InstrumentationHandler {
 
     <T> EventBinding<T> addBinding(EventBinding<T> binding) {
         if (TRACE) {
-            trace("BEGIN add " + describeBinding(binding));
+            trace("Adding binding %s, %s%n", binding.getFilter(), binding.getElement());
         }
 
         this.bindings.add(binding);
@@ -158,7 +156,7 @@ final class InstrumentationHandler {
         }
 
         if (TRACE) {
-            trace("END add " + describeBinding(binding));
+            trace("Added binding %s, %s%n", binding.getFilter(), binding.getElement());
         }
 
         return binding;
@@ -166,7 +164,7 @@ final class InstrumentationHandler {
 
     void disposeBinding(EventBinding<?> binding) {
         if (TRACE) {
-            trace("BEGIN dispose " + describeBinding(binding));
+            trace("Dispose binding %s, %s%n", binding.getFilter(), binding.getElement());
         }
 
         this.bindings.remove(binding);
@@ -176,7 +174,7 @@ final class InstrumentationHandler {
         }
 
         if (TRACE) {
-            trace("END dispose " + describeBinding(binding));
+            trace("Disposed binding %s, %s%n", binding.getFilter(), binding.getElement());
         }
     }
 
@@ -184,7 +182,7 @@ final class InstrumentationHandler {
         EventContext context = probeNodeImpl.getContext();
         SourceSection sourceSection = context.getInstrumentedSourceSection();
         if (TRACE) {
-            trace("BEGIN lazy update for %s, tags %s%n", sourceSection, Arrays.toString(probeNodeImpl.getContext().getInstrumentedSourceSection().getTags()));
+            trace("Lazy update for %s%n", sourceSection);
         }
         EventChainNode root = null;
         EventChainNode parent = null;
@@ -192,7 +190,7 @@ final class InstrumentationHandler {
             EventBinding<?> binding = bindings.get(i);
             if (isInstrumented(probeNodeImpl, binding, sourceSection)) {
                 if (TRACE) {
-                    trace("Found " + describeBinding(binding));
+                    trace("Found binding %s, %s%n", binding.getFilter(), binding.getElement());
                 }
                 EventChainNode next = probeNodeImpl.createEventChainCallback(binding);
                 if (next == null) {
@@ -210,7 +208,7 @@ final class InstrumentationHandler {
         }
 
         if (TRACE) {
-            trace("END lazy update for %s, tags %s%n", sourceSection, Arrays.toString(probeNodeImpl.getContext().getInstrumentedSourceSection().getTags()));
+            trace("Lazy updated for %s%n", sourceSection);
         }
         return root;
     }
@@ -220,13 +218,13 @@ final class InstrumentationHandler {
             if (!initialized) {
                 initialized = true;
                 if (TRACE) {
-                    trace("BEGIN initialization%n");
+                    trace("Initialize instrumentation%n");
                 }
                 for (AbstractInstrumenter instrumenter : instrumentations.values()) {
                     instrumenter.initialize();
                 }
                 if (TRACE) {
-                    trace("END initialization%n");
+                    trace("Initialized instrumentation%n");
                 }
             }
         }
@@ -316,11 +314,11 @@ final class InstrumentationHandler {
         }
     }
 
-    private <T extends EventNodeFactory> EventBinding<T> attachFactory(AbstractInstrumenter instrumenter, SourceSectionFilter filter, T factory) {
+    private <T extends ExecutionEventNodeFactory> EventBinding<T> attachFactory(AbstractInstrumenter instrumenter, SourceSectionFilter filter, T factory) {
         return addBinding(new EventBinding<>(instrumenter, filter, factory));
     }
 
-    private <T extends EventListener> EventBinding<T> attachListener(AbstractInstrumenter instrumenter, SourceSectionFilter filter, T listener) {
+    private <T extends ExecutionEventListener> EventBinding<T> attachListener(AbstractInstrumenter instrumenter, SourceSectionFilter filter, T listener) {
         return addBinding(new EventBinding<>(instrumenter, filter, listener));
     }
 
@@ -346,27 +344,12 @@ final class InstrumentationHandler {
 
     private static void trace(String message, Object... args) {
         PrintStream out = System.out;
-        out.printf(TRACE_PREFIX + ": " + message, args);
-    }
-
-    private static String describeClass(Class<?> clazz) {
-        String name = clazz.getName();
-        return name.substring(name.lastIndexOf('.') + 1);
-    }
-
-    private static String describeObject(Object obj) {
-        String name = obj.toString();
-        int ix = name.lastIndexOf('.');
-        return name.substring(ix + 1);
-    }
-
-    private static String describeBinding(EventBinding<?> binding) {
-        return String.format("binding(filter=%s listener=%s)%n", binding.getFilter().toShortString(), binding.getElement());
+        out.printf(message, args);
     }
 
     private static void visitRoot(final RootNode root, final AbstractNodeVisitor visitor) {
         if (TRACE) {
-            trace("BEGIN: visit root %s wrappers for %s%n", describeObject(visitor), root.toString());
+            trace("Visit root %s wrappers for %s%n", visitor, root.toString());
         }
 
         if (visitor.shouldVisit(root)) {
@@ -378,7 +361,7 @@ final class InstrumentationHandler {
             });
         }
         if (TRACE) {
-            trace("END: visit root %s wrappers for %s%n", describeObject(visitor), root.toString());
+            trace("Visited root %s wrappers for %s%n", visitor, root.toString());
         }
     }
 
@@ -403,7 +386,7 @@ final class InstrumentationHandler {
         ProbeNode probeNode = parent.getProbeNode();
         if (TRACE) {
             SourceSection section = probeNode.getContext().getInstrumentedSourceSection();
-            trace("Invalidate wrapper for %s, section %s tags %s%n", node, section, Arrays.toString(section.getTags()));
+            trace("Invalidate wrapper for %s, section %s %n", node, section);
         }
         if (probeNode != null) {
             probeNode.invalidate();
@@ -447,7 +430,7 @@ final class InstrumentationHandler {
             if (sourceSection != null) {
                 if (isInstrumentedLeaf(node, binding, sourceSection) && isInstrumentableNode(node)) {
                     if (TRACE) {
-                        trace("Filter hit section:%s tags:%s%n", sourceSection, Arrays.toString(sourceSection.getTags()));
+                        trace("Filter hit section:%s%n", sourceSection);
                     }
                     visitInstrumented(node, sourceSection);
                 }
@@ -583,7 +566,7 @@ final class InstrumentationHandler {
         @Override
         void initialize() {
             if (TRACE) {
-                trace("BEGIN initialize %s%n", describeClass(instrumentationClass));
+                trace("Initialize instrumentation %s class %s %n", instrumentation, instrumentationClass);
             }
             assert instrumentation == null;
             try {
@@ -599,7 +582,7 @@ final class InstrumentationHandler {
                 return;
             }
             if (TRACE) {
-                trace("END initialize %s%n", describeObject(instrumentation));
+                trace("Initialized instrumentation %s class %s %n", instrumentation, instrumentationClass);
             }
         }
 
@@ -698,12 +681,12 @@ final class InstrumentationHandler {
         abstract boolean isInstrumentable(Node rootNode);
 
         @Override
-        public final <T extends EventNodeFactory> EventBinding<T> attachFactory(SourceSectionFilter filter, T factory) {
+        public final <T extends ExecutionEventNodeFactory> EventBinding<T> attachFactory(SourceSectionFilter filter, T factory) {
             return InstrumentationHandler.this.attachFactory(this, filter, factory);
         }
 
         @Override
-        public final <T extends EventListener> EventBinding<T> attachListener(SourceSectionFilter filter, T listener) {
+        public final <T extends ExecutionEventListener> EventBinding<T> attachListener(SourceSectionFilter filter, T listener) {
             return InstrumentationHandler.this.attachListener(this, filter, listener);
         }
 

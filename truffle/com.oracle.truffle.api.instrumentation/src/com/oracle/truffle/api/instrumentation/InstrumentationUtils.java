@@ -118,17 +118,7 @@ public final class InstrumentationUtils {
          */
         protected String displayTags(final Object node) {
             if ((node instanceof Node) && ((Node) node).getSourceSection() != null) {
-                String[] tags = ((Node) node).getSourceSection().getTags();
-                final StringBuilder sb = new StringBuilder();
-                String prefix = "";
-                sb.append("[");
-                for (String tag : tags) {
-                    sb.append(prefix);
-                    prefix = ",";
-                    sb.append(tag.toString());
-                }
-                sb.append("]");
-                return sb.toString();
+                return ((Node) node).getSourceSection().toString();
             }
             return "";
         }

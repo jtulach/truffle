@@ -24,29 +24,31 @@
  */
 package com.oracle.truffle.api.instrumentation;
 
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+
 /**
- * Provides the capabilities to attach {@link ExecutionEventNodeFactory} and
- * {@link ExecutionEventListener} instances for a set of source locations specified by a
- * {@link SourceSectionFilter}. The result of an attachment is a {@link EventBinding binding}.
+ * Event node factories are factories of event nodes for a {@link EventContext program location}.
+ * The factory might be invoked multiple times for one and the same source location but the location
+ * does never change for a particular returned event node.
  *
- * @see #attachFactory(SourceSectionFilter, ExecutionEventNodeFactory)
- * @see #attachListener(SourceSectionFilter, ExecutionEventListener)
+ * <p>
+ * For example it makes sense to register a performance counter on {@link #create(EventContext) } and
+ * increment the counter in the {@link ExecutionEventNode} implementation. The counter can be stored
+ * as a {@link CompilationFinal compilation final}, so no peak performance overhead persists for
+ * looking up the counter on the fast path.
+ * </p>
  */
-public abstract class Instrumenter {
-
-    Instrumenter() {
-    }
+public interface ExecutionEventNodeFactory {
 
     /**
-     * Starts event notification for a given {@link ExecutionEventNodeFactory factory} and returns a
-     * {@link EventBinding binding} which represents a handle to dispose the notification.
+     * Returns a new instance of {@link ExecutionEventNode} for this particular source location.
+     * This method might be invoked multiple times for one particular source location
+     * {@link EventContext context}. The implementation must ensure that this is handled
+     * accordingly.
+     *
+     * @param context the current context where this event node should get created.
+     * @return a new event node instance
      */
-    public abstract <T extends ExecutionEventNodeFactory> EventBinding<T> attachFactory(SourceSectionFilter filter, T factory);
-
-    /**
-     * Starts event notification for a given {@link ExecutionEventListener listeenr} and returns a
-     * {@link EventBinding binding} which represents a handle to dispose the notification.
-     */
-    public abstract <T extends ExecutionEventListener> EventBinding<T> attachListener(SourceSectionFilter filter, T listener);
+    ExecutionEventNode create(EventContext context);
 
 }

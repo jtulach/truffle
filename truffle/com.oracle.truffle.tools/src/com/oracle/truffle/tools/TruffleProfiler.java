@@ -39,8 +39,8 @@ import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventContext;
-import com.oracle.truffle.api.instrumentation.EventNode;
-import com.oracle.truffle.api.instrumentation.EventNodeFactory;
+import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
+import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter.Builder;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
@@ -84,8 +84,8 @@ public class TruffleProfiler extends TruffleInstrument {
             filterBuilder.mimeTypeIs(mimeTypes);
         }
 
-        env.getInstrumenter().attachFactory(filterBuilder.tagIs(ROOT_TAG).build(), new EventNodeFactory() {
-            public EventNode create(EventContext context) {
+        env.getInstrumenter().attachFactory(filterBuilder.tagIs(ROOT_TAG).build(), new ExecutionEventNodeFactory() {
+            public ExecutionEventNode create(EventContext context) {
                 return createCountingNode(context);
             }
         });
@@ -104,7 +104,7 @@ public class TruffleProfiler extends TruffleInstrument {
         return Boolean.getBoolean("truffle.profiling.enabled") || testHook != null;
     }
 
-    private EventNode createCountingNode(EventContext context) {
+    private ExecutionEventNode createCountingNode(EventContext context) {
         SourceSection sourceSection = context.getInstrumentedSourceSection();
         Counter counter = counters.get(sourceSection);
         if (counter == null) {
@@ -320,7 +320,7 @@ public class TruffleProfiler extends TruffleInstrument {
 
     }
 
-    private static class CounterNode extends EventNode {
+    private static class CounterNode extends ExecutionEventNode {
 
         protected final TruffleProfiler profiler;
         protected final Counter counter;

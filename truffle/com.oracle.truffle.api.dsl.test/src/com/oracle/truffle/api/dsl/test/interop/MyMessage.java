@@ -1,12 +1,10 @@
 /*
- * Copyright (c) 2015, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -22,19 +20,19 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.tck;
+package com.oracle.truffle.api.dsl.test.interop;
 
-import com.oracle.truffle.tck.impl.ObjectBinaryOperation;
+import com.oracle.truffle.api.interop.Message;
 
-final class ConstantFunction implements ObjectBinaryOperation {
-    private final Object constant;
+public final class MyMessage extends Message {
 
-    ConstantFunction(Object constant) {
-        this.constant = constant;
+    @Override
+    public boolean equals(Object message) {
+        return message instanceof MyMessage;
     }
 
     @Override
-    public Object compute(Object ignore1, Object ignore2) {
-        return constant;
+    public int hashCode() {
+        return 5425432;
     }
 }
