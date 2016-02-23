@@ -62,15 +62,32 @@ import com.oracle.truffle.api.vm.PolyglotEngine;
  * Instance of this class is delivered via {@link SuspendedEvent#getDebugger()} and
  * {@link ExecutionEvent#getDebugger()} events, once {@link com.oracle.truffle.api.debug debugging
  * is turned on}.
+ * <p>
+ * Debugger <em>stepping</em> behavior is configured by each language implementation through
+ * application of {@linkplain SourceSection#hasTag(String) <em>tags</em>} at specific source
+ * language locations that have {@link SourceSection source information} attached.
+ * <ul>
+ * <li>For most stepping situations, the debugger will halt just <em>before</em> code locations are
+ * executed that are marked with the tag {@link #HALT_TAG}.</li>
+ * <li>When when stepping out of a call, the debugger will halt at the code location just executed
+ * that has been marked with the tag {@link #CALL_TAG}.</li>
+ * </ul>
+ *
+ * @see SourceSection
  */
 public final class Debugger {
-    public static final String BLOCK_TAG = "debug-BLOCK";
 
-    public static final String CALL_TAG = "debug-CALL";
-    public static final String EXPR_TAG = "debug-EXPR";
+    /**
+     * String {@linkplain SourceSection#hasTag(String) <em>tag</em>} used to mark program locations
+     * where the debugger will halt during normal stepping.
+     */
     public static final String HALT_TAG = "debug-HALT";
-    public static final String ROOT_TAG = "debug-ROOT";
-    public static final String THROW_TAG = "debug-THROW";
+
+    /**
+     * String {@linkplain SourceSection#hasTag(String) <em>tag</em>} used to mark program locations
+     * where the debugger will halt when <em>stepping out</em> of a call.
+     */
+    public static final String CALL_TAG = "debug-CALL";
 
     private static final boolean TRACE = Boolean.getBoolean("truffle.debug.trace");
     private static final String TRACE_PREFIX = "Debug: ";

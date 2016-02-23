@@ -98,11 +98,13 @@ import com.oracle.truffle.sl.runtime.SLContext;
 public class SLNodeFactory {
 
     /* Tags for the debugger */
-    private static final String[] ROOT_TAGS = {Debugger.ROOT_TAG};
-    private static final String[] BLOCK_TAGS = {Debugger.BLOCK_TAG};
     private static final String[] STATEMENT_TAGS = {Debugger.HALT_TAG};
     private static final String[] CALL_TAGS = {Debugger.CALL_TAG};
-    private static final String[] EXPRESSION_TAGS = {Debugger.EXPR_TAG};
+
+    /* Tags that will be used in the future */
+    private static final String[] ROOT_TAGS = {"ROOT_TAG"};
+    private static final String[] BLOCK_TAGS = {"BLOCK_TAG"};
+    private static final String[] EXPRESSION_TAGS = {"EXPR_TAG"};
 
     /**
      * Local variable names that are visible in the current block. Variables are not visible outside
