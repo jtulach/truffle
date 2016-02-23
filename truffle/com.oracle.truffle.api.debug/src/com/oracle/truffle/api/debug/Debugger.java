@@ -284,8 +284,7 @@ public final class Debugger {
      * <li>User breakpoints are enabled.</li>
      * <li>Execution will continue until either:
      * <ol>
-     * <li>execution arrives at the nearest enclosing call site on the stack, <strong>or</strong>
-     * </li>
+     * <li>execution arrives at the nearest enclosing call site on the stack, <strong>or</strong></li>
      * <li>execution completes.</li>
      * </ol>
      * <li>StepOut mode persists only through one resumption, and reverts by default to Continue
@@ -1008,16 +1007,6 @@ public final class Debugger {
         void logWarning(String warning) {
             warnings.add(warning);
         }
-
-        /*
-         * private void printStack(PrintStream stream) { getFrames(); if (frames == null) {
-         * stream.println("<empty stack>"); } else { final Visualizer visualizer =
-         * provider.getVisualizer(); for (FrameDebugDescription frameDesc : frames) { final
-         * StringBuilder sb = new StringBuilder("    frame " + Integer.toString(frameDesc.index()));
-         * sb.append(":at " + visualizer.displaySourceLocation(frameDesc.node())); sb.append(":in '"
-         * + visualizer.displayMethodName(frameDesc.node()) + "'"); stream.println(sb.toString()); }
-         * } }
-         */
 
         void contextTrace(String format, Object... args) {
             if (TRACE) {
