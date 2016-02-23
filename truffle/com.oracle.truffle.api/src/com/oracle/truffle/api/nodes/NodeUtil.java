@@ -616,7 +616,7 @@ public final class NodeUtil {
      * <li>"" if the node does not support tags.</li>
      * </ul>
      */
-    public static String printSyntaxTags(final Object node) {
+    public static String printSyntaxTags(@SuppressWarnings("unused") final Object node) {
         throw new UnsupportedOperationException("we cannot support this");
     }
 

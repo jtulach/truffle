@@ -24,6 +24,8 @@
  */
 package com.oracle.truffle.api.instrumentation.examples;
 
+import static org.junit.Assert.assertNotNull;
+
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -34,13 +36,9 @@ import org.junit.Test;
 import com.oracle.truffle.api.instrumentation.AbstractInstrumentationTest;
 import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.InstrumentationTestLanguage;
-import com.oracle.truffle.api.instrumentation.TruffleInstrument;
-
 import com.oracle.truffle.api.instrumentation.examples.DebuggerController.Callback;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.vm.PolyglotEngine.Instrument;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 public final class DebuggerExampleTest extends AbstractInstrumentationTest {
     private DebuggerController debugger;

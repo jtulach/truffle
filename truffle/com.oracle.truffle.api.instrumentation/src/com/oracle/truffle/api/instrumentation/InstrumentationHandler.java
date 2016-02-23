@@ -49,7 +49,6 @@ import com.oracle.truffle.api.nodes.NodeVisitor;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
-import java.util.Set;
 
 /**
  * Central coordinator class for the Truffle instrumentation framework. Allocated once per engine.
