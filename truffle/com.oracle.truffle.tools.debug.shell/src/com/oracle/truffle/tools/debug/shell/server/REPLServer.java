@@ -45,9 +45,6 @@ import com.oracle.truffle.api.debug.SuspendedEvent;
 import com.oracle.truffle.api.frame.FrameInstance;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.instrumentation.InstrumentationUtils;
-import com.oracle.truffle.api.instrumentation.InstrumentationUtils.ASTPrinter;
-import com.oracle.truffle.api.instrumentation.InstrumentationUtils.LocationPrinter;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.LineLocation;
@@ -59,6 +56,8 @@ import com.oracle.truffle.api.vm.PolyglotEngine.Language;
 import com.oracle.truffle.api.vm.PolyglotEngine.Value;
 import com.oracle.truffle.tools.debug.shell.REPLMessage;
 import com.oracle.truffle.tools.debug.shell.client.SimpleREPLClient;
+import com.oracle.truffle.tools.debug.shell.server.InstrumentationUtils.ASTPrinter;
+import com.oracle.truffle.tools.debug.shell.server.InstrumentationUtils.LocationPrinter;
 
 /**
  * The server side of a simple message-based protocol for a possibly remote language
