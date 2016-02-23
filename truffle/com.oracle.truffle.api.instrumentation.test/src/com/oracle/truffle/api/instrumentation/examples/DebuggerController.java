@@ -33,6 +33,7 @@ import com.oracle.truffle.api.vm.PolyglotEngine;
  * {@link PolyglotEngine.Instrument#lookup(java.lang.Class)} with
  * <code>DebuggerController.<b>class</b></code> parameter to obtain the interface.
  */
+// BEGIN: DebuggerController
 public interface DebuggerController {
     String ID = "example-debugger";
 
@@ -51,3 +52,4 @@ public interface DebuggerController {
     }
 
 }
+// END: DebuggerController

@@ -45,9 +45,11 @@ public final class DebuggerExampleTest extends AbstractInstrumentationTest {
 
     @Before
     public void setupDebugger() throws IOException {
+        // BEGIN: DebuggerExampleTest
         Instrument instrument = engine.getInstruments().get(DebuggerController.ID);
         instrument.setEnabled(true);
         debugger = instrument.lookup(DebuggerController.class);
+        // END: DebuggerExampleTest
         assertNotNull("Debugger interface found", debugger);
         assertEvalOut("", ""); // ensure debugger gets loaded
     }
