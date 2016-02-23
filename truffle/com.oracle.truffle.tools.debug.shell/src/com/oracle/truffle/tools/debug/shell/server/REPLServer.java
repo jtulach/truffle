@@ -174,8 +174,6 @@ public final class REPLServer {
         add(REPLHandler.BACKTRACE_HANDLER);
         add(REPLHandler.BREAK_AT_LINE_HANDLER);
         add(REPLHandler.BREAK_AT_LINE_ONCE_HANDLER);
-        add(REPLHandler.BREAK_AT_THROW_HANDLER);
-        add(REPLHandler.BREAK_AT_THROW_ONCE_HANDLER);
         add(REPLHandler.BREAKPOINT_INFO_HANDLER);
         add(REPLHandler.CALL_HANDLER);
         add(REPLHandler.CLEAR_BREAK_HANDLER);
@@ -536,10 +534,10 @@ public final class REPLServer {
         return info;
     }
 
+    @SuppressWarnings({"static-method", "unused"})
     BreakpointInfo setTagBreakpoint(int ignoreCount, String tag, boolean oneShot) throws IOException {
-        final BreakpointInfo info = new TagBreakpointInfo(tag, ignoreCount, oneShot);
-        info.activate();
-        return info;
+        // TODO (mlvdv) restore "tag" breakpoints
+        throw new UnsupportedOperationException();
     }
 
     synchronized BreakpointInfo findBreakpoint(int id) {
@@ -590,7 +588,7 @@ public final class REPLServer {
 
         @Override
         protected void activate() throws IOException {
-            breakpoint = db.setTagBreakpoint(ignoreCount, tag, oneShot);
+            // breakpoint = db.setTagBreakpoint(ignoreCount, tag, oneShot);
             // TODO (mlvdv) check if resolved
             breakpoints.put(uid, this);
 
