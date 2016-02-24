@@ -25,6 +25,7 @@ package com.oracle.truffle.object.dsl.processor;
 import com.oracle.truffle.api.object.dsl.Layout;
 import com.oracle.truffle.object.dsl.processor.model.LayoutModel;
 import com.oracle.truffle.object.dsl.processor.model.PropertyModel;
+import java.io.FileWriter;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
@@ -39,12 +40,16 @@ import javax.tools.Diagnostic.Kind;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.QualifiedNameable;
@@ -52,27 +57,33 @@ import javax.lang.model.element.QualifiedNameable;
 @SupportedAnnotationTypes("com.oracle.truffle.api.object.dsl.Layout")
 @SupportedSourceVersion(SourceVersion.RELEASE_7)
 public class LayoutProcessor extends AbstractProcessor {
-
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnvironment) {
-        Set<PackageElement> packages = new HashSet<>();
-
-        for (Element element : roundEnvironment.getElementsAnnotatedWith(Layout.class)) {
-            packages.add(findPkg(element));
+        Map<PackageElement,Set<TypeElement>> packages = new HashMap<>();
+        final Set<? extends Element> layoutElements = roundEnvironment.getElementsAnnotatedWith(Layout.class);
+        println("Process layout elements: " + layoutElements);
+        for (Element element : layoutElements) {
+            addElement(element, packages);
         }
 
-        for (PackageElement pe : packages) {
-            TypeElement[] arr = findLayoutElements(pe, new TreeSet<TypeElement>(new TypeComparator())).toArray(new TypeElement[0]);
-            processLayouts(pe, arr);
+        for (Map.Entry<PackageElement, Set<TypeElement>> entry : packages.entrySet()) {
+            PackageElement pe = entry.getKey();
+            TypeElement[] arr = findLayoutElements(pe, entry.getValue()).toArray(new TypeElement[0]);
+            try {
+                processLayouts(pe, arr);
+            } catch (IOException ex) {
+                throw new IllegalStateException(ex);
+            }
         }
 
         return true;
     }
 
-    private void processLayouts(PackageElement pe, TypeElement... elements) {
+    private void processLayouts(PackageElement pe, TypeElement... elements) throws IOException {
         final List<LayoutModel> layouts = new ArrayList<>();
-
+        println("processLayoutPackage = " + pe + " arr: " + elements.length);
         for (TypeElement element : elements) {
+            println("  element: " + element + "\n");
             final LayoutParser parser = new LayoutParser(this);
             parser.parse(element);
             layouts.add(parser.build());
@@ -197,6 +208,7 @@ public class LayoutProcessor extends AbstractProcessor {
                 stream.println("}");
             }
         } catch (IOException e) {
+            println(null, e);
             reportError(elements[0], "IO error %s while writing code generated from @Layout", e.getMessage());
         }
     }
@@ -204,6 +216,16 @@ public class LayoutProcessor extends AbstractProcessor {
     public void reportError(Element element, String messageFormat, Object... formatArgs) {
         final String message = String.format(messageFormat, formatArgs);
         processingEnv.getMessager().printMessage(Kind.ERROR, message, element);
+    }
+
+    private static void addElement(Element element, Map<PackageElement,Set<TypeElement>> map) {
+        PackageElement pkg = findPkg(element);
+        Set<TypeElement> set = map.get(pkg);
+        if (set == null) {
+            set = new TreeSet<>(new TypeComparator());
+            map.put(pkg, set);
+        }
+        set.add((TypeElement)element);
     }
 
     private static PackageElement findPkg(Element element) {
@@ -217,13 +239,35 @@ public class LayoutProcessor extends AbstractProcessor {
     }
 
     private Set<TypeElement> findLayoutElements(Element element, Set<TypeElement> collectTo) {
+        println("findLayoutElements: " + element + " anno: " + element.getAnnotation(Layout.class));
         if (element.getAnnotation(Layout.class) != null) {
             collectTo.add((TypeElement) element);
         }
         for (Element enclosedElement : element.getEnclosedElements()) {
+            println("  testing enclosing: " + enclosedElement);
             findLayoutElements(enclosedElement, collectTo);
+            println("  back from enclosing: " + enclosedElement);
         }
+        println("collected to " + collectTo);
         return collectTo;
+    }
+
+    private void println(String msg) {
+        println(msg, null);
+    }
+    private void println(String msg, Throwable t) {
+        try (FileWriter w = new FileWriter("/tmp/processor.out", true)) {
+            if (msg != null) {
+                w.append(msg).append("\n");
+            }
+            if (t != null) {
+                final PrintWriter pw = new PrintWriter(w);
+                t.printStackTrace(pw);
+                pw.close();
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(LayoutProcessor.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     private static class TypeComparator implements Comparator<QualifiedNameable> {
