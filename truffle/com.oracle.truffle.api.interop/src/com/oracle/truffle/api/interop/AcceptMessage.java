@@ -55,6 +55,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
  *
  * {@codesnippet getForeignAccessMethod}
  *
+ * @since 0.8 or earlier
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.SOURCE)

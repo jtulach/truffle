@@ -39,34 +39,47 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
  * </p>
  *
  * {@inheritDoc}
+ * 
+ * @since 0.8 or earlier
  */
 public abstract class PrimitiveValueProfile extends ValueProfile {
 
     PrimitiveValueProfile() {
     }
 
+    /** @since 0.8 or earlier */
     @Override
     public abstract <T> T profile(T value);
 
+    /** @since 0.8 or earlier */
     public abstract byte profile(byte value);
 
+    /** @since 0.8 or earlier */
     public abstract short profile(short value);
 
+    /** @since 0.8 or earlier */
     public abstract int profile(int value);
 
+    /** @since 0.8 or earlier */
     public abstract long profile(long value);
 
+    /** @since 0.8 or earlier */
     public abstract float profile(float value);
 
+    /** @since 0.8 or earlier */
     public abstract double profile(double value);
 
+    /** @since 0.8 or earlier */
     public abstract boolean profile(boolean value);
 
+    /** @since 0.8 or earlier */
     public abstract char profile(char value);
 
     /**
      * Returns a {@link PrimitiveValueProfile} that speculates on the primitive equality or object
      * identity of a value.
+     * 
+     * @since 0.8 or earlier
      */
     public static PrimitiveValueProfile createEqualityProfile() {
         if (Profile.isProfilingEnabled()) {
@@ -78,6 +91,7 @@ public abstract class PrimitiveValueProfile extends ValueProfile {
 
     /**
      * @deprecated going to get removed without replacement
+     * @since 0.8 or earlier
      */
     @Deprecated
     public static boolean exactCompare(float a, float b) {
@@ -90,6 +104,7 @@ public abstract class PrimitiveValueProfile extends ValueProfile {
 
     /**
      * @deprecated going to get removed without replacement
+     * @since 0.8 or earlier
      */
     @Deprecated
     public static boolean exactCompare(double a, double b) {

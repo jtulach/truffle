@@ -58,12 +58,14 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
  *
  * @see #createRawIdentityProfile()
  * @see ValueProfile
+ * @since 0.8 or earlier
  */
 public abstract class FloatValueProfile extends Profile {
 
     FloatValueProfile() {
     }
 
+    /** @since 0.8 or earlier */
     public abstract float profile(float value);
 
     /**
@@ -71,6 +73,7 @@ public abstract class FloatValueProfile extends Profile {
      * {@link Float#floatToRawIntBits(float)}.
      *
      * @see IntValueProfile
+     * @since 0.8 or earlier
      */
     public static FloatValueProfile createRawIdentityProfile() {
         if (Profile.isProfilingEnabled()) {

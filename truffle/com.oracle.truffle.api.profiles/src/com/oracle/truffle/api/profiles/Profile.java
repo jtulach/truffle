@@ -89,6 +89,7 @@ import com.oracle.truffle.api.nodes.RootNode;
  * </p>
  *
  * @see Assumption
+ * @since 0.8 or earlier
  */
 public abstract class Profile extends NodeCloneable {
     static boolean isProfilingEnabled() {
