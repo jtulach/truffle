@@ -27,8 +27,11 @@ package com.oracle.truffle.api.instrumentation;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 
@@ -93,11 +96,15 @@ public final class SourceSectionFilter {
     }
 
     // implementation
+    Set<String> getReferencedTags() {
+        Set<String> usedTags = new HashSet<>();
+        for (EventFilterExpression expression : expressions) {
+            expression.collectReferencedTags(usedTags);
+        }
+        return usedTags;
+    }
 
     boolean isInstrumentedRoot(SourceSection rootSourceSection) {
-        if (rootSourceSection == null) {
-            return true;
-        }
         for (EventFilterExpression exp : expressions) {
             if (!exp.isRootIncluded(rootSourceSection)) {
                 return false;
@@ -106,12 +113,12 @@ public final class SourceSectionFilter {
         return true;
     }
 
-    boolean isInstrumentedNode(SourceSection sourceSection) {
+    boolean isInstrumentedNode(Node instrumentedNode, SourceSection sourceSection) {
         if (sourceSection == null) {
             return false;
         }
         for (EventFilterExpression exp : expressions) {
-            if (!exp.isIncluded(sourceSection)) {
+            if (!exp.isIncluded(instrumentedNode, sourceSection)) {
                 return false;
             }
         }
@@ -417,7 +424,11 @@ public final class SourceSectionFilter {
 
         protected abstract int getOrder();
 
-        abstract boolean isIncluded(SourceSection sourceSection);
+        void collectReferencedTags(@SuppressWarnings("unused") Set<String> collectTags) {
+            // default implementation does nothing
+        }
+
+        abstract boolean isIncluded(Node instrumentedNode, SourceSection sourceSection);
 
         abstract boolean isRootIncluded(SourceSection rootSection);
 
@@ -442,19 +453,22 @@ public final class SourceSectionFilter {
             }
 
             @Override
-            boolean isRootIncluded(SourceSection s) {
-                Source src = s.getSource();
+            boolean isRootIncluded(SourceSection rootSourceSection) {
+                if (rootSourceSection == null) {
+                    return true;
+                }
+                return isIncluded(null, rootSourceSection);
+            }
+
+            @Override
+            boolean isIncluded(Node instrumentedNode, SourceSection sourceSection) {
+                Source src = sourceSection.getSource();
                 for (Source otherSource : sources) {
                     if (src == otherSource) {
                         return true;
                     }
                 }
                 return false;
-            }
-
-            @Override
-            boolean isIncluded(SourceSection sourceSection) {
-                return isRootIncluded(sourceSection);
             }
 
             @Override
@@ -477,8 +491,16 @@ public final class SourceSectionFilter {
             }
 
             @Override
-            boolean isRootIncluded(SourceSection source) {
-                String mimeType = source.getSource().getMimeType();
+            boolean isRootIncluded(SourceSection rootSourceSection) {
+                if (rootSourceSection == null) {
+                    return true;
+                }
+                return isIncluded(null, rootSourceSection);
+            }
+
+            @Override
+            boolean isIncluded(Node instrumentedNode, SourceSection sourceSection) {
+                String mimeType = sourceSection.getSource().getMimeType();
                 if (mimeType != null) {
                     for (String otherMimeType : mimeTypes) {
                         if (otherMimeType.equals(mimeType)) {
@@ -487,11 +509,6 @@ public final class SourceSectionFilter {
                     }
                 }
                 return false;
-            }
-
-            @Override
-            boolean isIncluded(SourceSection sourceSection) {
-                return isRootIncluded(sourceSection);
             }
 
             @Override
@@ -526,12 +543,19 @@ public final class SourceSectionFilter {
             }
 
             @Override
+            void collectReferencedTags(Set<String> collectTags) {
+                for (String tag : tags) {
+                    collectTags.add(tag);
+                }
+            }
+
+            @Override
             @SuppressFBWarnings("ES_COMPARING_STRINGS_WITH_EQ")
-            boolean isIncluded(SourceSection sourceSection) {
+            boolean isIncluded(Node instrumentedNode, SourceSection sourceSection) {
                 String[] filterTags = this.tags;
                 for (int i = 0; i < filterTags.length; i++) {
                     String tag = filterTags[i];
-                    if (sourceSection.hasTag(tag)) {
+                    if (InstrumentationHandler.hasTagImpl(instrumentedNode, sourceSection, tag)) {
                         return true;
                     }
                 }
@@ -558,6 +582,7 @@ public final class SourceSectionFilter {
 
             private final SourceSection[] sourceSections;
 
+            @SuppressWarnings("deprecation")
             SourceSectionEquals(SourceSection... sourceSection) {
                 this.sourceSections = sourceSection;
                 // clear tags
@@ -567,7 +592,8 @@ public final class SourceSectionFilter {
             }
 
             @Override
-            boolean isIncluded(SourceSection s) {
+            @SuppressWarnings("deprecation")
+            boolean isIncluded(Node instrumentedNode, SourceSection s) {
                 SourceSection withoutTags = s.withTags();
                 for (SourceSection compareSection : sourceSections) {
                     if (withoutTags.equals(compareSection)) {
@@ -579,6 +605,9 @@ public final class SourceSectionFilter {
 
             @Override
             boolean isRootIncluded(SourceSection rootSection) {
+                if (rootSection == null) {
+                    return true;
+                }
                 Source rootSource = rootSection.getSource();
                 if (rootSource != null) {
                     for (SourceSection compareSection : sourceSections) {
@@ -606,6 +635,7 @@ public final class SourceSectionFilter {
 
             private final SourceSection[] sourceSections;
 
+            @SuppressWarnings("deprecation")
             RootSourceSectionEquals(SourceSection... sourceSection) {
                 this.sourceSections = sourceSection;
                 // clear tags
@@ -615,12 +645,17 @@ public final class SourceSectionFilter {
             }
 
             @Override
-            boolean isIncluded(SourceSection s) {
+            boolean isIncluded(Node instrumentedNode, SourceSection s) {
                 return true;
             }
 
             @Override
+            @SuppressWarnings("deprecation")
             boolean isRootIncluded(SourceSection rootSection) {
+                if (rootSection == null) {
+                    return false;
+                }
+
                 SourceSection withoutTags = rootSection.withTags();
                 for (SourceSection compareSection : sourceSections) {
                     if (withoutTags.equals(compareSection)) {
@@ -652,11 +687,14 @@ public final class SourceSectionFilter {
 
             @Override
             boolean isRootIncluded(SourceSection rootSourceSection) {
-                return isIncluded(rootSourceSection);
+                if (rootSourceSection == null) {
+                    return true;
+                }
+                return isIncluded(null, rootSourceSection);
             }
 
             @Override
-            boolean isIncluded(SourceSection sourceSection) {
+            boolean isIncluded(Node instrumentedNode, SourceSection sourceSection) {
                 int otherStart = sourceSection.getCharIndex();
                 int otherEnd = otherStart + sourceSection.getCharLength();
                 for (IndexRange indexRange : ranges) {
@@ -691,11 +729,14 @@ public final class SourceSectionFilter {
 
             @Override
             boolean isRootIncluded(SourceSection rootSourceSection) {
-                return isIncluded(rootSourceSection);
+                if (rootSourceSection == null) {
+                    return true;
+                }
+                return isIncluded(null, rootSourceSection);
             }
 
             @Override
-            boolean isIncluded(SourceSection sourceSection) {
+            boolean isIncluded(Node instrumentedNode, SourceSection sourceSection) {
                 int otherStart = sourceSection.getStartLine();
                 int otherEnd;
                 if (sourceSection.getSource() == null) {
@@ -736,13 +777,18 @@ public final class SourceSectionFilter {
         }
 
         @Override
+        void collectReferencedTags(Set<String> collectTags) {
+            delegate.collectReferencedTags(collectTags);
+        }
+
+        @Override
         boolean isRootIncluded(SourceSection rootSection) {
             return true;
         }
 
         @Override
-        boolean isIncluded(SourceSection sourceSection) {
-            return !delegate.isIncluded(sourceSection);
+        boolean isIncluded(Node instrumentedNode, SourceSection sourceSection) {
+            return !delegate.isIncluded(instrumentedNode, sourceSection);
         }
 
         @Override

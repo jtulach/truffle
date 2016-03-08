@@ -31,8 +31,10 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.impl.Accessor;
@@ -45,8 +47,6 @@ import com.oracle.truffle.api.instrument.WrapperNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
-import java.util.LinkedHashSet;
-import java.util.Set;
 
 /**
  * An entry point for everyone who wants to implement a Truffle based language. By providing an
@@ -72,7 +72,7 @@ import java.util.Set;
 public abstract class TruffleLanguage<C> {
     /**
      * Constructor to be called by subclasses.
-     * 
+     *
      * @since 0.8 or earlier
      */
     protected TruffleLanguage() {
@@ -85,7 +85,7 @@ public abstract class TruffleLanguage<C> {
      * <em>one JAR drop to the class path</em> away from your users. Once they include your JAR in
      * their application, your language will be available to the
      * {@link com.oracle.truffle.api.vm.PolyglotEngine Truffle virtual machine}.
-     * 
+     *
      * @since 0.8 or earlier
      */
     @Retention(RetentionPolicy.SOURCE)
@@ -237,7 +237,7 @@ public abstract class TruffleLanguage<C> {
 
     /**
      * Gets visualization services for language-specific information.
-     * 
+     *
      * @since 0.8 or earlier
      */
     @Deprecated
@@ -250,7 +250,7 @@ public abstract class TruffleLanguage<C> {
      * {@linkplain Instrumenter#probe(Node) probing}.
      * <p>
      * <b>Note:</b> instrumentation requires a appropriate {@link WrapperNode}
-     * 
+     *
      * @see WrapperNode
      * @since 0.8 or earlier
      */
@@ -376,7 +376,7 @@ public abstract class TruffleLanguage<C> {
      * {@link TruffleLanguage} receives instance of the environment before any code is executed upon
      * it. The environment has knowledge of all active languages and can exchange symbols between
      * them.
-     * 
+     *
      * @since 0.8 or earlier
      */
     public static final class Env {

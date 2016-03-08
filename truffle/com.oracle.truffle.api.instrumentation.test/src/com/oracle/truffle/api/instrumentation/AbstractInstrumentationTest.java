@@ -44,9 +44,13 @@ public abstract class AbstractInstrumentationTest {
     protected final ByteArrayOutputStream out = new ByteArrayOutputStream();
     protected final ByteArrayOutputStream err = new ByteArrayOutputStream();
 
+    private boolean previousCompatibiltiy;
+
     @Before
     public void setup() {
         engine = PolyglotEngine.newBuilder().setOut(out).setErr(err).build();
+        this.previousCompatibiltiy = InstrumentationHandler.compatibilityMode;
+        InstrumentationHandler.compatibilityMode = false;
     }
 
     protected void assertEnabledInstrument(String id) {
@@ -78,9 +82,14 @@ public abstract class AbstractInstrumentationTest {
 
     protected void assertEvalOut(String source, String output) throws IOException {
         String actual = run(lines(source));
+        String error = getErr();
+        if (!error.isEmpty()) {
+            throw new AssertionError("Unexpected error printed: %s" + error);
+        }
         if (!actual.equals(output)) {
             Assert.assertEquals(output, actual);
         }
+
     }
 
     protected final String getOut() {
@@ -105,5 +114,6 @@ public abstract class AbstractInstrumentationTest {
         if (engine != null) {
             engine.dispose();
         }
+        InstrumentationHandler.compatibilityMode = previousCompatibiltiy;
     }
 }

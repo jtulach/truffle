@@ -35,6 +35,7 @@ import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.instrumentation.InstrumentationTestLanguage;
+import com.oracle.truffle.api.instrumentation.RequiredTags;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument.Registration;
@@ -49,6 +50,7 @@ import com.oracle.truffle.api.source.SourceSection;
  * alternate way of communication from the instrumentation to the user.
  */
 @Registration(id = CoverageExample.ID)
+@RequiredTags(InstrumentationTestLanguage.EXPRESSION)
 public final class CoverageExample extends TruffleInstrument {
 
     public static final String ID = "test-coverage";

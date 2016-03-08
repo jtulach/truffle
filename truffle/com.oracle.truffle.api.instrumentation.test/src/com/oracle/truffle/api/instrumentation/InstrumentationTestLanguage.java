@@ -38,7 +38,6 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Registration;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.instrument.Visualizer;
 import com.oracle.truffle.api.instrument.WrapperNode;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
@@ -78,6 +77,8 @@ import com.oracle.truffle.api.source.SourceSection;
  * </code>
  */
 @Registration(mimeType = InstrumentationTestLanguage.MIME_TYPE, name = "Test language for instrumentation", version = "1.0")
+@ProvidedTags({InstrumentationTestLanguage.EXPRESSION, InstrumentationTestLanguage.DEFINE, InstrumentationTestLanguage.LOOP,
+                InstrumentationTestLanguage.STATEMENT, InstrumentationTestLanguage.CALL, InstrumentationTestLanguage.ROOT, InstrumentationTestLanguage.BLOCK})
 public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, CallTarget>> {
 
     public static final String MIME_TYPE = "instrumentation-test-language";
@@ -189,7 +190,7 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
                 throw new RuntimeException("parameter required for " + tag);
             }
 
-            SourceSection sourceSection = source.createSection(null, startIndex, current - startIndex, tag);
+            SourceSection sourceSection = source.createSection(null, startIndex, current - startIndex);
             BaseNode[] childArray = children.toArray(new BaseNode[children.size()]);
             BaseNode node = createNode(tag, firstParameterIdent, sourceSection, childArray);
             node.setSourceSection(sourceSection);
@@ -300,6 +301,11 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
         ExpressionNode(BaseNode[] children) {
             super(children);
         }
+
+        @Override
+        protected boolean isTaggedWith(String tag) {
+            return tag.equals(EXPRESSION);
+        }
     }
 
     @Instrumentable(factory = InstrumentedNodeWrapper.class)
@@ -331,6 +337,11 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
         BlockNode(BaseNode[] children) {
             super(children);
         }
+
+        @Override
+        protected boolean isTaggedWith(String tag) {
+            return tag == BLOCK;
+        }
     }
 
     private static final class InstrumentableRootNode extends InstrumentedNode {
@@ -338,6 +349,12 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
         InstrumentableRootNode(BaseNode[] children) {
             super(children);
         }
+
+        @Override
+        protected boolean isTaggedWith(String tag) {
+            return tag == ROOT;
+        }
+
     }
 
     private static final class StatementNode extends InstrumentedNode {
@@ -345,6 +362,13 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
         StatementNode(BaseNode[] children) {
             super(children);
         }
+
+        @Override
+        @SuppressFBWarnings("ES_COMPARING_STRINGS_WITH_EQ")
+        protected boolean isTaggedWith(String tag) {
+            return tag == STATEMENT;
+        }
+
     }
 
     static class DefineNode extends BaseNode {
@@ -378,6 +402,12 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
             context.put(this.identifier, target);
         }
 
+        @SuppressFBWarnings("ES_COMPARING_STRINGS_WITH_EQ")
+        @Override
+        protected boolean isTaggedWith(String tag) {
+            return tag == DEFINE;
+        }
+
     }
 
     private static class CallNode extends InstrumentedNode {
@@ -404,6 +434,12 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
             return callNode.call(frame, new Object[0]);
         }
 
+        @SuppressFBWarnings("ES_COMPARING_STRINGS_WITH_EQ")
+        @Override
+        protected boolean isTaggedWith(String tag) {
+            return tag == CALL;
+        }
+
     }
 
     private static class LoopNode extends InstrumentedNode {
@@ -422,6 +458,12 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
                 returnValue = super.execute(frame);
             }
             return returnValue;
+        }
+
+        @SuppressFBWarnings("ES_COMPARING_STRINGS_WITH_EQ")
+        @Override
+        protected boolean isTaggedWith(String tag) {
+            return tag == LOOP;
         }
 
     }
@@ -461,12 +503,6 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
     @Override
     protected boolean isObjectOfLanguage(Object object) {
         return false;
-    }
-
-    @SuppressWarnings("deprecation")
-    @Override
-    protected Visualizer getVisualizer() {
-        return null;
     }
 
     @Override

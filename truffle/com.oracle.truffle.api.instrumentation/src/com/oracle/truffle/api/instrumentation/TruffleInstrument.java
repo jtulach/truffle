@@ -65,6 +65,7 @@ import com.oracle.truffle.api.source.Source;
  *
  * <pre>
  * &#064;Registration(name = Coverage.NAME, version = Coverage.VERSION, instrumentType = Coverage.TYPE)
+ * &#064;RequiredTags(&quot;EXPRESSION&quot;)
  * public final class Coverage extends Instrumentation {
  * 
  *     public static final String NAME = &quot;sample-coverage&quot;;
@@ -101,13 +102,13 @@ import com.oracle.truffle.api.source.Source;
  * 
  * }
  * </pre>
- * 
+ *
  * @since 0.12
  */
 public abstract class TruffleInstrument {
     /**
      * Constructor for subclasses.
-     * 
+     *
      * @since 0.12
      */
     protected TruffleInstrument() {
@@ -155,7 +156,7 @@ public abstract class TruffleInstrument {
     /**
      * Provides ways and means to access input, output and error streams. Also allows to parse
      * arbitrary code from other Truffle languages.
-     * 
+     *
      * @since 0.12
      */
     public static final class Env {
@@ -274,7 +275,7 @@ public abstract class TruffleInstrument {
     /**
      * Annotation to register an {@link TruffleInstrument instrument} implementations for automatic
      * discovery.
-     * 
+     *
      * @since 0.12
      */
     @Retention(RetentionPolicy.SOURCE)

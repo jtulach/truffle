@@ -41,6 +41,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
+import com.oracle.truffle.api.instrumentation.RequiredTags;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter.Builder;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
@@ -51,6 +52,7 @@ import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.tools.TruffleProfiler.Counter.TimeKind;
 
 @Registration(id = TruffleProfiler.ID)
+@RequiredTags(TruffleProfiler.ROOT_TAG)
 public class TruffleProfiler extends TruffleInstrument {
 
     public static final String ID = "truffle_profiler";

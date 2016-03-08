@@ -40,13 +40,14 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.ReplaceObserver;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleOptions;
+import com.oracle.truffle.api.TruffleRuntime;
 import com.oracle.truffle.api.impl.Accessor;
 import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.api.utilities.JSONHelper;
 
 /**
  * Abstract base class for all Truffle nodes.
- * 
+ *
  * @since 0.8 or earlier
  */
 public abstract class Node implements NodeInterface, Cloneable {
@@ -56,7 +57,7 @@ public abstract class Node implements NodeInterface, Cloneable {
 
     /**
      * Marks array fields that are children of this node.
-     * 
+     *
      * @since 0.8 or earlier
      */
     @Retention(RetentionPolicy.RUNTIME)
@@ -66,7 +67,7 @@ public abstract class Node implements NodeInterface, Cloneable {
 
     /**
      * Marks fields that represent child nodes of this node.
-     * 
+     *
      * @since 0.8 or earlier
      */
     @Retention(RetentionPolicy.RUNTIME)
@@ -126,7 +127,7 @@ public abstract class Node implements NodeInterface, Cloneable {
      * {@link NodeInfo#cost()} of the {@link NodeInfo} annotation declared at the subclass. If no
      * {@link NodeInfo} annotation is declared the method returns {@link NodeCost#MONOMORPHIC} as a
      * default value.
-     * 
+     *
      * @since 0.8 or earlier
      */
     public NodeCost getCost() {
@@ -348,7 +349,7 @@ public abstract class Node implements NodeInterface, Cloneable {
 
     /**
      * Checks if this node can be replaced by another node: tree structure & type.
-     * 
+     *
      * @since 0.8 or earlier
      */
     public final boolean isSafelyReplaceableBy(Node newNode) {
@@ -465,7 +466,7 @@ public abstract class Node implements NodeInterface, Cloneable {
 
     /**
      * Converts this node to a textual representation useful for debugging.
-     * 
+     *
      * @since 0.8 or earlier
      */
     @Override
@@ -524,9 +525,73 @@ public abstract class Node implements NodeInterface, Cloneable {
     }
 
     /**
+     * Returns <code>true</code> if this node should be considered tagged by a given tag else
+     * <code>false</code>. The method is only invoked for tags which are explicitly declared as
+     * {@link com.oracle.truffle.api.instrumentation.ProvidedTags provided} by the
+     * {@link TruffleLanguage language}. If the {@link #getSourceSection() source section} of the
+     * node returns <code>null</code> then this node is considered to be not tagged by any tag.
+     * <p>
+     * Tags are used by guest languages to indicate that a {@link Node node} is a member of a
+     * certain category of nodes. For example a debugger
+     * {@link com.oracle.truffle.api.instrumentation.TruffleInstrument instrument} might require a
+     * guest language to tag all nodes as halt locations that should be considered as such. The full
+     * set of tags {@link com.oracle.truffle.api.instrumentation.RequiredTags required} by an
+     * {@link com.oracle.truffle.api.instrumentation.TruffleInstrument instrument} to be functional
+     * is defined by the instrument implementation. The set of
+     * {@link com.oracle.truffle.api.instrumentation.RequiredTags required} tags might overlap
+     * between instrument implementations.
+     * <p>
+     * The node implementor may decide how to implement tagging for nodes. The simplest way to
+     * implement tagging using Java types is by overriding the {@link #isTaggedWith(String)} method.
+     * This example shows how to tag a node subclass and all its subclasses as expression and
+     * statement:
+     *
+     * <pre>
+     * <code>
+     * &#64;{@link Override}
+     * protected boolean isTaggedWith({@link String} tag) {
+     *    return tag == "EXPRESSION" || tag == "STATEMENT";
+     * }
+     * </code>
+     * </pre>
+     *
+     * <p>
+     * Often it is impossible to just rely on the node's Java type to implement tagging. This
+     * example shows how to use local state to implement tagging for a node.
+     *
+     * <pre>
+     * <code>
+     * private boolean isDebuggerHalt;
+     * ...
+     * &#64;{@link Override}
+     * protected boolean isTaggedWith({@link String} tag) {
+     *    return tag == "DEBUGGER_HALT" && isDebuggerHalt;
+     * }
+     * </code>
+     * </pre>
+     * <p>
+     * The implementation of isTaggedWith method must ensure that its result is stable after the
+     * parent {@link RootNode root node} was wrapped in a {@link CallTarget} using
+     * {@link TruffleRuntime#createCallTarget(RootNode)}. The result is stable if the result of
+     * calling this method for a particular tag remains always the same.
+     * <p>
+     * The given tag is always interned (<code>assert tag == tag.intern()</code> is guaranteed).
+     * This means it safe to compare the given tag using <code>==</code> with another interned tag.
+     *
+     * @param tag the interned string {@link com.oracle.truffle.api.instrumentation.ProvidedTags
+     *            provided} by the {@link TruffleLanguage language}
+     * @return <code>true</code> if the node should be considered tagged by a tag else
+     *         <code>false</code>.
+     * @since 0.12
+     */
+    protected boolean isTaggedWith(String tag) {
+        return false;
+    }
+
+    /**
      * Returns a user-readable description of the purpose of the Node, or "" if no description is
      * available.
-     * 
+     *
      * @since 0.8 or earlier
      */
     public String getDescription() {
@@ -540,7 +605,7 @@ public abstract class Node implements NodeInterface, Cloneable {
     /**
      * Returns a string representing the language this node has been implemented for. If the
      * language is unknown, returns "".
-     * 
+     *
      * @since 0.8 or earlier
      */
     public String getLanguage() {
@@ -594,6 +659,11 @@ public abstract class Node implements NodeInterface, Cloneable {
         @Override
         protected boolean isInstrumentable(RootNode rootNode) {
             return rootNode.isInstrumentable();
+        }
+
+        @Override
+        protected boolean hasInstrumentationTag(Node node, String tag) {
+            return node.isTaggedWith(tag);
         }
 
         @Override

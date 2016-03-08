@@ -276,8 +276,8 @@ public abstract class Accessor {
         return INSTRUMENT.createInstrumenter(vm);
     }
 
-    protected void addInstrumentation(Object instrumentationHandler, Object key, Class<?> instrumentationClass) {
-        INSTRUMENTHANDLER.addInstrumentation(instrumentationHandler, key, instrumentationClass);
+    protected void addInstrumentation(Object instrumentationHandler, Object key, Class<?> instrumentationClass, Set<String> requiredTags) {
+        INSTRUMENTHANDLER.addInstrumentation(instrumentationHandler, key, instrumentationClass, requiredTags);
     }
 
     protected void disposeInstrumentation(Object instrumentationHandler, Object key, boolean cleanupRequired) {
@@ -304,6 +304,10 @@ public abstract class Accessor {
     // new instrumentation
     protected Object createInstrumentationHandler(Object vm, OutputStream out, OutputStream err, InputStream in) {
         return INSTRUMENTHANDLER.createInstrumentationHandler(vm, out, err, in);
+    }
+
+    protected boolean hasInstrumentationTag(Node node, String tag) {
+        return NODES.hasInstrumentationTag(node, tag);
     }
 
     private static Reference<Object> previousVM = new WeakReference<>(null);

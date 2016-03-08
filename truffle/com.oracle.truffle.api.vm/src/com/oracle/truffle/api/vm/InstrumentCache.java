@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
@@ -14,6 +15,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
+
+import com.oracle.truffle.api.instrumentation.RequiredTags;
 
 //TODO (chumer): maybe this class should share some code with LanguageCache?
 final class InstrumentCache {
@@ -26,6 +29,7 @@ final class InstrumentCache {
     private final String id;
     private final String name;
     private final String version;
+    private Set<String> requiredTags;
 
     static {
         List<InstrumentCache> instruments = null;
@@ -116,6 +120,29 @@ final class InstrumentCache {
 
     String getVersion() {
         return version;
+    }
+
+    Set<String> getRequiredTags() {
+        if (instrumentationClass == null) {
+            loadClass();
+            if (instrumentationClass == null) {
+                // failed to load instrument
+                return Collections.emptySet();
+            }
+        }
+        if (requiredTags == null) {
+            RequiredTags tagsAnnotation = instrumentationClass.getAnnotation(RequiredTags.class);
+            Set<String> tags;
+            if (tagsAnnotation != null) {
+                tags = new HashSet<>();
+                tags.addAll(Arrays.asList(tagsAnnotation.value()));
+                tags = Collections.unmodifiableSet(tags);
+            } else {
+                tags = Collections.emptySet();
+            }
+            requiredTags = tags;
+        }
+        return requiredTags;
     }
 
     Class<?> getInstrumentationClass() {

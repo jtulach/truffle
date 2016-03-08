@@ -24,20 +24,25 @@
  */
 package com.oracle.truffle.api.vm;
 
-import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.TruffleOptions;
 import static com.oracle.truffle.api.vm.PolyglotEngine.LOG;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
+
+import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.TruffleOptions;
+import com.oracle.truffle.api.instrumentation.ProvidedTags;
 
 /**
  * Ahead-of-time initialization. If the JVM is started with {@link TruffleOptions#AOT}, it populates
@@ -51,6 +56,7 @@ final class LanguageCache {
     private final Set<String> mimeTypes;
     private final String name;
     private final String version;
+    private Set<String> providedTags;
 
     static {
         Map<String, LanguageCache> map = null;
@@ -78,6 +84,29 @@ final class LanguageCache {
         }
         this.mimeTypes = Collections.unmodifiableSet(ts);
         this.language = language;
+    }
+
+    Set<String> getProvidedTags() {
+        if (language == null) {
+            getImpl(true);
+            if (language == null) {
+                // failed to load language
+                return Collections.emptySet();
+            }
+        }
+        if (providedTags == null) {
+            ProvidedTags tagsAnnotation = language.getClass().getAnnotation(ProvidedTags.class);
+            Set<String> tags;
+            if (tagsAnnotation != null) {
+                tags = new HashSet<>();
+                tags.addAll(Arrays.asList(tagsAnnotation.value()));
+                tags = Collections.unmodifiableSet(tags);
+            } else {
+                tags = Collections.emptySet();
+            }
+            providedTags = tags;
+        }
+        return providedTags;
     }
 
     private static ClassLoader loader() {

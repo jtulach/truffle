@@ -25,6 +25,8 @@
 package com.oracle.truffle.api.instrumentation;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -43,6 +45,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.vm.PolyglotEngine.Instrument;
+import com.oracle.truffle.api.vm.PolyglotEngine.Language;
 
 public class InstrumentationTest extends AbstractInstrumentationTest {
 
@@ -176,6 +179,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @TruffleLanguage.Registration(name = "", version = "", mimeType = "testLanguageInstrumentation")
+    @ProvidedTags({InstrumentationTestLanguage.EXPRESSION, InstrumentationTestLanguage.STATEMENT})
     public static class TestLanguageInstrumentationLanguage extends TruffleLanguage<Void> {
 
         public static final TestLanguageInstrumentationLanguage INSTANCE = new TestLanguageInstrumentationLanguage();
@@ -313,6 +317,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Registration(name = "", version = "", id = "testInstrumentationException2")
+    @RequiredTags(InstrumentationTestLanguage.EXPRESSION)
     public static class TestInstrumentationException2 extends TruffleInstrument {
 
         static int returnedExceptional = 0;
@@ -357,6 +362,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Registration(name = "", version = "", id = "testInstrumentationException3")
+    @RequiredTags(InstrumentationTestLanguage.EXPRESSION)
     public static class TestInstrumentationException3 extends TruffleInstrument {
 
         static int returnedExceptional = 0;
@@ -432,6 +438,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Registration(name = "", version = "", id = "testLazyProbe1")
+    @RequiredTags(InstrumentationTestLanguage.EXPRESSION)
     public static class TestLazyProbe1 extends TruffleInstrument {
 
         static int createCalls = 0;
@@ -486,6 +493,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Registration(name = "", version = "", id = "testEnvParse1")
+    @RequiredTags({InstrumentationTestLanguage.EXPRESSION, InstrumentationTestLanguage.STATEMENT})
     public static class TestEnvParse1 extends TruffleInstrument {
 
         static int onExpression = 0;
@@ -553,6 +561,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Registration(name = "", version = "", id = "testEnvParse2")
+    @RequiredTags({InstrumentationTestLanguage.EXPRESSION, InstrumentationTestLanguage.STATEMENT})
     public static class TestEnvParse2 extends TruffleInstrument {
 
         static int onExpression = 0;
@@ -662,6 +671,314 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
                 }
 
                 public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
+                }
+            });
+        }
+    }
+
+    /*
+     * Use tags that are not declarded as required.
+     */
+    @Test
+    public void testUsedTagNotRequired1() throws IOException {
+        TestInstrumentNonInstrumentable1.onStatement = 0;
+
+        engine.getInstruments().get("testUsedTagNotRequired1").setEnabled(true);
+        run("ROOT()");
+
+        Assert.assertEquals(0, TestInstrumentNonInstrumentable1.onStatement);
+    }
+
+    @Registration(id = "testUsedTagNotRequired1")
+    public static class TestUsedTagNotRequired1 extends TruffleInstrument {
+
+        @Override
+        protected void onCreate(final Env env) {
+            try {
+                env.getInstrumenter().attachListener(SourceSectionFilter.newBuilder().tagIs("foobar0").build(), new ExecutionEventListener() {
+                    public void onEnter(EventContext context, VirtualFrame frame) {
+                    }
+
+                    public void onReturnExceptional(EventContext context, VirtualFrame frame, Throwable exception) {
+                    }
+
+                    public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
+                    }
+                });
+                Assert.fail();
+            } catch (IllegalArgumentException e) {
+                Assert.assertEquals(
+                                "The attached filter SourceSectionFilter[tag is one of [foobar0]] references the " +
+                                                "following tags [foobar0] which are not declared as required by the instrument. To fix " +
+                                                "this annotate the instrument class com.oracle.truffle.api.instrumentation." +
+                                                "InstrumentationTest$TestUsedTagNotRequired1 with @RequiredTags({foobar0}).",
+                                e.getMessage());
+            }
+        }
+    }
+
+    /*
+     * Check compatibility for instruments.
+     */
+    @Test
+    public void testNotInstrumentCompatibleToLanguage1() {
+        Instrument instrument = engine.getInstruments().get("testNotInstrumentCompatibleToLanguage1");
+        Language testLanguage = engine.getLanguages().get(InstrumentationTestLanguage.MIME_TYPE);
+        Assert.assertFalse(instrument.isCompatibleTo(testLanguage));
+        Assert.assertEquals(new HashSet<>(Arrays.asList("foobar0")), instrument.getRequiredTags());
+        Assert.assertEquals(new HashSet<>(Arrays.asList(InstrumentationTestLanguage.TAGS)), testLanguage.getProvidedTags());
+    }
+
+    @Registration(id = "testNotInstrumentCompatibleToLanguage1")
+    @RequiredTags("foobar0")
+    public static class TestNotInstrumentCompatibleToLanguage1 extends TruffleInstrument {
+
+        @Override
+        protected void onCreate(final Env env) {
+        }
+    }
+
+    /*
+     * Check compatibility for instruments.
+     */
+    @Test
+    public void testNotInstrumentCompatibleToLanguage2() throws IOException {
+        TestNotInstrumentCompatibleToLanguage2.run = false;
+
+        Instrument instrument = engine.getInstruments().get("testNotInstrumentCompatibleToLanguage2");
+        Language testLanguage = engine.getLanguages().get(InstrumentationTestLanguage.MIME_TYPE);
+        Assert.assertTrue(instrument.isCompatibleTo(testLanguage));
+        Assert.assertEquals(new HashSet<>(Arrays.asList(InstrumentationTestLanguage.EXPRESSION)), instrument.getRequiredTags());
+        Assert.assertEquals(new HashSet<>(Arrays.asList(InstrumentationTestLanguage.TAGS)), testLanguage.getProvidedTags());
+        instrument.setEnabled(true);
+        run("STATEMENT()");
+        Assert.assertTrue(TestNotInstrumentCompatibleToLanguage2.run);
+    }
+
+    @Registration(id = "testNotInstrumentCompatibleToLanguage2")
+    @RequiredTags(InstrumentationTestLanguage.EXPRESSION)
+    public static class TestNotInstrumentCompatibleToLanguage2 extends TruffleInstrument {
+
+        static boolean run = false;
+
+        @Override
+        protected void onCreate(final Env env) {
+            env.getInstrumenter().attachFactory(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.EXPRESSION).build(), new ExecutionEventNodeFactory() {
+
+                public ExecutionEventNode create(EventContext context) {
+                    return null;
+                }
+            });
+
+            try {
+                env.getInstrumenter().attachFactory(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.STATEMENT).build(), new ExecutionEventNodeFactory() {
+
+                    public ExecutionEventNode create(EventContext context) {
+                        return null;
+                    }
+                });
+                Assert.fail();
+            } catch (IllegalArgumentException e) {
+            }
+            run = true;
+
+        }
+    }
+
+    /*
+     * Test behavior isNodeTaggedWith when used with instruments
+     */
+    @Test
+    public void testIsNodeTaggedWith1() throws IOException {
+        Instrument instrument = engine.getInstruments().get("testIsNodeTaggedWith1");
+        instrument.setEnabled(true);
+        Instrumenter instrumenter = instrument.lookup(Instrumenter.class);
+
+        TestIsNodeTaggedWith1.expressionNode = null;
+        TestIsNodeTaggedWith1.statementNode = null;
+
+        Assert.assertFalse(instrumenter.isNodeTaggedWith(new Node() {
+        }, "foobar"));
+
+        run("STATEMENT(EXPRESSION)");
+
+        Assert.assertTrue(instrumenter.isNodeTaggedWith(TestIsNodeTaggedWith1.expressionNode, InstrumentationTestLanguage.EXPRESSION));
+        Assert.assertFalse(instrumenter.isNodeTaggedWith(TestIsNodeTaggedWith1.expressionNode, InstrumentationTestLanguage.STATEMENT));
+        Assert.assertFalse(instrumenter.isNodeTaggedWith(TestIsNodeTaggedWith1.expressionNode, "some other tag"));
+
+        Assert.assertTrue(instrumenter.isNodeTaggedWith(TestIsNodeTaggedWith1.statementNode, InstrumentationTestLanguage.STATEMENT));
+        Assert.assertFalse(instrumenter.isNodeTaggedWith(TestIsNodeTaggedWith1.statementNode, InstrumentationTestLanguage.EXPRESSION));
+        Assert.assertFalse(instrumenter.isNodeTaggedWith(TestIsNodeTaggedWith1.statementNode, "some other tag"));
+
+        try {
+            instrumenter.isNodeTaggedWith(TestIsNodeTaggedWith1.statementNode, null);
+            Assert.fail();
+        } catch (NullPointerException e) {
+        }
+
+        try {
+            instrumenter.isNodeTaggedWith(null, InstrumentationTestLanguage.EXPRESSION);
+            Assert.fail();
+        } catch (NullPointerException e) {
+        }
+
+        try {
+            String nonInternedTag = new String("foobar");
+            instrumenter.isNodeTaggedWith(TestIsNodeTaggedWith1.statementNode, nonInternedTag);
+            Assert.fail();
+        } catch (IllegalArgumentException e) {
+        }
+
+    }
+
+    /*
+     * Test behavior isNodeTaggedWith when used with languages
+     */
+    @Test
+    public void testIsNodeTaggedWith2() throws IOException {
+        Instrument instrument = engine.getInstruments().get("testIsNodeTaggedWith1");
+        instrument.setEnabled(true);
+        TestIsNodeTaggedWith1.expressionNode = null;
+        TestIsNodeTaggedWith1.statementNode = null;
+        TestIsNodeTaggedWith1Language.instrumenter = null;
+
+        Source otherLanguageSource = Source.fromText("STATEMENT(EXPRESSION)", null).withMimeType("testIsNodeTaggedWith1");
+        run(otherLanguageSource);
+
+        Instrumenter instrumenter = TestIsNodeTaggedWith1Language.instrumenter;
+
+        Node languageExpression = TestIsNodeTaggedWith1.expressionNode;
+        Node languageStatement = TestIsNodeTaggedWith1.statementNode;
+
+        Assert.assertTrue(instrumenter.isNodeTaggedWith(languageExpression, InstrumentationTestLanguage.EXPRESSION));
+        Assert.assertTrue(instrumenter.isNodeTaggedWith(languageStatement, InstrumentationTestLanguage.STATEMENT));
+        Assert.assertFalse(instrumenter.isNodeTaggedWith(languageExpression, "foobar"));
+        Assert.assertFalse(instrumenter.isNodeTaggedWith(languageStatement, "foobar"));
+
+        try {
+            instrumenter.isNodeTaggedWith(TestIsNodeTaggedWith1.statementNode, null);
+            Assert.fail();
+        } catch (NullPointerException e) {
+        }
+
+        try {
+            instrumenter.isNodeTaggedWith(null, InstrumentationTestLanguage.EXPRESSION);
+            Assert.fail();
+        } catch (NullPointerException e) {
+        }
+
+        try {
+            String nonInternedTag = new String("foobar");
+            instrumenter.isNodeTaggedWith(TestIsNodeTaggedWith1.statementNode, nonInternedTag);
+            Assert.fail();
+        } catch (IllegalArgumentException e) {
+        }
+
+        TestIsNodeTaggedWith1.expressionNode = null;
+        TestIsNodeTaggedWith1.statementNode = null;
+
+        run("EXPRESSION");
+
+        // fail if called with nodes from a different language
+        Node otherLanguageExpression = TestIsNodeTaggedWith1.expressionNode;
+        try {
+            instrumenter.isNodeTaggedWith(otherLanguageExpression, InstrumentationTestLanguage.EXPRESSION);
+            Assert.fail();
+        } catch (IllegalArgumentException e) {
+        }
+
+    }
+
+    @TruffleLanguage.Registration(name = "", version = "", mimeType = "testIsNodeTaggedWith1")
+    @ProvidedTags({InstrumentationTestLanguage.EXPRESSION, InstrumentationTestLanguage.STATEMENT})
+    public static class TestIsNodeTaggedWith1Language extends TruffleLanguage<Void> {
+
+        public static final TestIsNodeTaggedWith1Language INSTANCE = new TestIsNodeTaggedWith1Language();
+
+        static Instrumenter instrumenter;
+
+        @Override
+        protected Void createContext(com.oracle.truffle.api.TruffleLanguage.Env env) {
+            instrumenter = env.lookup(Instrumenter.class);
+            return null;
+        }
+
+        @Override
+        protected CallTarget parse(final Source code, Node context, String... argumentNames) throws IOException {
+            return Truffle.getRuntime().createCallTarget(new RootNode(TestIsNodeTaggedWith1Language.class, null, null) {
+
+                @Child private BaseNode base = InstrumentationTestLanguage.parse(code);
+
+                @Override
+                public Object execute(VirtualFrame frame) {
+                    return base.execute(frame);
+                }
+            });
+        }
+
+        @Override
+        protected Object findExportedSymbol(Void context, String globalName, boolean onlyExplicit) {
+            return null;
+        }
+
+        @Override
+        protected Object getLanguageGlobal(Void context) {
+            return null;
+        }
+
+        @Override
+        protected boolean isObjectOfLanguage(Object object) {
+            return false;
+        }
+
+        @SuppressWarnings("deprecation")
+        @Override
+        protected Visualizer getVisualizer() {
+            return null;
+        }
+
+        @Override
+        protected boolean isInstrumentable(Node node) {
+            return false;
+        }
+
+        @Override
+        protected WrapperNode createWrapperNode(Node node) {
+            return null;
+        }
+
+        @Override
+        protected Object evalInContext(Source source, Node node, MaterializedFrame mFrame) throws IOException {
+            return null;
+        }
+
+    }
+
+    @Registration(id = "testIsNodeTaggedWith1")
+    @RequiredTags({InstrumentationTestLanguage.EXPRESSION, InstrumentationTestLanguage.STATEMENT})
+    public static class TestIsNodeTaggedWith1 extends TruffleInstrument {
+
+        static Node expressionNode;
+        static Node statementNode;
+
+        @Override
+        protected void onCreate(final Env env) {
+            env.registerService(env.getInstrumenter());
+            env.getInstrumenter().attachFactory(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.EXPRESSION).build(), new ExecutionEventNodeFactory() {
+
+                public ExecutionEventNode create(EventContext context) {
+                    expressionNode = context.getInstrumentedNode();
+                    return new ExecutionEventNode() {
+                    };
+                }
+            });
+
+            env.getInstrumenter().attachFactory(SourceSectionFilter.newBuilder().tagIs(InstrumentationTestLanguage.STATEMENT).build(), new ExecutionEventNodeFactory() {
+
+                public ExecutionEventNode create(EventContext context) {
+                    statementNode = context.getInstrumentedNode();
+                    return new ExecutionEventNode() {
+                    };
                 }
             });
         }

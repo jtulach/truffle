@@ -29,6 +29,7 @@ import java.io.PrintStream;
 import com.oracle.truffle.api.Assumption;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.KillException;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.InstrumentableFactory.WrapperNode;
@@ -62,7 +63,7 @@ import com.oracle.truffle.api.source.SourceSection;
  *     }
  * }
  * </pre>
- * 
+ *
  * @since 0.12
  */
 public final class ProbeNode extends Node {
@@ -210,6 +211,9 @@ public final class ProbeNode extends Node {
     }
 
     static void failEventForInstrumentation(EventBinding<?> b, String eventName, Throwable t) {
+        if (t instanceof KillException) {
+            throw (KillException) t;
+        }
         assert !b.isLanguageBinding();
         InstrumentationInstrumenter instrumentationInstrumenter = (InstrumentationInstrumenter) b.getInstrumenter();
         Class<?> instrumentationClass = instrumentationInstrumenter.getInstrumentationClass();

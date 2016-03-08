@@ -57,6 +57,8 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.impl.Accessor;
 import com.oracle.truffle.api.instrument.Instrumenter;
 import com.oracle.truffle.api.instrument.Probe;
+import com.oracle.truffle.api.instrumentation.ProvidedTags;
+import com.oracle.truffle.api.instrumentation.RequiredTags;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.interop.ForeignAccess;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -99,7 +101,7 @@ import com.oracle.truffle.api.source.Source;
  * {@link Builder#build() created} by and checks that all subsequent calls are coming from the same
  * thread. There is 1:1 mapping between {@link PolyglotEngine} and a thread that can tell it what to
  * do.
- * 
+ *
  * @since 0.9
  */
 @SuppressWarnings("rawtypes")
@@ -247,7 +249,7 @@ public class PolyglotEngine {
      *     .{@link Builder#setIn(java.io.InputStream) setIn}({@link InputStream yourInput})
      *     .{@link Builder#build() build()};
      * </pre>
-     * 
+     *
      * @since 0.9
      */
     public class Builder {
@@ -472,7 +474,7 @@ public class PolyglotEngine {
      * <p>
      * Calling any other method of this class after the dispose has been done yields an
      * {@link IllegalStateException}.
-     * 
+     *
      * @since 0.9
      */
     public void dispose() {
@@ -507,6 +509,7 @@ public class PolyglotEngine {
                         LOG.log(Level.SEVERE, "Error disposing " + instrument, ex);
                     }
                 }
+
                 return null;
             }
         };
@@ -698,7 +701,7 @@ public class PolyglotEngine {
      * {@link Builder#executor(java.util.concurrent.Executor) asynchronous execution}, the
      * {@link Value} represents a future - i.e., it is returned immediately, leaving the execution
      * running on behind.
-     * 
+     *
      * @since 0.9
      */
     public class Value {
@@ -915,6 +918,41 @@ public class PolyglotEngine {
         }
 
         /**
+         * Returns <code>true</code> if this instrument is compatible with a given language. If an
+         * instrument is not compatible then {@link #setEnabled(boolean) enabling} the instrument
+         * will not cause the instrument to be applied to the language.
+         *
+         * @param language the language to check compatibility for
+         * @return Returns <code>true</code> if this instrument is compatible with a given language.
+         * @throws IllegalArgumentException if a language from another {@link PolyglotEngine}
+         *             instance is given.
+         * @since 0.12
+         */
+        public boolean isCompatibleTo(Language language) {
+            if (getEngine() != language.getEngine()) {
+                throw new IllegalArgumentException(String.format("Unknown language from another %s provided.", PolyglotEngine.class.getSimpleName()));
+            }
+            return language.getProvidedTags().containsAll(getRequiredTags());
+        }
+
+        private PolyglotEngine getEngine() {
+            return PolyglotEngine.this;
+        }
+
+        /**
+         * Returns an unmodifiable set of tags that was specified by the instrument to be
+         * {@link RequiredTags required}. The returned tags are interned. In other words
+         * <code>tag == tag.intern()</code> is always <code>true</code> for each tag.
+         *
+         * @return an unmodifiable set of required tags
+         * @see Language#getProvidedTags()
+         * @since 0.12
+         */
+        public Set<String> getRequiredTags() {
+            return info.getRequiredTags();
+        }
+
+        /**
          * Lookup additional service provided by the instrument. Here is an example how to query for
          * a hypothetical <code>DebuggerController</code>: {@codesnippet DebuggerExampleTest}
          *
@@ -956,7 +994,7 @@ public class PolyglotEngine {
         void setEnabledImpl(final boolean enabled, boolean cleanup) {
             if (this.enabled != enabled) { // check again for thread safety
                 if (enabled) {
-                    SPI.addInstrumentation(instrumentationHandler, this, getCache().getInstrumentationClass());
+                    SPI.addInstrumentation(instrumentationHandler, this, getCache().getInstrumentationClass(), getCache().getRequiredTags());
                 } else {
                     SPI.disposeInstrumentation(instrumentationHandler, this, cleanup);
                 }
@@ -980,7 +1018,7 @@ public class PolyglotEngine {
      * of supported {@link #getMimeTypes() MIME types} for each language. The actual language
      * implementation is not initialized until
      * {@link PolyglotEngine#eval(com.oracle.truffle.api.source.Source) a code is evaluated} in it.
-     * 
+     *
      * @since 0.9
      */
     public class Language {
@@ -1058,6 +1096,23 @@ public class PolyglotEngine {
             } catch (IOException ex) {
                 throw new IllegalStateException(ex);
             }
+        }
+
+        /**
+         * Returns an unmodifiable set of tags that was specified by the language to be
+         * {@link ProvidedTags provided}. The returned tags are interned. In other words
+         * <code>tag == tag.intern()</code> is always <code>true</code> for each tag.
+         *
+         * @return an unmodifiable set of provided tags
+         * @see Instrument#getRequiredTags()
+         * @since 0.12
+         */
+        public Set<String> getProvidedTags() {
+            return info.getProvidedTags();
+        }
+
+        private PolyglotEngine getEngine() {
+            return PolyglotEngine.this;
         }
 
         TruffleLanguage<?> getImpl(boolean create) {
@@ -1220,8 +1275,8 @@ public class PolyglotEngine {
         }
 
         @Override
-        protected void addInstrumentation(Object instrumentationHandler, Object key, Class<?> instrumentationClass) {
-            super.addInstrumentation(instrumentationHandler, key, instrumentationClass);
+        protected void addInstrumentation(Object instrumentationHandler, Object key, Class<?> instrumentationClass, Set<String> requiredTags) {
+            super.addInstrumentation(instrumentationHandler, key, instrumentationClass, requiredTags);
         }
 
         @Override

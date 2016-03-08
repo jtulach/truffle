@@ -36,12 +36,14 @@ import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.instrumentation.InstrumentationTestLanguage;
+import com.oracle.truffle.api.instrumentation.RequiredTags;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument.Registration;
 import com.oracle.truffle.api.source.SourceSection;
 
 @Registration(id = StatementProfilerExample.ID)
+@RequiredTags(InstrumentationTestLanguage.STATEMENT)
 public class StatementProfilerExample extends TruffleInstrument {
 
     public static final String ID = "test-profiler";

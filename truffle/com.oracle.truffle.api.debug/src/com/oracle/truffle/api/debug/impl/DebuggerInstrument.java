@@ -26,12 +26,14 @@ package com.oracle.truffle.api.debug.impl;
 
 import com.oracle.truffle.api.debug.Debugger;
 import com.oracle.truffle.api.instrumentation.Instrumenter;
+import com.oracle.truffle.api.instrumentation.RequiredTags;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument.Registration;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.vm.PolyglotEngine;
 
 @Registration(id = DebuggerInstrument.ID)
+@RequiredTags({Debugger.CALL_TAG, Debugger.HALT_TAG})
 public final class DebuggerInstrument extends TruffleInstrument {
     public static final String ID = "debugger";
 

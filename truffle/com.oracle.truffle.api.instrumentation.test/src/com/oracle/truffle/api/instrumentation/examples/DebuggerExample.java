@@ -35,6 +35,7 @@ import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
 import com.oracle.truffle.api.instrumentation.InstrumentationTestLanguage;
 import com.oracle.truffle.api.instrumentation.Instrumenter;
+import com.oracle.truffle.api.instrumentation.RequiredTags;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument.Registration;
@@ -47,6 +48,7 @@ import com.oracle.truffle.api.instrumentation.TruffleInstrument.Registration;
  */
 // BEGIN: DebuggerExample
 @Registration(id = DebuggerExample.ID)
+@RequiredTags(InstrumentationTestLanguage.STATEMENT)
 public final class DebuggerExample extends TruffleInstrument {
     private Controller controller;
 
