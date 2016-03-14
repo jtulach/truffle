@@ -128,7 +128,7 @@ public abstract class SLInvokeNode extends SLExpressionNode {
 
     @Override
     protected boolean isTaggedWith(String tag) {
-        if (tag == Debugger.CALL_TAG) {
+        if (tag.equals(Debugger.CALL_TAG)) {
             return true;
         }
         return super.isTaggedWith(tag);
