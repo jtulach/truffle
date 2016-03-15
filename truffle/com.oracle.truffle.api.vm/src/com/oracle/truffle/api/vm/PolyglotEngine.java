@@ -192,15 +192,6 @@ public class PolyglotEngine {
         return Collections.unmodifiableMap(instr);
     }
 
-    private boolean isDebuggerOn() {
-        for (EventConsumer<?> handler : handlers) {
-            if (handler.type.getSimpleName().endsWith("ExecutionEvent")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /**
      * Creation of new Truffle virtual machine. Use the {@link Builder} methods to configure your
      * virtual machine and then create one using {@link Builder#build()}:
@@ -324,7 +315,7 @@ public class PolyglotEngine {
          * {@link com.oracle.truffle.api.TruffleLanguage#createContext(com.oracle.truffle.api.TruffleLanguage.Env)
          * initial execution state} correctly.
          *
-         * {@codesnippet config.specify}
+         * {@link com.oracle.truffle.api.vm.PolyglotEngineSnippets#initializeWithParameters}
          *
          * If the same key is specified multiple times for the same language, the previous values
          * are replaced and just the last one remains.
@@ -435,10 +426,11 @@ public class PolyglotEngine {
     }
 
     /**
-     * Returns all instruments loaded in this this polyglot engine. Please note that some
-     * instruments are enabled automatically at startup.
+     * Returns all instruments <em>loaded</em> in this this {@linkplain PolyglotEngine engine},
+     * whether or not they are currently enabled. Some instruments are enabled automatically at
+     * startup.
      *
-     * @return the set of instruments
+     * @return the set of currently loaded instruments
      * @since 0.9
      */
     public Map<String, Instrument> getInstruments() {
@@ -538,7 +530,7 @@ public class PolyglotEngine {
 
     @SuppressWarnings("try")
     private Object evalImpl(TruffleLanguage<?>[] fillLang, Source s, Language l) throws IOException {
-        try (Closeable d = SPI.executionStart(this, -1, isDebuggerOn(), s)) {
+        try (Closeable d = SPI.executionStart(this, -1, false, s)) {
             TruffleLanguage<?> langImpl = l.getImpl(true);
             fillLang[0] = langImpl;
             return SPI.eval(langImpl, s, l.cache);
@@ -864,9 +856,10 @@ public class PolyglotEngine {
     }
 
     /**
-     * Represents a handle to a given installed instrumentation. With the handle it is possible to
-     * get metadata provided by the instrument. Also it is possible to
-     * {@link Instrument#setEnabled(boolean)} enable/disable a given instrument.
+     * Handle for an installed {@linkplain TruffleInstrument instrument}: a client of a running
+     * {@linkplain PolyglotEngine engine} that can observe and inject behavior into interpreters
+     * written using the Truffle framework. The handle provides access to the instrument's metadata
+     * and allows the instrument to be {@linkplain Instrument#setEnabled(boolean) enabled/disabled}.
      *
      * @see PolyglotEngine#getInstruments()
      * @since 0.9
@@ -994,9 +987,9 @@ public class PolyglotEngine {
         void setEnabledImpl(final boolean enabled, boolean cleanup) {
             if (this.enabled != enabled) { // check again for thread safety
                 if (enabled) {
-                    SPI.addInstrumentation(instrumentationHandler, this, getCache().getInstrumentationClass(), getCache().getRequiredTags());
+                    SPI.addInstrument(instrumentationHandler, this, getCache().getInstrumentClass(), getCache().getRequiredTags());
                 } else {
-                    SPI.disposeInstrumentation(instrumentationHandler, this, cleanup);
+                    SPI.disposeInstrument(instrumentationHandler, this, cleanup);
                 }
                 this.enabled = enabled;
             }
@@ -1270,18 +1263,18 @@ public class PolyglotEngine {
         }
 
         @Override
-        protected void detachFromInstrumentation(Object vm, Env env) {
-            super.detachFromInstrumentation(vm, env);
+        protected void detachLanguageFromInstrumentation(Object vm, Env env) {
+            super.detachLanguageFromInstrumentation(vm, env);
         }
 
         @Override
-        protected void addInstrumentation(Object instrumentationHandler, Object key, Class<?> instrumentationClass, Set<String> requiredTags) {
-            super.addInstrumentation(instrumentationHandler, key, instrumentationClass, requiredTags);
+        protected void addInstrument(Object instrumentationHandler, Object key, Class<?> instrumentClass, Set<String> requiredTags) {
+            super.addInstrument(instrumentationHandler, key, instrumentClass, requiredTags);
         }
 
         @Override
-        protected void disposeInstrumentation(Object instrumentationHandler, Object key, boolean cleanupRequired) {
-            super.disposeInstrumentation(instrumentationHandler, key, cleanupRequired);
+        protected void disposeInstrument(Object instrumentationHandler, Object key, boolean cleanupRequired) {
+            super.disposeInstrument(instrumentationHandler, key, cleanupRequired);
         }
 
         @Override
@@ -1339,4 +1332,22 @@ public class PolyglotEngine {
             return super.toString(language, env, obj);
         }
     } // end of SPIAccessor
+}
+
+class PolyglotEngineSnippets {
+    abstract class YourLang extends TruffleLanguage<Object> {
+        public static final String MIME_TYPE = "application/my-test-lang";
+    }
+
+    public static PolyglotEngine initializeWithParameters() {
+        // @formatter:off
+        // BEGIN: com.oracle.truffle.api.vm.PolyglotEngineSnippets#initializeWithParameters
+        String[] args = {"--kernel", "Kernel.som", "--instrument", "dyn-metrics"};
+        PolyglotEngine.Builder builder = PolyglotEngine.newBuilder();
+        builder.config(YourLang.MIME_TYPE, "CMD_ARGS", args);
+        PolyglotEngine vm = builder.build();
+        // END: com.oracle.truffle.api.vm.PolyglotEngineSnippets#initializeWithParameters
+        // @formatter:on
+        return vm;
+    }
 }
