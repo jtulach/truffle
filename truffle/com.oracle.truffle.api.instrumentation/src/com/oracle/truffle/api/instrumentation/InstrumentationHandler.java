@@ -104,7 +104,6 @@ final class InstrumentationHandler {
         visitRoot(root, addAllBindingsVisitor);
     }
 
-
     void addInstrument(Object key, Class<?> clazz, Set<String> requiredTags) {
         addInstrumenter(key, new InstrumentClientInstrumenter(clazz, requiredTags, out, err, in));
     }
@@ -635,9 +634,9 @@ final class InstrumentationHandler {
                 supportedLanguageCache.put(language, supportedLanguage);
                 if (TRACE) {
                     if (supportedLanguage) {
-                        trace("Compatible: %s provided tags %s are compatible with %s required tags %s.", language.getSimpleName(), providedTags, instrumentationClass.getSimpleName(), requiredTags);
+                        trace("Compatible: %s provided tags %s are compatible with %s required tags %s.", language.getSimpleName(), providedTags, instrumentClass.getSimpleName(), requiredTags);
                     } else {
-                        trace("Incompatible: %s provided tags %s are not compatible with %s required tags %s.", language.getSimpleName(), providedTags, instrumentationClass.getSimpleName(),
+                        trace("Incompatible: %s provided tags %s are not compatible with %s required tags %s.", language.getSimpleName(), providedTags, instrumentClass.getSimpleName(),
                                         requiredTags);
                     }
                 }
@@ -673,7 +672,7 @@ final class InstrumentationHandler {
 
                 throw new IllegalArgumentException(String.format("The attached filter %s references the following tags %s which are not declared as required by the instrument. " +
                                 "To fix this annotate the instrument class %s with @%s(%s).",
-                                filter, missingTags, instrumentationClass.getName(), RequiredTags.class.getSimpleName(), builder));
+                                filter, missingTags, instrumentClass.getName(), RequiredTags.class.getSimpleName(), builder));
             }
         }
 

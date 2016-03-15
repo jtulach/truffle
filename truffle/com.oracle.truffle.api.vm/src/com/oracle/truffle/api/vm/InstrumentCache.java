@@ -146,7 +146,6 @@ final class InstrumentCache {
         return version;
     }
 
-<<<<<<< HEAD
     Set<String> getRequiredTags() {
         if (instrumentClass == null) {
             loadClass();
@@ -156,7 +155,7 @@ final class InstrumentCache {
             }
         }
         if (requiredTags == null) {
-            RequiredTags tagsAnnotation = instrumentationClass.getAnnotation(RequiredTags.class);
+            RequiredTags tagsAnnotation = instrumentClass.getAnnotation(RequiredTags.class);
             Set<String> tags;
             if (tagsAnnotation != null) {
                 tags = new HashSet<>();

@@ -316,10 +316,9 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
         Assert.assertEquals(1, TestInstrumentException2.returnedValue);
     }
 
-
     @Registration(name = "", version = "", id = "testInstrumentException2")
     @RequiredTags(InstrumentationTestLanguage.EXPRESSION)
-    public static class TestInstrumentationException2 extends TruffleInstrument {
+    public static class TestInstrumentException2 extends TruffleInstrument {
 
         static int returnedExceptional = 0;
         static int returnedValue = 0;
