@@ -30,8 +30,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.WeakHashMap;
@@ -46,6 +48,9 @@ import com.oracle.truffle.api.frame.FrameInstance;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.instrument.StandardSyntaxTag;
+import com.oracle.truffle.api.instrumentation.Instrumenter;
+import com.oracle.truffle.api.instrumentation.TruffleInstrument;
+import com.oracle.truffle.api.instrumentation.TruffleInstrument.Registration;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.LineLocation;
@@ -66,6 +71,8 @@ import com.oracle.truffle.tools.debug.shell.server.InstrumentationUtils.Location
  */
 public final class REPLServer {
 
+    private static final String REPL_SERVER_INSTRUMENT = "REPLServer";
+
     private static final boolean TRACE = Boolean.getBoolean("truffle.debug.trace");
     private static final String TRACE_PREFIX = "REPLSrv: ";
     private static final PrintStream OUT = System.out;
@@ -84,8 +91,6 @@ public final class REPLServer {
         return name.substring(name.lastIndexOf('.') + 1);
     }
 
-    private static final String[] knownTags = {Debugger.HALT_TAG, Debugger.CALL_TAG};
-
     private static int nextBreakpointUID = 0;
 
     // Language-agnostic
@@ -95,7 +100,7 @@ public final class REPLServer {
     private SimpleREPLClient replClient = null;
     private String statusPrefix;
     private final Map<String, REPLHandler> handlerMap = new HashMap<>();
-    private ASTPrinter astPrinter = new REPLASTPrinter();
+    private final ASTPrinter astPrinter;
     private LocationPrinter locationPrinter = new InstrumentationUtils.LocationPrinter();
     private REPLVisualizer visualizer = new REPLVisualizer();
 
@@ -117,6 +122,8 @@ public final class REPLServer {
 
     public REPLServer(String defaultMIMEType) {
         this.engine = PolyglotEngine.newBuilder().onEvent(onHalted).onEvent(onExec).build();
+        this.engine.getInstruments().get(REPL_SERVER_INSTRUMENT).setEnabled(true);
+
         this.db = Debugger.find(this.engine);
         engineLanguages.addAll(engine.getLanguages().values());
         if (engineLanguages.size() == 0) {
@@ -135,6 +142,7 @@ public final class REPLServer {
             }
         }
         statusPrefix = languageName(defaultLanguage);
+        astPrinter = new REPLASTPrinter(engine);
     }
 
     private final EventConsumer<SuspendedEvent> onHalted = new EventConsumer<SuspendedEvent>(SuspendedEvent.class) {
@@ -556,6 +564,15 @@ public final class REPLServer {
         return new ArrayList<>(breakpoints.values());
     }
 
+    @Registration(id = "REPLServer")
+    public static final class REPLServerInstrument extends TruffleInstrument {
+
+        @Override
+        protected void onCreate(Env env) {
+            env.registerService(env.getInstrumenter());
+        }
+    }
+
     final class LineBreakpointInfo extends BreakpointInfo {
 
         private final LineLocation lineLocation;
@@ -795,15 +812,27 @@ public final class REPLServer {
 
     private static class REPLASTPrinter extends InstrumentationUtils.ASTPrinter {
 
+        private final Set<String> allTags;
+        private final Instrumenter instrumenter;
+
+        REPLASTPrinter(PolyglotEngine engine) {
+            this.instrumenter = engine.getInstruments().get(REPL_SERVER_INSTRUMENT).lookup(Instrumenter.class);
+            this.allTags = new HashSet<>();
+            for (Language language : engine.getLanguages().values()) {
+                allTags.addAll(language.getProvidedTags());
+            }
+        }
+
         @Override
-        protected String displayTags(final Object node) {
-            if (node instanceof Node) {
-                final SourceSection sourceSection = ((Node) node).getSourceSection();
+        protected String displayTags(final Object objectNode) {
+            if (objectNode instanceof Node) {
+                Node node = (Node) objectNode;
+                final SourceSection sourceSection = node.getSourceSection();
                 if (sourceSection != null) {
                     final StringBuilder sb = new StringBuilder("[");
                     String sep = "";
-                    for (String tag : knownTags) {
-                        if (sourceSection.hasTag(tag)) {
+                    for (String tag : allTags) {
+                        if (instrumenter.isNodeTaggedWith(node, tag)) {
                             sb.append(sep).append(tag);
                             sep = ",";
                         }
