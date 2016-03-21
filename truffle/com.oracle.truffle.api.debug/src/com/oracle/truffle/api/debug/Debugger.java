@@ -54,8 +54,12 @@ import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.LineLocation;
 import com.oracle.truffle.api.source.Source;
-import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.api.vm.PolyglotEngine;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.concurrent.Callable;
 
 /**
@@ -69,30 +73,36 @@ import java.util.concurrent.Callable;
 public final class Debugger {
 
     /**
-     * A {@link SourceSection#withTags(java.lang.String...) tag} used to mark program locations
-     * where ordinary stepping should halt. The debugger will halt just <em>before</em> a code
-     * location is executed that is marked with this tag.
+     * An annotation to mark program locations where ordinary stepping should halt. The debugger
+     * will halt just <em>before</em> a code location is executed that is marked with this tag.
      *
-     * @since 0.9
+     * @since 0.12
      */
-    public static final String HALT_TAG = "debug-HALT";
+    @Target(ElementType.TYPE)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Inherited
+    public @interface HaltTag {
+    }
 
     /**
-     * A {@link SourceSection#withTags(java.lang.String...) tag} used to mark program locations
-     * where <em>returning</em> or <em>stepping out</em> from a method/procedure call should halt.
-     * The debugger will halt at the code location that has just executed the call that returned.
+     * An to mark program locations where <em>returning</em> or <em>stepping out</em> from a
+     * method/procedure call should halt. The debugger will halt at the code location that has just
+     * executed the call that returned.
      *
-     * @see #HALT_TAG
-     * @since 0.9
+     * @since 0.12
      */
-    public static final String CALL_TAG = "debug-CALL";
+    @Target(ElementType.TYPE)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Inherited
+    public @interface CallTag {
+    }
 
     private static final boolean TRACE = Boolean.getBoolean("truffle.debug.trace");
     private static final String TRACE_PREFIX = "Debug: ";
     private static final PrintStream OUT = System.out;
 
-    private static final SourceSectionFilter CALL_FILTER = SourceSectionFilter.newBuilder().tagIs(CALL_TAG).build();
-    private static final SourceSectionFilter HALT_FILTER = SourceSectionFilter.newBuilder().tagIs(HALT_TAG).build();
+    private static final SourceSectionFilter CALL_FILTER = SourceSectionFilter.newBuilder().annotatedBy(CallTag.class).build();
+    private static final SourceSectionFilter HALT_FILTER = SourceSectionFilter.newBuilder().annotatedBy(HaltTag.class).build();
 
     /**
      * Finds debugger associated with given engine. There is at most one debugger associated with

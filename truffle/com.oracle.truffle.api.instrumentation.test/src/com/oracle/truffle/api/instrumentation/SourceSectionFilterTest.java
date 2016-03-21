@@ -33,6 +33,7 @@ import com.oracle.truffle.api.instrumentation.SourceSectionFilter.IndexRange;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
+import java.lang.annotation.Annotation;
 
 public class SourceSectionFilterTest {
 
@@ -71,13 +72,13 @@ public class SourceSectionFilterTest {
             }
 
             @Override
-            protected boolean isTaggedWith(String tag) {
+            protected boolean isAnnotationPresent(Class<? extends Annotation> tag) {
                 for (int i = 0; i < tags.length; i++) {
-                    if (tags[i] == tag) {
+                    if (tags[i] == (Object) tag) {
                         return true;
                     }
                 }
-                return super.isTaggedWith(tag);
+                return super.isAnnotationPresent(tag);
             }
 
         };

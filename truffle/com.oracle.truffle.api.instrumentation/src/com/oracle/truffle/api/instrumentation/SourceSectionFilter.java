@@ -34,6 +34,7 @@ import java.util.Set;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
+import java.lang.annotation.Annotation;
 
 /**
  * A source section filter represents an expression for a subset of tagged source sections that are
@@ -164,16 +165,23 @@ public final class SourceSectionFilter {
         }
 
         /**
-         * Add a filter for all source sections that are tagged with one of the given String tags.
+         * Add a filter for all {@link Node} that are tagged with one of the given annotation tags.
          *
-         * @param tags matches one of the given tags
+         * @param tag the annotation to work with
          * @return the builder to chain calls
+         * @see Node#isAnnotationPresent(java.lang.Class)
+         * @since 0.12
+         */
+        public Builder annotatedBy(Class<? extends Annotation> tag) {
+            expressions.add(new EventFilterExpression.AnnotatedBy<>(tag));
+            return this;
+        }
+
+        /**
          * @since 0.12
          */
         public Builder tagIs(String... tags) {
-            verifyNotNull(tags);
-            expressions.add(new EventFilterExpression.TagIs(tags));
-            return this;
+            throw new UnsupportedOperationException();
         }
 
         /**
@@ -184,9 +192,7 @@ public final class SourceSectionFilter {
          * @since 0.12
          */
         public Builder tagIsNot(String... tags) {
-            verifyNotNull(tags);
-            expressions.add(new Not(new EventFilterExpression.TagIs(tags)));
-            return this;
+            throw new UnsupportedOperationException();
         }
 
         /**
@@ -534,28 +540,25 @@ public final class SourceSectionFilter {
             return tags;
         }
 
-        private static final class TagIs extends EventFilterExpression {
+        private static final class AnnotatedBy<T extends Annotation> extends EventFilterExpression {
+            private final Class<T> annotation;
 
-            private final String[] tags;
-
-            TagIs(String... tags) {
-                this.tags = checkAndInternTags(tags);
+            AnnotatedBy(Class<T> annotation) {
+                this.annotation = annotation;
             }
 
             @Override
             void collectReferencedTags(Set<String> collectTags) {
-                for (String tag : tags) {
-                    collectTags.add(tag);
-                }
+                // for (String tag : tags) {
+                // collectTags.add(tag);
+                // }
             }
 
             @Override
             @SuppressFBWarnings("ES_COMPARING_STRINGS_WITH_EQ")
             boolean isIncluded(Node instrumentedNode, SourceSection sourceSection) {
-                String[] filterTags = this.tags;
-                for (int i = 0; i < filterTags.length; i++) {
-                    String tag = filterTags[i];
-                    if (InstrumentationHandler.hasTagImpl(instrumentedNode, sourceSection, tag)) {
+                if (instrumentedNode.getClass().isAnnotationPresent(annotation)) {
+                    if (InstrumentationHandler.isAnnotationPresent(instrumentedNode, sourceSection, annotation)) {
                         return true;
                     }
                 }
@@ -574,7 +577,7 @@ public final class SourceSectionFilter {
 
             @Override
             public String toString() {
-                return String.format("tag is one of %s", Arrays.toString(tags));
+                return String.format("annotation is %s", annotation);
             }
         }
 

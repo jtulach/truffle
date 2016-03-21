@@ -153,7 +153,7 @@ final class BreakpointFactory {
     Breakpoint create(int ignoreCount, LineLocation lineLocation, boolean oneShot) throws IOException {
         BreakpointImpl breakpoint = breakpoints.get(lineLocation);
         if (breakpoint == null) {
-            final SourceSectionFilter query = SourceSectionFilter.newBuilder().sourceIs(lineLocation.getSource()).lineIs(lineLocation.getLineNumber()).tagIs(Debugger.HALT_TAG).build();
+            final SourceSectionFilter query = SourceSectionFilter.newBuilder().sourceIs(lineLocation.getSource()).lineIs(lineLocation.getLineNumber()).annotatedBy(Debugger.HaltTag.class).build();
             breakpoint = new BreakpointImpl(lineLocation, query, ignoreCount, oneShot);
             if (TRACE) {
                 trace("NEW " + breakpoint.getShortDescription());
@@ -188,7 +188,7 @@ final class BreakpointFactory {
     Breakpoint create(int ignoreCount, String tag, boolean oneShot) throws IOException {
         BreakpointImpl breakpoint = breakpoints.get(tag);
         if (breakpoint == null) {
-            final SourceSectionFilter query = SourceSectionFilter.newBuilder().tagIs(tag).build();
+            final SourceSectionFilter query = SourceSectionFilter.newBuilder().annotatedBy(Debugger.HaltTag.class).build();
             breakpoint = new BreakpointImpl(tag, query, ignoreCount, oneShot);
             if (TRACE) {
                 trace("NEW " + breakpoint.getShortDescription());

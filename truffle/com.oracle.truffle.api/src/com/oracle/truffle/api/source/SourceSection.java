@@ -26,8 +26,6 @@ package com.oracle.truffle.api.source;
 
 import java.util.Arrays;
 
-import com.oracle.truffle.api.nodes.Node;
-
 /**
  * Description of contiguous section of text within a {@link Source} of program code; supports
  * multiple modes of access to the text and its location. A special
@@ -104,7 +102,7 @@ public final class SourceSection {
     }
 
     /**
-     * @deprecated tags are now determined by {@link Node#isTaggedWith(String)}
+     * @deprecated tags are annotations
      * @since 0.12
      */
     @Deprecated
@@ -265,7 +263,7 @@ public final class SourceSection {
     }
 
     /**
-     * @deprecated tags are now determined by {@link Node#isTaggedWith(String)}
+     * @deprecated tags are now annotations
      * @since 0.12
      */
     @Deprecated

@@ -96,9 +96,9 @@
  * At this time the debugger requries two tags for basic behavior; more tags may be required in the future
  * as the debugger acquires more functionality.
  * <ul>
- * <li>{@link com.oracle.truffle.api.debug.Debugger#HALT_TAG}: must be applied to every Node where the debugger
+ * <li>{@link com.oracle.truffle.api.debug.Debugger.HaltTag}: must be applied to every Node where the debugger
  * should halt during ordinary <em>stepping</em>.  This typically corresponds to "statements" in each language.</li>
- * <li>{@link com.oracle.truffle.api.debug.Debugger#CALL_TAG}: must be applied to every Node where the debugger
+ * <li>{@link com.oracle.truffle.api.debug.Debugger.CallTag}: must be applied to every Node where the debugger
  * should halt when either <em>returning</em> or <em>stepping out</em> from a call.  This typically corresponds
  * to function/method calls in each language.</li>
  * </ul>

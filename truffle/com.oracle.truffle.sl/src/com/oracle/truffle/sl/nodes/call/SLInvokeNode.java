@@ -60,6 +60,7 @@ import com.oracle.truffle.sl.nodes.SLExpressionNode;
 import com.oracle.truffle.sl.runtime.SLContext;
 import com.oracle.truffle.sl.runtime.SLFunction;
 import com.oracle.truffle.sl.runtime.SLNull;
+import java.lang.annotation.Annotation;
 
 /**
  * The node for function invocation in SL. Since SL has first class functions, the
@@ -70,6 +71,7 @@ import com.oracle.truffle.sl.runtime.SLNull;
  */
 @NodeInfo(shortName = "invoke")
 @NodeChildren({@NodeChild(value = "functionNode", type = SLExpressionNode.class)})
+@Debugger.CallTag
 public abstract class SLInvokeNode extends SLExpressionNode {
     @Children private final SLExpressionNode[] argumentNodes;
     @Child private SLDispatchNode dispatchNode;
@@ -127,11 +129,11 @@ public abstract class SLInvokeNode extends SLExpressionNode {
     }
 
     @Override
-    protected boolean isTaggedWith(String tag) {
-        if (tag.equals(Debugger.CALL_TAG)) {
+    protected boolean isAnnotationPresent(Class<? extends Annotation> tag) {
+        if (tag == Debugger.CallTag.class) {
             return true;
         }
-        return super.isTaggedWith(tag);
+        return super.isAnnotationPresent(tag);
     }
 
 }

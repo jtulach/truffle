@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.lang.annotation.Annotation;
 
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
@@ -303,7 +304,7 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
         }
 
         @Override
-        protected boolean isTaggedWith(String tag) {
+        protected boolean isAnnotationPresent(Class<? extends Annotation> tag) {
             return tag.equals(EXPRESSION);
         }
     }
@@ -339,8 +340,8 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
         }
 
         @Override
-        protected boolean isTaggedWith(String tag) {
-            return tag == BLOCK;
+        protected boolean isAnnotationPresent(Class<? extends Annotation> tag) {
+            throw new IllegalStateException("return tag == BLOCK;");
         }
     }
 
@@ -351,8 +352,8 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
         }
 
         @Override
-        protected boolean isTaggedWith(String tag) {
-            return tag == ROOT;
+        protected boolean isAnnotationPresent(Class<? extends Annotation> tag) {
+            throw new IllegalStateException("return tag == ROOT;");
         }
 
     }
@@ -365,8 +366,8 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
 
         @Override
         @SuppressFBWarnings("ES_COMPARING_STRINGS_WITH_EQ")
-        protected boolean isTaggedWith(String tag) {
-            return tag == STATEMENT;
+        protected boolean isAnnotationPresent(Class<? extends Annotation> tag) {
+            throw new IllegalStateException("return tag == STATEMENT;");
         }
 
     }
@@ -404,8 +405,8 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
 
         @SuppressFBWarnings("ES_COMPARING_STRINGS_WITH_EQ")
         @Override
-        protected boolean isTaggedWith(String tag) {
-            return tag == DEFINE;
+        protected boolean isAnnotationPresent(Class<? extends Annotation> tag) {
+            throw new IllegalStateException("return tag == DEFINE;");
         }
 
     }
@@ -436,8 +437,8 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
 
         @SuppressFBWarnings("ES_COMPARING_STRINGS_WITH_EQ")
         @Override
-        protected boolean isTaggedWith(String tag) {
-            return tag == CALL;
+        protected boolean isAnnotationPresent(Class<? extends Annotation> tag) {
+            throw new IllegalStateException("return tag == CALL;");
         }
 
     }
@@ -462,8 +463,8 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
 
         @SuppressFBWarnings("ES_COMPARING_STRINGS_WITH_EQ")
         @Override
-        protected boolean isTaggedWith(String tag) {
-            return tag == LOOP;
+        protected boolean isAnnotationPresent(Class<? extends Annotation> tag) {
+            throw new IllegalStateException("return tag == LOOP;");
         }
 
     }

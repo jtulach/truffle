@@ -52,6 +52,7 @@ import com.oracle.truffle.api.nodes.NodeVisitor;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
+import java.lang.annotation.Annotation;
 
 /**
  * Central coordinator class for the Truffle instrumentation framework. Allocated once per
@@ -427,16 +428,8 @@ final class InstrumentationHandler {
         }
     }
 
-    static boolean hasTagImpl(Node node, SourceSection sourceSection, String tag) {
-        if (sourceSection != null) {
-            // compatibility
-            @SuppressWarnings("deprecation")
-            boolean hasTag = sourceSection.hasTag(tag);
-            if (hasTag) {
-                return true;
-            }
-        }
-        return ACCESSOR.hasInstrumentationTag(node, tag);
+    static boolean isAnnotationPresent(Node node, SourceSection sourceSection, Class<? extends Annotation> tag) {
+        return ACCESSOR.isAnnotationPresent(node, tag);
     }
 
     static Instrumentable getInstrumentable(Node node) {
@@ -494,11 +487,10 @@ final class InstrumentationHandler {
     }
 
     private static void traceFilterCheck(String result, EventBinding<?> binding, Node node, SourceSection sourceSection) {
-        Set<String> tags = binding.getFilter().getReferencedTags();
         Set<String> containedTags = new HashSet<>();
-        for (String tag : tags) {
-            if (hasTagImpl(node, sourceSection, tag)) {
-                containedTags.add(tag);
+        for (Annotation tag : node.getClass().getAnnotations()) {
+            if (isAnnotationPresent(node, sourceSection, tag.getClass())) {
+                containedTags.add(tag.getClass().getName());
             }
         }
         trace("  Filter %4s %s section:%s tags:%s%n", result, binding.getFilter(), sourceSection, containedTags);
@@ -837,7 +829,7 @@ final class InstrumentationHandler {
                 return false;
             }
 
-            return hasTagImpl(node, sourceSection, tag);
+            return isAnnotationPresent(node, sourceSection, null);
         }
 
         @Override
@@ -912,8 +904,8 @@ final class InstrumentationHandler {
         }
 
         @Override
-        public boolean hasInstrumentationTag(Node node, String tag) {
-            return super.hasInstrumentationTag(node, tag);
+        protected boolean isAnnotationPresent(Node node, Class<? extends Annotation> tag) {
+            return super.isAnnotationPresent(node, tag);
         }
 
         @Override

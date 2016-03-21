@@ -49,6 +49,7 @@ import com.oracle.truffle.api.instrument.WrapperNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
+import java.lang.annotation.Annotation;
 
 /**
  * Communication between PolyglotEngine, TruffleLanguage API/SPI, and other services.
@@ -311,8 +312,8 @@ public abstract class Accessor {
         return INSTRUMENTHANDLER.createInstrumentationHandler(vm, out, err, in);
     }
 
-    protected boolean hasInstrumentationTag(Node node, String tag) {
-        return NODES.hasInstrumentationTag(node, tag);
+    protected boolean isAnnotationPresent(Node node, Class<? extends Annotation> tag) {
+        return NODES.isAnnotationPresent(node, tag);
     }
 
     private static Reference<Object> previousVM = new WeakReference<>(null);

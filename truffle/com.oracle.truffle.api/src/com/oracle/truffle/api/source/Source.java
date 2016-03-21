@@ -55,7 +55,6 @@ import java.util.logging.Logger;
 
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.TruffleLanguage.Registration;
-import com.oracle.truffle.api.nodes.Node;
 
 /**
  * Representation of a guest language source code unit and its contents. Sources originate in
@@ -596,8 +595,8 @@ public abstract class Source {
     }
 
     /**
-     * @deprecated tags are now determined by {@link Node#isTaggedWith(String)}. Use
-     *             {@link #createSection(String, int, int, int, int)} instead.
+     * @deprecated tags are now annotations. Use {@link #createSection(String, int, int, int, int)}
+     *             instead.
      * @since 0.12
      */
     @Deprecated
@@ -662,8 +661,7 @@ public abstract class Source {
     }
 
     /**
-     * @deprecated tags are now determined by {@link Node#isTaggedWith(String)}. Use
-     *             {@link #createSection(String, int, int)} instead.
+     * @deprecated tags are annotations. Use {@link #createSection(String, int, int)} instead.
      * @since 0.12
      */
     @Deprecated

@@ -44,6 +44,7 @@ import com.oracle.truffle.api.TruffleRuntime;
 import com.oracle.truffle.api.impl.Accessor;
 import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.api.utilities.JSONHelper;
+import java.lang.annotation.Annotation;
 
 /**
  * Abstract base class for all Truffle nodes.
@@ -525,67 +526,48 @@ public abstract class Node implements NodeInterface, Cloneable {
     }
 
     /**
-     * Returns <code>true</code> if this node should be considered tagged by a given tag else
-     * <code>false</code>. The method is only invoked for tags which are explicitly declared as
-     * {@link com.oracle.truffle.api.instrumentation.ProvidedTags provided} by the
-     * {@link TruffleLanguage language}. If the {@link #getSourceSection() source section} of the
-     * node returns <code>null</code> then this node is considered to be not tagged by any tag.
+     * Returns <code>true</code> if given annotation is supposed to be treated as present on this
+     * instance of the node.
      * <p>
-     * Tags are used by guest languages to indicate that a {@link Node node} is a member of a
-     * certain category of nodes. For example a debugger
-     * {@link com.oracle.truffle.api.instrumentation.TruffleInstrument instrument} might require a
-     * guest language to tag all nodes as halt locations that should be considered as such. The full
-     * set of tags {@link com.oracle.truffle.api.instrumentation.RequiredTags required} by an
-     * {@link com.oracle.truffle.api.instrumentation.TruffleInstrument instrument} to be functional
-     * is defined by the instrument implementation. The set of
-     * {@link com.oracle.truffle.api.instrumentation.RequiredTags required} tags might overlap
-     * between instrument implementations.
+     * The name and signature of this method intentionally copies signature of
+     * {@link Class#isAnnotationPresent(java.lang.Class)} - the {@link Node} is a (Truffle) language
+     * element and as such it may be annotated with additional meta information. However, as
+     * {@link Node} is more dynamic than a {@link Class}, it may be necessary/important/efficient to
+     * have multiple instances of the same {@link Node} type each with different set annotations. To
+     * achieve such <em>dynamism</em> subclasses of {@link Node} may override this method and hide
+     * some of their annotations depending on their internal (<code>final</code> or
+     * {@link CompilationFinal}) state by returning <code>false</code>.
      * <p>
-     * The node implementor may decide how to implement tagging for nodes. The simplest way to
-     * implement tagging using Java types is by overriding the {@link #isTaggedWith(String)} method.
-     * This example shows how to tag a node subclass and all its subclasses as expression and
-     * statement:
-     *
-     * <pre>
-     * <code>
-     * &#64;{@link Override}
-     * protected boolean isTaggedWith({@link String} tag) {
-     *    return tag == "EXPRESSION" || tag == "STATEMENT";
-     * }
-     * </code>
-     * </pre>
-     *
+     * The method is only invoked for annotations which are explicitly declared on the node
+     * {@link Class} - e.g. for which {@link Class#isAnnotationPresent(java.lang.Class)
+     * node.getClass().isAnnotationPresent(...)} returns true.
      * <p>
-     * Often it is impossible to just rely on the node's Java type to implement tagging. This
-     * example shows how to use local state to implement tagging for a node.
-     *
-     * <pre>
-     * <code>
-     * private boolean isDebuggerHalt;
-     * ...
-     * &#64;{@link Override}
-     * protected boolean isTaggedWith({@link String} tag) {
-     *    return tag == "DEBUGGER_HALT" && isDebuggerHalt;
-     * }
-     * </code>
-     * </pre>
+     * Annotations like are used by guest languages to indicate that a {@link Node node} is a member
+     * of a certain category of nodes. For example a debugger seeks for
+     * {@link com.oracle.truffle.api.debug.Debugger.HaltTag} and
+     * {@link com.oracle.truffle.api.debug.Debugger.CallTag} annotations to find out nodes that
+     * represent statements and calls.
      * <p>
-     * The implementation of isTaggedWith method must ensure that its result is stable after the
-     * parent {@link RootNode root node} was wrapped in a {@link CallTarget} using
+     * To tag a node with an annotation simply put the annotation on your node class. Often it is
+     * impossible to just rely on the node's Java type to implement tagging. This example shows how
+     * to use local state to implement tagging for a node.
+     * {@link com.oracle.truffle.api.nodes.NodeSnippets.StatementNode#isDebuggerHalt}
+     * <p>
+     * The implementation of isAnnotationPresent method must ensure that its result is stable after
+     * the parent {@link RootNode root node} was wrapped in a {@link CallTarget} using
      * {@link TruffleRuntime#createCallTarget(RootNode)}. The result is stable if the result of
-     * calling this method for a particular tag remains always the same.
+     * calling this method for a particular tag remains always the same. The default implementation
+     * delegates to {@link Class#isAnnotationPresent(java.lang.Class)
+     * getClass().isAnnotationPresent(tag)}.
      * <p>
-     * The given tag is always interned (<code>assert tag == tag.intern()</code> is guaranteed).
-     * This means it safe to compare the given tag using <code>==</code> with another interned tag.
      *
-     * @param tag the interned string {@link com.oracle.truffle.api.instrumentation.ProvidedTags
-     *            provided} by the {@link TruffleLanguage language}
+     * @param tag the type of annotation to check
      * @return <code>true</code> if the node should be considered tagged by a tag else
      *         <code>false</code>.
      * @since 0.12
      */
-    protected boolean isTaggedWith(String tag) {
-        return false;
+    protected boolean isAnnotationPresent(Class<? extends Annotation> tag) {
+        return getClass().isAnnotationPresent(tag);
     }
 
     /**
@@ -662,8 +644,8 @@ public abstract class Node implements NodeInterface, Cloneable {
         }
 
         @Override
-        protected boolean hasInstrumentationTag(Node node, String tag) {
-            return node.isTaggedWith(tag);
+        protected boolean isAnnotationPresent(Node node, Class<? extends Annotation> tag) {
+            return node.isAnnotationPresent(tag);
         }
 
         @Override
@@ -713,4 +695,23 @@ class NodeSnippets {
         }
         // END: com.oracle.truffle.api.nodes.NodeSnippets.MutableSourceSectionNode#section
     }
+
+    private static final class Debugger {
+        @interface HaltTag {
+        }
+    }
+
+    // BEGIN: com.oracle.truffle.api.nodes.NodeSnippets.StatementNode#isDebuggerHalt
+    class StatementNode extends Node {
+        private boolean isDebuggerHalt;
+
+        @Override
+        protected boolean isAnnotationPresent(Class<? extends Annotation> tag) {
+            if (tag == Debugger.HaltTag.class) {
+                return isDebuggerHalt;
+            }
+            return super.isAnnotationPresent(tag);
+        }
+    }
+    // END: com.oracle.truffle.api.nodes.NodeSnippets.StatementNode#isDebuggerHalt
 }

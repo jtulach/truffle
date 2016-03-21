@@ -40,14 +40,15 @@
  */
 package com.oracle.truffle.sl.nodes;
 
+import com.oracle.truffle.api.debug.Debugger;
 import java.io.File;
 
-import com.oracle.truffle.api.debug.Debugger;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.Instrumentable;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
+import java.lang.annotation.Annotation;
 
 /**
  * The base class of all Truffle nodes for SL. All nodes (even expressions) can be used as
@@ -56,6 +57,7 @@ import com.oracle.truffle.api.source.SourceSection;
  */
 @NodeInfo(language = "Simple Language", description = "The abstract base node for all statements")
 @Instrumentable(factory = SLStatementNodeWrapper.class)
+@Debugger.HaltTag
 public abstract class SLStatementNode extends Node {
 
     private final SourceSection section;
@@ -88,12 +90,8 @@ public abstract class SLStatementNode extends Node {
     }
 
     @Override
-    protected boolean isTaggedWith(String tag) {
-        switch (tag) {
-            case Debugger.HALT_TAG:
-                return isDebugHalt;
-        }
-        return false;
+    protected boolean isAnnotationPresent(Class<? extends Annotation> tag) {
+        return tag == Debugger.HaltTag.class && isDebugHalt;
     }
 
     @Override
