@@ -13,6 +13,7 @@ common : {
     maven : ">=3.3.9"
     "apache/ant" : ">=1.9.4"
     make : ">=3.83"
+    libgfortran : ">=4.9"
     gcc-build-essentials : ">=4.9.1" # GCC 4.9.0 fails on cluster
     readline : "==6.3"
   }
