@@ -9,6 +9,6 @@ hg up -C mx4ruby
 export DEFAULT_VM=server
 export MX_BINARY_SUITES=graal-enterprise,jvmci,graal-js-extensions,graal-core,graal-js,graal-avatarjs,fastr,jruby
 
-mx --vm server --vmbuild product build
+mx -v --vm server --vmbuild product build
 mx unittest interop.sieve
 
