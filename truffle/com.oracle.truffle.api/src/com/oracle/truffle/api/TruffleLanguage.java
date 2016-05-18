@@ -40,6 +40,7 @@ import com.oracle.truffle.api.impl.FindContextNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
+import java.lang.ref.Reference;
 import java.util.LinkedHashSet;
 
 /**
@@ -169,8 +170,78 @@ public abstract class TruffleLanguage<C> {
      *             propagate to the user who called one of <code>eval</code> methods of
      *             {@link com.oracle.truffle.api.vm.PolyglotEngine}
      * @since 0.8 or earlier
+     * @deprecated override
+     *             {@link #parse(com.oracle.truffle.api.TruffleLanguage.ParsingEnv, com.oracle.truffle.api.source.Source, com.oracle.truffle.api.nodes.Node, java.lang.String...)}
      */
-    protected abstract CallTarget parse(Source code, Node context, String... argumentNames) throws IOException;
+    @Deprecated
+    protected CallTarget parse(Source code, Node context, String... argumentNames) throws IOException {
+        throw new IOException("Call parse with ParsingEnv parameter!");
+    }
+
+    /**
+     * Parses the provided source and generates appropriate AST. The parsing should execute no user
+     * code, it should only create the {@link Node} tree to represent the source. If the provided
+     * source does not correspond naturally to a call target, the returned call target should create
+     * and if necessary initialize the corresponding language entity and return it. The parsing may
+     * be performed in a context (specified as another {@link Node}) or without context. The
+     * {@code argumentNames} may contain symbolic names for actual parameters of the call to the
+     * returned value. The result should be a call target with method
+     * {@link CallTarget#call(java.lang.Object...)} that accepts as many arguments as were provided
+     * via the {@code argumentNames} array.
+     *
+     * @param env environment to use while constructing the {@link Node nodes}
+     * @param code source code to parse
+     * @param context a {@link Node} defining context for the parsing
+     * @param argumentNames symbolic names for parameters of
+     *            {@link CallTarget#call(java.lang.Object...)}
+     * @return a call target to invoke which also keeps in memory the {@link Node} tree representing
+     *         just parsed <code>code</code>
+     * @throws IOException thrown when I/O or parsing goes wrong. Here-in thrown exception is
+     *             propagate to the user who called one of <code>eval</code> methods of
+     *             {@link com.oracle.truffle.api.vm.PolyglotEngine}
+     * @since 0.14
+     */
+    protected CallTarget parse(ParsingEnv env, Source code, Node context, String... argumentNames) throws IOException {
+        throw new UnsupportedOperationException("override this method, it will be made abstract in future version of Truffle API!");
+    }
+
+    /**
+     * The parsing environment. Contains information and services necessary for parsing and creating
+     * of the AST {@link Node nodes}. The most important method is
+     * {@link #createContextReference(com.oracle.truffle.api.TruffleLanguage)} which allows one to
+     * effectively share the {@link Node AST} between multiple
+     * {@link com.oracle.truffle.api.vm.PolyglotEngine execution engines} while still keep fast and
+     * effective access to the {@link #createContext(com.oracle.truffle.api.TruffleLanguage.Env)
+     * context}.
+     *
+     * @since 0.14
+     */
+    public static final class ParsingEnv {
+        private final TruffleLanguage<?> language;
+
+        private ParsingEnv(TruffleLanguage<?> forLanguage) {
+            this.language = forLanguage;
+        }
+
+        /**
+         * Factory to create an optimized reference to language
+         * {@link TruffleLanguage#createContext(Env) context}. Embed the returned instance into a
+         * <code>final</code> field of your node(s) that needs to access the the
+         * {@link #createContext(com.oracle.truffle.api.TruffleLanguage.Env) context created} by
+         * your language.
+         *
+         * @param <C> type of the context
+         * @param language the requesting language that is doing the parsing
+         * @return a highly optimized accessor to the context <code>C</code>
+         * @since 0.14
+         */
+        public <C> Reference<C> createContextReference(TruffleLanguage<C> language) {
+            if (language != this.language) {
+                throw new IllegalStateException();
+            }
+            return AccessAPI.engineAccess().createContextReference(language);
+        }
+    }
 
     /**
      * Called when some other language is seeking for a global symbol. This method is supposed to do

@@ -26,22 +26,25 @@ package com.oracle.truffle.api.vm;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
+import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
 
-final class ContextReference<C> {
+final class ContextReference<C> extends WeakReference<C> {
     private static Map<TruffleLanguage<?>, Integer> ids = new HashMap<>();
     private final ContextStoreProfile profile;
     private final TruffleLanguage<C> language;
     private final int languageId;
 
     private ContextReference(ContextStoreProfile profile, TruffleLanguage<C> language, int languageId) {
+        super(null);
         this.profile = profile;
         this.language = language;
         this.languageId = languageId;
     }
 
     @SuppressWarnings("unchecked")
+    @Override
     public C get() {
         final ContextStore store = profile.get();
         Object context = store.getContext(languageId);

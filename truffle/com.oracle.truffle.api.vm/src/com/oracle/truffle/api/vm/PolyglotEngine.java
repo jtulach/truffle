@@ -61,6 +61,7 @@ import com.oracle.truffle.api.interop.java.JavaInterop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
+import java.lang.ref.Reference;
 
 /**
  * Gate way into the world of {@link TruffleLanguage Truffle languages}. {@link #buildNew()
@@ -1321,6 +1322,11 @@ public class PolyglotEngine {
             @Override
             public <C> FindContextNode<C> createFindContextNode(TruffleLanguage<C> lang) {
                 return new FindContextNodeImpl<>(lang);
+            }
+
+            @Override
+            public <C> Reference<C> createContextReference(TruffleLanguage<C> lang) {
+                return ContextReference.create(lang);
             }
         }
 
