@@ -217,7 +217,7 @@ public abstract class TruffleLanguage<C> {
      * @since 0.14
      */
     public static final class ParsingEnv {
-        private final TruffleLanguage<?> language;
+        private TruffleLanguage<?> language;
 
         private ParsingEnv(TruffleLanguage<?> forLanguage) {
             this.language = forLanguage;
@@ -231,15 +231,29 @@ public abstract class TruffleLanguage<C> {
          * your language.
          *
          * @param <C> type of the context
-         * @param language the requesting language that is doing the parsing
+         * @param lang the requesting language that is doing the parsing
          * @return a highly optimized accessor to the context <code>C</code>
          * @since 0.14
          */
-        public <C> Reference<C> createContextReference(TruffleLanguage<C> language) {
-            if (language != this.language) {
+        public <C> Reference<C> createContextReference(TruffleLanguage<C> lang) {
+            if (lang != this.language) {
                 throw new IllegalStateException();
             }
-            return AccessAPI.engineAccess().createContextReference(language);
+            return AccessAPI.engineAccess().createContextReference(lang);
+        }
+
+        final void dispose() {
+            language = null;
+        }
+
+        @SuppressWarnings("deprecation")
+        final CallTarget parse(TruffleLanguage<?> truffleLanguage, Source code, Node context, String... argumentNames) throws IOException {
+            try {
+                return truffleLanguage.parse(this, code, context, argumentNames);
+            } catch (UnsupportedOperationException ex) {
+                ex.printStackTrace();
+                return truffleLanguage.parse(code, context, argumentNames);
+            }
         }
     }
 
@@ -507,7 +521,10 @@ public abstract class TruffleLanguage<C> {
          */
         public CallTarget parse(Source source, String... argumentNames) throws IOException {
             TruffleLanguage<?> language = AccessAPI.engineAccess().findLanguageImpl(vm, null, source.getMimeType());
-            return language.parse(source, null, argumentNames);
+            ParsingEnv env = new ParsingEnv(language);
+            CallTarget target = env.parse(language, source, null, argumentNames);
+            env.dispose();
+            return target;
         }
 
         /**
@@ -635,14 +652,19 @@ public abstract class TruffleLanguage<C> {
 
         @Override
         public CallTarget parse(TruffleLanguage<?> truffleLanguage, Source code, Node context, String... argumentNames) throws IOException {
-            return truffleLanguage.parse(code, context, argumentNames);
+            ParsingEnv env = new ParsingEnv(truffleLanguage);
+            CallTarget target = env.parse(truffleLanguage, code, context, argumentNames);
+            env.dispose();
+            return target;
         }
 
         @Override
         public Object eval(TruffleLanguage<?> language, Source source, Map<Source, CallTarget> cache) throws IOException {
             CallTarget target = cache.get(source);
             if (target == null) {
-                target = language.parse(source, null);
+                ParsingEnv env = new ParsingEnv(language);
+                target = env.parse(language, source, null);
+                env.dispose();
                 if (target == null) {
                     throw new IOException("Parsing has not produced a CallTarget for " + source);
                 }

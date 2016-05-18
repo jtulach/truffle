@@ -224,7 +224,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
         }
 
         @Override
-        protected CallTarget parse(final Source code, Node context, String... argumentNames) throws IOException {
+        protected CallTarget parse(ParsingEnv env, final Source code, Node context, String... argumentNames) throws IOException {
             return Truffle.getRuntime().createCallTarget(new RootNode(TestLanguageInstrumentationLanguage.class, null, null) {
 
                 @Child private BaseNode base = InstrumentationTestLanguage.parse(code);
@@ -864,7 +864,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
         }
 
         @Override
-        protected CallTarget parse(final Source code, Node context, String... argumentNames) throws IOException {
+        protected CallTarget parse(ParsingEnv env, final Source code, Node context, String... argumentNames) throws IOException {
             return Truffle.getRuntime().createCallTarget(new RootNode(TestIsNodeTaggedWith1Language.class, null, null) {
 
                 @Child private BaseNode base = InstrumentationTestLanguage.parse(code);

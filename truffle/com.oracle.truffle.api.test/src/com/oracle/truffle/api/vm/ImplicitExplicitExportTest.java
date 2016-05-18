@@ -167,6 +167,7 @@ public class ImplicitExplicitExportTest {
             context.dispose();
         }
 
+        @SuppressWarnings("deprecation")
         @Override
         protected CallTarget parse(Source code, Node context, String... argumentNames) throws IOException {
             if (code.getCode().startsWith("parse=")) {

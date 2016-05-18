@@ -406,7 +406,7 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
     }
 
     @Override
-    protected CallTarget parse(Source code, final Node node, String... argumentNames) throws IOException {
+    protected CallTarget parse(ParsingEnv env, Source code, final Node node, String... argumentNames) throws IOException {
         CallTarget cached = compiled.get(code);
         if (cached != null) {
             return cached;

@@ -114,7 +114,7 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
     }
 
     @Override
-    protected CallTarget parse(Source code, Node context, String... argumentNames) throws IOException {
+    protected CallTarget parse(ParsingEnv env, Source code, Node context, String... argumentNames) throws IOException {
         SourceSection outer = code.createSection(null, 0, code.getLength());
         return Truffle.getRuntime().createCallTarget(new InstrumentationTestRootNode(outer, parse(code)));
     }
