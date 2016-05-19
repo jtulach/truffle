@@ -51,6 +51,7 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
+import java.lang.ref.Reference;
 
 public class ImplicitExplicitExportTest {
     private static Thread mainThread;
@@ -154,6 +155,8 @@ public class ImplicitExplicitExportTest {
 
     private abstract static class AbstractExportImportLanguage extends TruffleLanguage<Ctx> {
 
+        private Reference<Ctx> contextRef;
+
         @Override
         protected Ctx createContext(Env env) {
             if (mainThread != null) {
@@ -178,6 +181,7 @@ public class ImplicitExplicitExportTest {
 
         @Override
         protected CallTarget parse(ParsingEnv env, Source code, Node context, String... argumentNames) throws IOException {
+            contextRef = env.createContextReference(this);
             throw new SilentlyUnsupportedException();
         }
 
@@ -230,8 +234,7 @@ public class ImplicitExplicitExportTest {
 
         private Object importExport(Source code) {
             assertNotEquals("Should run asynchronously", Thread.currentThread(), mainThread);
-            final Node node = createFindContextNode();
-            Ctx ctx = findContext(node);
+            Ctx ctx = contextRef.get();
             Properties p = new Properties();
             try (Reader r = code.getReader()) {
                 p.load(r);

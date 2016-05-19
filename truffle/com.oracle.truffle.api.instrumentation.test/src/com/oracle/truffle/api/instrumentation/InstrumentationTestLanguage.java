@@ -50,6 +50,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
+import java.lang.ref.Reference;
 
 /**
  * <p>
@@ -105,22 +106,14 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
         return new HashMap<>();
     }
 
-    public Node createFindContextNode0() {
-        return super.createFindContextNode();
-    }
-
-    public Map<String, CallTarget> findContext0(Node contextNode) {
-        return findContext(contextNode);
-    }
-
     @Override
     protected CallTarget parse(ParsingEnv env, Source code, Node context, String... argumentNames) throws IOException {
         SourceSection outer = code.createSection(null, 0, code.getLength());
-        return Truffle.getRuntime().createCallTarget(new InstrumentationTestRootNode(outer, parse(code)));
+        return Truffle.getRuntime().createCallTarget(new InstrumentationTestRootNode(outer, parse(code, env.createContextReference(this))));
     }
 
-    public static BaseNode parse(Source code) {
-        return new Parser(code).parse();
+    public static BaseNode parse(Source code, Reference<Map<String, CallTarget>> contextRef) {
+        return new Parser(code, contextRef).parse();
     }
 
     private static final class Parser {
@@ -129,10 +122,12 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
 
         private final Source source;
         private final String code;
+        private final Reference<Map<String, CallTarget>> contextRef;
         private int current;
 
-        Parser(Source source) {
+        Parser(Source source, Reference<Map<String, CallTarget>> contextRef) {
             this.source = source;
+            this.contextRef = contextRef;
             this.code = source.getCode();
         }
 
@@ -213,12 +208,12 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
             return false;
         }
 
-        private static BaseNode createNode(String tag, String firstParameterIdent, SourceSection sourceSection, BaseNode[] childArray) throws AssertionError {
+        private BaseNode createNode(String tag, String firstParameterIdent, SourceSection sourceSection, BaseNode[] childArray) throws AssertionError {
             switch (tag) {
                 case "DEFINE":
-                    return new DefineNode(firstParameterIdent, sourceSection, childArray);
+                    return new DefineNode(contextRef, firstParameterIdent, sourceSection, childArray);
                 case "CALL":
-                    return new CallNode(firstParameterIdent, childArray);
+                    return new CallNode(contextRef, firstParameterIdent, childArray);
                 case "LOOP":
                     return new LoopNode(Integer.parseInt(firstParameterIdent), childArray);
                 case "BLOCK":
@@ -375,12 +370,12 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
 
         private final CallTarget target;
 
-        @Child private Node contextNode;
+        private final Reference<Map<String, CallTarget>> contextRef;
 
-        DefineNode(String identifier, SourceSection source, BaseNode[] children) {
+        DefineNode(Reference<Map<String, CallTarget>> contextRef, String identifier, SourceSection source, BaseNode[] children) {
             this.identifier = identifier;
             this.target = Truffle.getRuntime().createCallTarget(new InstrumentationTestRootNode(source, children));
-            this.contextNode = InstrumentationTestLanguage.INSTANCE.createFindContextNode0();
+            this.contextRef = contextRef;
         }
 
         @Override
@@ -391,7 +386,7 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
 
         @TruffleBoundary
         private void defineFunction() {
-            Map<String, CallTarget> context = InstrumentationTestLanguage.INSTANCE.findContext(contextNode);
+            Map<String, CallTarget> context = contextRef.get();
             if (context.containsKey(identifier)) {
                 if (context.get(identifier) != target) {
                     throw new IllegalArgumentException("Identifier redefinition not supported.");
@@ -405,13 +400,12 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
     private static class CallNode extends InstrumentedNode {
 
         @Child private DirectCallNode callNode;
-        @Child private Node contextNode;
-
+        private final Reference<Map<String, CallTarget>> contextRef;
         private final String identifier;
 
-        CallNode(String identifier, BaseNode[] children) {
+        CallNode(Reference<Map<String, CallTarget>> contextRef, String identifier, BaseNode[] children) {
             super(children);
-            this.contextNode = InstrumentationTestLanguage.INSTANCE.createFindContextNode0();
+            this.contextRef = contextRef;
             this.identifier = identifier;
         }
 
@@ -419,7 +413,7 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
         public Object execute(VirtualFrame frame) {
             if (callNode == null) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
-                Map<String, CallTarget> context = InstrumentationTestLanguage.INSTANCE.findContext(contextNode);
+                Map<String, CallTarget> context = contextRef.get();
                 CallTarget target = context.get(identifier);
                 callNode = insert(Truffle.getRuntime().createDirectCallNode(target));
             }

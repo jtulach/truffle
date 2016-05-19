@@ -387,7 +387,13 @@ public abstract class TruffleLanguage<C> {
      * @return node to be inserted into program to effectively find out current execution context
      *         for this language
      * @since 0.8 or earlier
+     * @deprecated Use
+     *             {@link ParsingEnv#createContextReference(com.oracle.truffle.api.TruffleLanguage)}
+     *             to create context reference when
+     *             {@link #parse(com.oracle.truffle.api.TruffleLanguage.ParsingEnv, com.oracle.truffle.api.source.Source, com.oracle.truffle.api.nodes.Node, java.lang.String...)
+     *             parsing} your sources
      */
+    @Deprecated
     protected final Node createFindContextNode() {
         return AccessAPI.engineAccess().createFindContextNode(this);
     }
@@ -405,8 +411,12 @@ public abstract class TruffleLanguage<C> {
      * @throws ClassCastException if the node has not been created by <code>this</code>.
      *             {@link #createFindContextNode()} method.
      * @since 0.8 or earlier
+     * @deprecated Use
+     *             {@link ParsingEnv#createContextReference(com.oracle.truffle.api.TruffleLanguage)}
+     *             and then call {@link Reference#get()} to obtain your context
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
+    @Deprecated
     protected final C findContext(Node n) {
         FindContextNode fcn = (FindContextNode) n;
         if (fcn.getTruffleLanguage() != this) {

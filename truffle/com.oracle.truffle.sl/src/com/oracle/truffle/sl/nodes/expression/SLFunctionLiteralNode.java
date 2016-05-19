@@ -44,7 +44,6 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.sl.SLLanguage;
@@ -52,6 +51,7 @@ import com.oracle.truffle.sl.nodes.SLExpressionNode;
 import com.oracle.truffle.sl.runtime.SLContext;
 import com.oracle.truffle.sl.runtime.SLFunction;
 import com.oracle.truffle.sl.runtime.SLFunctionRegistry;
+import java.lang.ref.Reference;
 
 /**
  * Constant literal for a {@link SLFunction function} value, created when a function name occurs as
@@ -62,19 +62,19 @@ import com.oracle.truffle.sl.runtime.SLFunctionRegistry;
 @NodeInfo(shortName = "func")
 public final class SLFunctionLiteralNode extends SLExpressionNode {
     private final String value;
-    private final Node contextNode;
+    private final Reference<SLContext> contextRef;
     @CompilationFinal private SLFunction cachedFunction;
     @CompilationFinal private SLContext cachedContext;
 
     public SLFunctionLiteralNode(SourceSection src, String value) {
         super(src);
         this.value = value;
-        contextNode = SLLanguage.INSTANCE.createFindContextNode0();
+        contextRef = SLLanguage.INSTANCE.findContextRef();
     }
 
     @Override
     public SLFunction executeGeneric(VirtualFrame frame) {
-        SLContext context = SLLanguage.INSTANCE.findContext0(contextNode);
+        SLContext context = contextRef.get();
         if (context != cachedContext) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
             this.cachedContext = context;

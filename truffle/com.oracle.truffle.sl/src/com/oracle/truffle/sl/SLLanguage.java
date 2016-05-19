@@ -115,6 +115,7 @@ import com.oracle.truffle.sl.runtime.SLContext;
 import com.oracle.truffle.sl.runtime.SLFunction;
 import com.oracle.truffle.sl.runtime.SLFunctionRegistry;
 import com.oracle.truffle.sl.runtime.SLNull;
+import java.lang.ref.Reference;
 
 /**
  * SL is a simple language to demonstrate and showcase features of Truffle. The implementation is as
@@ -199,6 +200,7 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
     private static int parsingCount;
 
     private final Map<Source, CallTarget> compiled;
+    private Reference<SLContext> findContext;
 
     private SLLanguage() {
         compiled = Collections.synchronizedMap(new WeakHashMap<Source, CallTarget>());
@@ -413,6 +415,9 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
         }
         parsingCount++;
         final SLContext c = new SLContext();
+        if (findContext == null) {
+            findContext = env.createContextReference(this);
+        }
         final Exception[] failed = {null};
         try {
             c.evalSource(code);
@@ -437,8 +442,7 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
                 if (failed[0] != null) {
                     throw new IllegalStateException(failed[0]);
                 }
-                Node n = createFindContextNode();
-                SLContext fillIn = findContext(n);
+                SLContext fillIn = findContext0();
                 final SLFunctionRegistry functionRegistry = fillIn.getFunctionRegistry();
                 int oneAndCnt = 0;
                 SLFunction oneAndOnly = null;
@@ -493,11 +497,13 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
         throw new IllegalStateException("evalInContext not supported in SL");
     }
 
-    public Node createFindContextNode0() {
-        return createFindContextNode();
+    public SLContext findContext0() {
+        return findContext == null ? null : findContext.get();
     }
 
-    public SLContext findContext0(Node contextNode) {
-        return findContext(contextNode);
+    public Reference<SLContext> findContextRef() {
+        assert findContext != null;
+        return findContext;
     }
+
 }
