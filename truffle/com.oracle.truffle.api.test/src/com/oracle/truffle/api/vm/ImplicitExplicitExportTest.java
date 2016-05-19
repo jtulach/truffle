@@ -177,6 +177,15 @@ public class ImplicitExplicitExportTest {
         }
 
         @Override
+        protected CallTarget parse(ParsingEnv env, Source code, Node context, String... argumentNames) throws IOException {
+            throw new UnsupportedOperationException() {
+                @Override
+                public void printStackTrace() {
+                }
+            };
+        }
+
+        @Override
         protected Object findExportedSymbol(Ctx context, String globalName, boolean onlyExplicit) {
             if (context.explicit.containsKey(globalName)) {
                 return context.explicit.get(globalName);
