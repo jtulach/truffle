@@ -243,11 +243,11 @@ public abstract class TruffleLanguage<C> {
             return AccessAPI.engineAccess().createContextReference(lang);
         }
 
-        final void dispose() {
+        void dispose() {
             language = null;
         }
 
-        final CallTarget parse(TruffleLanguage<?> truffleLanguage, Source code, Node context, String... argumentNames) throws IOException {
+        CallTarget parse(TruffleLanguage<?> truffleLanguage, Source code, Node context, String... argumentNames) throws IOException {
             try {
                 return truffleLanguage.parse(this, code, context, argumentNames);
             } catch (UnsupportedOperationException ex) {
