@@ -202,7 +202,8 @@ public abstract class TruffleLanguage<C> {
      * @since 0.14
      */
     protected CallTarget parse(ParsingEnv env, Source code, Node context, String... argumentNames) throws IOException {
-        throw new UnsupportedOperationException("override this method, it will be made abstract in future version of Truffle API!");
+        throw new UnsupportedOperationException(
+                        String.format("Override parse method of %s, it will be made abstract in future version of Truffle API!", getClass().getName()));
     }
 
     /**
