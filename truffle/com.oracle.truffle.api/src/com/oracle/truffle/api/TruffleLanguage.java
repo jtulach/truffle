@@ -247,7 +247,6 @@ public abstract class TruffleLanguage<C> {
             language = null;
         }
 
-        @SuppressWarnings("deprecation")
         final CallTarget parse(TruffleLanguage<?> truffleLanguage, Source code, Node context, String... argumentNames) throws IOException {
             try {
                 return truffleLanguage.parse(this, code, context, argumentNames);

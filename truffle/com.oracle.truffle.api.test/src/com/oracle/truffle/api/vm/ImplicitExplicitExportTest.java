@@ -178,11 +178,7 @@ public class ImplicitExplicitExportTest {
 
         @Override
         protected CallTarget parse(ParsingEnv env, Source code, Node context, String... argumentNames) throws IOException {
-            throw new UnsupportedOperationException() {
-                @Override
-                public void printStackTrace() {
-                }
-            };
+            throw new SilentlyUnsupportedException();
         }
 
         @Override
@@ -259,6 +255,17 @@ public class ImplicitExplicitExportTest {
                 }
             }
             return null;
+        }
+
+        private static class SilentlyUnsupportedException extends UnsupportedOperationException {
+            static final long serialVersionUID = 1L;
+
+            SilentlyUnsupportedException() {
+            }
+
+            @Override
+            public void printStackTrace() {
+            }
         }
     }
 
