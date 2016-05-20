@@ -32,11 +32,9 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
-import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 
 /**
@@ -154,11 +152,6 @@ public class InitializationTest {
 
         @Override
         protected boolean isObjectOfLanguage(Object object) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Object evalInContext(Source source, Node node, MaterializedFrame mFrame) {
             throw new UnsupportedOperationException();
         }
 

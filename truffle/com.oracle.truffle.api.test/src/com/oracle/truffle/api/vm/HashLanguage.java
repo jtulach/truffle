@@ -28,9 +28,7 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
-import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 
@@ -61,34 +59,6 @@ public class HashLanguage extends TruffleLanguage<Env> {
     @Override
     protected boolean isObjectOfLanguage(Object object) {
         return false;
-    }
-
-    @SuppressWarnings("deprecation")
-    @Deprecated
-    @Override
-    protected com.oracle.truffle.api.instrument.Visualizer getVisualizer() {
-        return null;
-    }
-
-    @SuppressWarnings("deprecation")
-    @Deprecated
-    @Override
-    protected boolean isInstrumentable(Node node) {
-        return false;
-    }
-
-    @SuppressWarnings("deprecation")
-    @Deprecated
-    @Override
-    protected com.oracle.truffle.api.instrument.WrapperNode createWrapperNode(Node node) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    protected Object evalInContext(Source source, Node node, MaterializedFrame mFrame) throws IOException {
-        throw new UnsupportedOperationException("Not supported yet."); // To change body of
-                                                                       // generated methods, choose
-                                                                       // Tools | Templates.
     }
 
     private static class HashNode extends RootNode {

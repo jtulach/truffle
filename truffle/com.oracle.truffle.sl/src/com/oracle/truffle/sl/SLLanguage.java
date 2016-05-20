@@ -59,7 +59,6 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.dsl.NodeFactory;
 import com.oracle.truffle.api.dsl.UnsupportedSpecializationException;
-import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
@@ -457,7 +456,7 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
                     functionRegistry.register(f.getName(), (SLRootNode) f.getCallTarget().getRootNode());
                 }
                 Object[] arguments = frame.getArguments();
-                if (oneAndCnt == 1 && (arguments.length > 0 || request.getContext() != null)) {
+                if (oneAndCnt == 1 && (arguments.length > 0 || request.getNode() != null)) {
                     Node callNode = Message.createExecute(arguments.length).createNode();
                     try {
                         return ForeignAccess.sendExecute(callNode, frame, oneAndOnly, arguments);
@@ -491,11 +490,6 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
     @Override
     protected boolean isObjectOfLanguage(Object object) {
         return object instanceof SLFunction;
-    }
-
-    @Override
-    protected Object evalInContext(Source source, Node node, MaterializedFrame mFrame) throws IOException {
-        throw new IllegalStateException("evalInContext not supported in SL");
     }
 
     public SLContext findContext0() {

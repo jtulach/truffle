@@ -36,7 +36,6 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Registration;
-import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import com.oracle.truffle.api.instrumentation.InstrumentationTestLanguage.BlockNode;
@@ -459,11 +458,6 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
     }
 
     @Override
-    protected Object evalInContext(Source source, Node node, MaterializedFrame mFrame) throws IOException {
-        return null;
-    }
-
-    @Override
     protected Object findExportedSymbol(Map<String, CallTarget> context, String globalName, boolean onlyExplicit) {
         return context.get(globalName);
     }
@@ -476,20 +470,6 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
     @Override
     protected boolean isObjectOfLanguage(Object object) {
         return false;
-    }
-
-    @SuppressWarnings("deprecation")
-    @Deprecated
-    @Override
-    protected boolean isInstrumentable(Node node) {
-        throw new UnsupportedOperationException();
-    }
-
-    @SuppressWarnings("deprecation")
-    @Deprecated
-    @Override
-    protected com.oracle.truffle.api.instrument.WrapperNode createWrapperNode(Node node) {
-        throw new UnsupportedOperationException();
     }
 
 }

@@ -33,7 +33,6 @@ import org.junit.Test;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.InstrumentationTestLanguage.BaseNode;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument.Registration;
@@ -249,32 +248,6 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
         @Override
         protected boolean isObjectOfLanguage(Object object) {
             return false;
-        }
-
-        @SuppressWarnings("deprecation")
-        @Deprecated
-        @Override
-        protected com.oracle.truffle.api.instrument.Visualizer getVisualizer() {
-            return null;
-        }
-
-        @SuppressWarnings("deprecation")
-        @Deprecated
-        @Override
-        protected boolean isInstrumentable(Node node) {
-            return false;
-        }
-
-        @SuppressWarnings("deprecation")
-        @Deprecated
-        @Override
-        protected com.oracle.truffle.api.instrument.WrapperNode createWrapperNode(Node node) {
-            return null;
-        }
-
-        @Override
-        protected Object evalInContext(Source source, Node node, MaterializedFrame mFrame) throws IOException {
-            return null;
         }
 
     }
@@ -890,12 +863,6 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
         protected boolean isObjectOfLanguage(Object object) {
             return false;
         }
-
-        @Override
-        protected Object evalInContext(Source source, Node node, MaterializedFrame mFrame) throws IOException {
-            return null;
-        }
-
     }
 
     @Registration(id = "testIsNodeTaggedWith1")

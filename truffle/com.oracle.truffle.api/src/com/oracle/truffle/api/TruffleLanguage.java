@@ -188,9 +188,9 @@ public abstract class TruffleLanguage<C> {
      * target should create and if necessary initialize the corresponding language entity and return
      * it.
      *
-     * The parsing may be performed in a context (specified by {@link ParsingRequest#getContext()})
-     * or without context. The {@code argumentNames} may contain symbolic names for actual
-     * parameters of the call to the returned value. The result should be a call target with method
+     * The parsing may be performed in a context (specified by {@link ParsingRequest#getNode()}) or
+     * without context. The {@code argumentNames} may contain symbolic names for actual parameters
+     * of the call to the returned value. The result should be a call target with method
      * {@link CallTarget#call(java.lang.Object...)} that accepts as many arguments as were provided
      * via the {@link ParsingRequest#getArgumentNames()} method.
      *
@@ -221,12 +221,14 @@ public abstract class TruffleLanguage<C> {
      */
     public static final class ParsingRequest {
         private final Node node;
+        private final MaterializedFrame frame;
         private final Source source;
         private final String[] argumentNames;
         private TruffleLanguage<?> language;
 
-        ParsingRequest(TruffleLanguage<?> language, Source source, Node node, String... argumentNames) {
+        ParsingRequest(TruffleLanguage<?> language, Source source, Node node, MaterializedFrame frame, String... argumentNames) {
             this.node = node;
+            this.frame = frame;
             this.source = source;
             this.argumentNames = argumentNames;
             this.language = language;
@@ -243,15 +245,29 @@ public abstract class TruffleLanguage<C> {
         }
 
         /**
-         * Specifies the content for the parsing. The context is specified as an instance of a
+         * Specifies the code context for parsing. The context is specified as an instance of a
          * {@link Node} in the AST. There doesn't have to be any specific context and in such case
          * this method returns <code>null</code>.
          *
-         * @return a {@link Node} defining context for the parsing or <code>null</code>
+         * @return a {@link Node} defining AST context for the parsing or <code>null</code>
          * @since 0.14
          */
-        public Node getContext() {
+        public Node getNode() {
             return node;
+        }
+
+        /**
+         * Specifies the execution context for parsing. If the parsing request is used for evalution
+         * during halted execution, for example as in
+         * {@link com.oracle.truffle.api.debug.SuspendedEvent#eval} method, this method provides
+         * access to current {@link MaterializedFrame frame} with local variables, etc.
+         *
+         * @return a {@link MaterializedFrame} exposing the current execution state or
+         *         <code>null</code> if there is none
+         * @since 0.14
+         */
+        public MaterializedFrame getFrame() {
+            return frame;
         }
 
         /**
@@ -403,8 +419,15 @@ public abstract class TruffleLanguage<C> {
      * @return result of running the code in the context, or at top level if no execution context.
      * @throws IOException if the evaluation cannot be performed
      * @since 0.8 or earlier
+     * @deprecated override {@link #parse(com.oracle.truffle.api.TruffleLanguage.ParsingRequest)}
+     *             and use {@link ParsingRequest#getFrame()} to obtain the current frame information
      */
-    protected abstract Object evalInContext(Source source, Node node, MaterializedFrame mFrame) throws IOException;
+    @Deprecated
+    protected Object evalInContext(Source source, Node node, MaterializedFrame mFrame) throws IOException {
+        ParsingRequest request = new ParsingRequest(this, source, node, mFrame);
+        CallTarget target = parse(request);
+        return target.call();
+    }
 
     /**
      * Generates language specific textual representation of a value. Each language may have special
@@ -575,7 +598,7 @@ public abstract class TruffleLanguage<C> {
          */
         public CallTarget parse(Source source, String... argumentNames) throws IOException {
             TruffleLanguage<?> language = AccessAPI.engineAccess().findLanguageImpl(vm, null, source.getMimeType());
-            ParsingRequest env = new ParsingRequest(language, source, null, argumentNames);
+            ParsingRequest env = new ParsingRequest(language, source, null, null, argumentNames);
             CallTarget target = env.parse(language);
             env.dispose();
             return target;
@@ -706,7 +729,7 @@ public abstract class TruffleLanguage<C> {
 
         @Override
         public CallTarget parse(TruffleLanguage<?> truffleLanguage, Source code, Node context, String... argumentNames) throws IOException {
-            ParsingRequest env = new ParsingRequest(truffleLanguage, code, context, argumentNames);
+            ParsingRequest env = new ParsingRequest(truffleLanguage, code, context, null, argumentNames);
             CallTarget target = env.parse(truffleLanguage);
             env.dispose();
             return target;
@@ -716,7 +739,7 @@ public abstract class TruffleLanguage<C> {
         public Object eval(TruffleLanguage<?> language, Source source, Map<Source, CallTarget> cache) throws IOException {
             CallTarget target = cache.get(source);
             if (target == null) {
-                ParsingRequest env = new ParsingRequest(language, source, null);
+                ParsingRequest env = new ParsingRequest(language, source, null, null);
                 target = env.parse(language);
                 env.dispose();
                 if (target == null) {
@@ -734,7 +757,7 @@ public abstract class TruffleLanguage<C> {
         }
 
         @Override
-        @SuppressWarnings("rawtypes")
+        @SuppressWarnings({"deprecated", "rawtypes"})
         public Object evalInContext(Object vm, Object ev, String code, Node node, MaterializedFrame frame) throws IOException {
             RootNode rootNode = node.getRootNode();
             Class<? extends TruffleLanguage> languageType = AccessAPI.nodesAccess().findLanguage(rootNode);

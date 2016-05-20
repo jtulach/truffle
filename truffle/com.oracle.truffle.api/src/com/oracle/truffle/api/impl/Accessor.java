@@ -187,11 +187,6 @@ public abstract class Accessor {
             protected com.oracle.truffle.api.instrument.WrapperNode createWrapperNode(Node node) {
                 return null;
             }
-
-            @Override
-            protected Object evalInContext(Source source, Node node, MaterializedFrame mFrame) throws IOException {
-                return null;
-            }
         };
         lng.hashCode();
         new Node() {

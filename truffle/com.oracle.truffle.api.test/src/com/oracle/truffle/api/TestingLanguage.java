@@ -24,9 +24,6 @@ package com.oracle.truffle.api;
 
 import java.io.IOException;
 
-import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.source.Source;
 
 public final class TestingLanguage extends TruffleLanguage<Object> {
     public static final TestingLanguage INSTANCE = new TestingLanguage();
@@ -52,32 +49,6 @@ public final class TestingLanguage extends TruffleLanguage<Object> {
     @Override
     protected boolean isObjectOfLanguage(Object object) {
         return false;
-    }
-
-    @SuppressWarnings("deprecation")
-    @Deprecated
-    @Override
-    protected com.oracle.truffle.api.instrument.Visualizer getVisualizer() {
-        return null;
-    }
-
-    @SuppressWarnings("deprecation")
-    @Deprecated
-    @Override
-    protected boolean isInstrumentable(Node node) {
-        return false;
-    }
-
-    @SuppressWarnings("deprecation")
-    @Deprecated
-    @Override
-    protected com.oracle.truffle.api.instrument.WrapperNode createWrapperNode(Node node) {
-        return null;
-    }
-
-    @Override
-    protected Object evalInContext(Source source, Node node, MaterializedFrame mFrame) throws IOException {
-        return null;
     }
 
     @Override
