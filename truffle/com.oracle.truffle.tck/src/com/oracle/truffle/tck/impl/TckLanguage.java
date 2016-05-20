@@ -52,9 +52,9 @@ public final class TckLanguage extends TruffleLanguage<Env> {
     }
 
     @Override
-    protected CallTarget parse(ParsingEnv env, Source code, Node context, String... argumentNames) throws IOException {
+    protected CallTarget parse(ParsingRequest env) throws IOException {
         final RootNode root;
-        final String txt = code.getCode();
+        final String txt = env.getSource().getCode();
         if (txt.startsWith("TCK42:")) {
             int nextColon = txt.indexOf(":", 6);
             String mimeType = txt.substring(6, nextColon);

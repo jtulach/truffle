@@ -408,7 +408,8 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
     }
 
     @Override
-    protected CallTarget parse(ParsingEnv env, Source code, final Node node, String... argumentNames) throws IOException {
+    protected CallTarget parse(final ParsingRequest request) throws IOException {
+        Source code = request.getSource();
         CallTarget cached = compiled.get(code);
         if (cached != null) {
             return cached;
@@ -416,7 +417,7 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
         parsingCount++;
         final SLContext c = new SLContext();
         if (findContext == null) {
-            findContext = env.createContextReference(this);
+            findContext = request.createContextReference(this);
         }
         final Exception[] failed = {null};
         try {
@@ -456,7 +457,7 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
                     functionRegistry.register(f.getName(), (SLRootNode) f.getCallTarget().getRootNode());
                 }
                 Object[] arguments = frame.getArguments();
-                if (oneAndCnt == 1 && (arguments.length > 0 || node != null)) {
+                if (oneAndCnt == 1 && (arguments.length > 0 || request.getContext() != null)) {
                     Node callNode = Message.createExecute(arguments.length).createNode();
                     try {
                         return ForeignAccess.sendExecute(callNode, frame, oneAndOnly, arguments);

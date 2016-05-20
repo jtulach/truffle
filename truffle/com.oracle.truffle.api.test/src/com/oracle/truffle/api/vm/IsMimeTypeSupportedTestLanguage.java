@@ -43,8 +43,8 @@ public class IsMimeTypeSupportedTestLanguage extends TruffleLanguage<Env> {
     }
 
     @Override
-    protected CallTarget parse(ParsingEnv env, final Source code, Node context, String... argumentNames) throws IOException {
-        final String mimeType = code.getCode();
+    protected CallTarget parse(ParsingRequest env) throws IOException {
+        final String mimeType = env.getSource().getCode();
         final Reference<Env> contextRef = env.createContextReference(this);
         return new CallTarget() {
             @Override

@@ -22,6 +22,7 @@
  */
 package com.oracle.truffle.api.interop.impl;
 
+import com.oracle.truffle.api.impl.ReadOnlyArrayList;
 import java.util.ArrayList;
 import java.util.List;
 import static org.junit.Assert.assertEquals;

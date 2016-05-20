@@ -180,7 +180,7 @@ public class ImplicitExplicitExportTest {
         }
 
         @Override
-        protected CallTarget parse(ParsingEnv env, Source code, Node context, String... argumentNames) throws IOException {
+        protected CallTarget parse(ParsingRequest env) throws IOException {
             contextRef = env.createContextReference(this);
             throw new SilentlyUnsupportedException();
         }
