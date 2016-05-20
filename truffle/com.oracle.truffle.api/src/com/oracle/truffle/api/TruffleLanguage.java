@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.impl.Accessor;
 import com.oracle.truffle.api.impl.FindContextNode;
 import com.oracle.truffle.api.impl.ReadOnlyArrayList;
@@ -236,7 +237,7 @@ public abstract class TruffleLanguage<C> {
 
         /**
          * The source code to parse.
-         * 
+         *
          * @return the source code, never <code>null</code>
          * @since 0.14
          */
@@ -276,7 +277,7 @@ public abstract class TruffleLanguage<C> {
          * instance of {@link CallTarget} that {@link CallTarget#call(java.lang.Object...) can be
          * invoked} without or with some parameters. If the invocation requires some arguments, and
          * the {@link #getSource()} references them, it is essential to name them.
-         * 
+         *
          * @return symbolic names for parameters of {@link CallTarget#call(java.lang.Object...)}
          * @since 0.14
          */
@@ -290,6 +291,19 @@ public abstract class TruffleLanguage<C> {
          * <code>final</code> field of your node(s) that needs to access the the
          * {@link #createContext(com.oracle.truffle.api.TruffleLanguage.Env) context created} by
          * your language.
+         *
+         * {@link TruffleLanguageSnippets.ASTSharingLanguage}
+         *
+         * If there is just a single
+         * {@link #createContext(com.oracle.truffle.api.TruffleLanguage.Env) context} created for
+         * your language {@link Node AST}, then the Graal runtime will specialize generated code and
+         * turn the context access into constant. Should there be multiple contexts, but used one by
+         * one, the code will be re-optimized to read the value of current context first - that is
+         * slower, but most optimal for this kind of sequential execution. Should your language be
+         * used from multiple threads at once, the code will re-optimize again and use
+         * {@link ThreadLocal} fallback to find out the active context. In any case, the
+         * {@link #createContextReference(com.oracle.truffle.api.TruffleLanguage) created reference}
+         * will always keep your code as optimal as possible.
          *
          * @param <C> type of the context
          * @param lang the requesting language that is doing the parsing
@@ -815,11 +829,15 @@ public abstract class TruffleLanguage<C> {
 }
 
 class TruffleLanguageSnippets {
-    class Context {
+    static class Context {
         final String[] args;
 
         Context(String[] args) {
             this.args = args;
+        }
+
+        Context(Map<String, Object> config) {
+            this.args = (String[]) config.get("args");
         }
     }
 
@@ -834,4 +852,44 @@ class TruffleLanguageSnippets {
         }
     }
     // END: TruffleLanguageSnippets.MyLanguage#createContext
+
+    // @Checkstyle: stop
+    static
+    // BEGIN: TruffleLanguageSnippets.ASTSharingLanguage
+    abstract class ASTSharingLanguage extends TruffleLanguage<Context> {
+        @Override
+        protected CallTarget parse(ParsingRequest request) throws IOException {
+            // create a reference to use to locate
+            // execution Context
+            Reference<Context> contextRef = request.createContextReference(this);
+
+            // use it in your AST nodes
+            final MyFindContextNode contextNode = new MyFindContextNode(contextRef);
+            return Truffle.getRuntime().createCallTarget(contextNode);
+        }
+
+        @Override
+        protected Context createContext(Env env) {
+            // create as many contexts as you wish
+            return new Context(env.getConfig());
+        }
+
+        static final class MyFindContextNode extends RootNode {
+            // keep the context reference as final field
+            private final Reference<Context> contextRef;
+
+            MyFindContextNode(Reference<Context> contextRef) {
+                super(ASTSharingLanguage.class, null, null);
+                this.contextRef = contextRef;
+            }
+
+            @Override
+            public Context execute(VirtualFrame frame) {
+                // use it in your nodes to effectively access
+                // the context when needed
+                return contextRef.get();
+            }
+        }
+    }
+    // END: TruffleLanguageSnippets.ASTSharingLanguage
 }
