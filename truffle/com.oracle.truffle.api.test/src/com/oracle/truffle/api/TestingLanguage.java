@@ -24,7 +24,6 @@ package com.oracle.truffle.api;
 
 import java.io.IOException;
 
-
 public final class TestingLanguage extends TruffleLanguage<Object> {
     public static final TestingLanguage INSTANCE = new TestingLanguage();
 

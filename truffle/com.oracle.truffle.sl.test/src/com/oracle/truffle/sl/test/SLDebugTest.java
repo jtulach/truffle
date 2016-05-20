@@ -59,7 +59,6 @@ import org.junit.Test;
 import com.oracle.truffle.api.debug.Debugger;
 import com.oracle.truffle.api.debug.ExecutionEvent;
 import com.oracle.truffle.api.debug.SuspendedEvent;
-import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ForeignAccess;
@@ -353,8 +352,13 @@ public class SLDebugTest {
                 final MaterializedFrame frame = suspendedEvent.getFrame();
                 String[] expectedIdentifiers = new String[]{"executing"};
                 for (String expectedIdentifier : expectedIdentifiers) {
-                    FrameSlot slot = frame.getFrameDescriptor().findFrameSlot(expectedIdentifier);
-                    Assert.assertNotNull(expectedIdentifier, slot);
+                    Object realValue;
+                    try {
+                        realValue = suspendedEvent.eval(expectedIdentifier, null);
+                        Assert.assertNotNull(expectedIdentifier, realValue);
+                    } catch (IOException ex) {
+                        Assert.fail("Cannot compute " + expectedIdentifier + " err: " + ex.getMessage());
+                    }
                 }
                 // Assert.assertTrue(debugger.isExecuting());
                 suspendedEvent.prepareContinue();
@@ -428,9 +432,13 @@ public class SLDebugTest {
                 for (int i = 0; i < expectedFrame.length; i = i + 2) {
                     String expectedIdentifier = (String) expectedFrame[i];
                     Object expectedValue = expectedFrame[i + 1];
-                    FrameSlot slot = frame.getFrameDescriptor().findFrameSlot(expectedIdentifier);
-                    Assert.assertNotNull(slot);
-                    Assert.assertEquals(expectedValue, frame.getValue(slot));
+                    Object realValue;
+                    try {
+                        realValue = suspendedEvent.eval(expectedIdentifier, null);
+                    } catch (IOException ex) {
+                        realValue = ex;
+                    }
+                    Assert.assertEquals(expectedValue, realValue);
                 }
                 run.removeFirst().run();
             }

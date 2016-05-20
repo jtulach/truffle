@@ -409,6 +409,9 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
     @Override
     protected CallTarget parse(final ParsingRequest request) throws IOException {
         Source code = request.getSource();
+        if (request.getFrame() != null) {
+            return Truffle.getRuntime().createCallTarget(new SLEvaluateLocalNode(code.getCode(), request.getFrame()));
+        }
         CallTarget cached = compiled.get(code);
         if (cached != null) {
             return cached;
