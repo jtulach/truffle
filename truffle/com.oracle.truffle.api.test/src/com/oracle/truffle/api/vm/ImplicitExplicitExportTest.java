@@ -47,6 +47,7 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.interop.ForeignAccess;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
@@ -228,6 +229,10 @@ public class ImplicitExplicitExportTest {
                     if (k.equals("return")) {
                         return ctx.env.importSymbol(p.getProperty(k));
                     }
+                    if (k.equals("throwInteropException")) {
+                        throw UnsupportedTypeException.raise(new Object[0]);
+                    }
+
                 }
             }
             return null;
