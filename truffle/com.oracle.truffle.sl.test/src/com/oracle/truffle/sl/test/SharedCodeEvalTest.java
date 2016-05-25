@@ -108,10 +108,19 @@ public class SharedCodeEvalTest {
 
         assertTransfer("Two transfers", os, "combine", "combine");
 
+        assertEquals("Plus yields 3", 3L, fnInvoke1.execute(1, 2).get());
+        assertEquals("Plus yields 4", 4L, fnInvoke2.execute(2, 2).get());
+
+        assertTransfer("No transfers anymore everything is optimized and stable", os);
+
         engine1.eval(redefine);
+
+        assertTransfer("Redefine causes one transfer", os, "defineFunction");
 
         assertEquals("Mul yields 15", 15L, fnInvoke1.execute(5, 3).get());
         assertEquals("2nd engine still uses plus", 7L, fnInvoke2.execute(4, 3).get());
+
+        assertTransfer("No transfers for literal node either - no new context", os);
     }
 
     private static void assertTransfer(String msg, ByteArrayOutputStream os, String... expectedTransfers) throws UnsupportedEncodingException {
@@ -120,11 +129,11 @@ public class SharedCodeEvalTest {
         Matcher matcher = pattern.matcher(text);
         for (int i = 0; i < expectedTransfers.length; i++) {
             if (!matcher.find()) {
-                fail(msg + " .Cannot find " + i + "th transferToInterpreter in:\n" + text);
+                fail(msg + ". Cannot find " + i + "th transferToInterpreter in:\n" + text);
             }
             assertEquals(msg + " :" + i + "th group is correct", expectedTransfers[i], matcher.group(1));
         }
-        assertFalse(msg + " .No more transfers in:\n" + text, matcher.find());
+        assertFalse(msg + ". No more transfers in:\n" + text, matcher.find());
         os.reset();
     }
 }

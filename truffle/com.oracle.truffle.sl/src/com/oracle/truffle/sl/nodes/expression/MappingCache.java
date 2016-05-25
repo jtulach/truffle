@@ -40,46 +40,51 @@
  */
 package com.oracle.truffle.sl.nodes.expression;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.source.SourceSection;
-import com.oracle.truffle.sl.nodes.SLExpressionNode;
-import com.oracle.truffle.sl.runtime.SLContext;
-import com.oracle.truffle.sl.runtime.SLFunction;
-import com.oracle.truffle.sl.runtime.SLFunctionRegistry;
-import java.lang.ref.Reference;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.ValueType;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 
-/**
- * Constant literal for a {@link SLFunction function} value, created when a function name occurs as
- * a literal in SL source code. Note that function redefinition can change the {@link CallTarget
- * call target} that is executed when calling the function, but the {@link SLFunction} for a name
- * never changes. This is guaranteed by the {@link SLFunctionRegistry}.
- */
-@NodeInfo(shortName = "func")
-public final class SLFunctionLiteralNode extends SLExpressionNode {
-    private final String value;
-    private final Reference<SLContext> contextRef;
-    private final FunctionCache functionCache;
+abstract class MappingCache<K,V> {
+    @CompilationFinal
+    private Item<K,V> items;
 
-    public SLFunctionLiteralNode(Reference<SLContext> ref, SourceSection src, String value) {
-        super(src);
-        this.value = value;
-        this.contextRef = ref;
-        this.functionCache = new FunctionCache();
+    @ExplodeLoop
+    public final V get(K key) {
+        Item<K, V> firstItem = items;
+        Item<K, V> item = firstItem;
+        while (item != null) {
+            if (item.key == key) {
+                return item.value;
+            }
+            item = item.next;
+        }
+        return registerNew(firstItem, key);
     }
 
-    @Override
-    public SLFunction executeGeneric(VirtualFrame frame) {
-        return functionCache.get(contextRef.get());
+    private final synchronized V registerNew(Item<K,V> firstItem, K key) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        if (firstItem != items) {
+            return get(key);
+        }
+        final V value = create(key);
+        items = new Item<>(key, value, items);
+        return value;
     }
 
-    private final class FunctionCache extends MappingCache<SLContext, SLFunction> {
-        @Override
-        protected SLFunction create(SLContext key) {
-            final SLContext context = contextRef.get();
-            context.notifyTransferToInterpreter(value);
-            return context.getFunctionRegistry().lookup(value, true);
+    protected abstract V create(K key);
+
+
+    @ValueType
+    private static final class Item<K,V> {
+        private final K key;
+        private final V value;
+        private final Item<K,V> next;
+
+        public Item(K key, V value, Item<K,V> next) {
+            this.key = key;
+            this.value = value;
+            this.next = next;
         }
     }
 }
