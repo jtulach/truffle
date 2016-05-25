@@ -66,7 +66,6 @@ import java.util.WeakHashMap;
 @ProvidedTags({StandardTags.CallTag.class, StandardTags.StatementTag.class, StandardTags.RootTag.class, DebuggerTags.AlwaysHalt.class})
 public final class SLLanguage extends TruffleLanguage<SLContext> {
     private final Map<Source, CallTarget> compiled;
-    private Reference<SLContext> findContext;
 
     /**
      * No instances allowed apart from the {@link #INSTANCE singleton instance}.
@@ -110,16 +109,14 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
         =======
          */
 
-        if (findContext == null) {
-            findContext = request.createContextReference(this);
-        }
+        final Reference<SLContext> contextRef = request.createContextReference(this);
         Map<String, SLRootNode> functions;
         try {
             /*
              * Parse the provided source. At this point, we do not have a SLContext yet.
              * Registration of the functions with the SLContext happens lazily in SLEvalRootNode.
              */
-            functions = Parser.parseSL(source);
+            functions = Parser.parseSL(source, contextRef);
         } catch (Throwable ex) {
             /*
              * The specification says that exceptions during parsing have to wrapped with an
@@ -137,13 +134,13 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
              * we cannot use the original SLRootNode for the main function. Instead, we create a new
              * SLEvalRootNode that does everything we need.
              */
-            evalMain = new SLEvalRootNode(main.getFrameDescriptor(), main.getBodyNode(), main.getSourceSection(), main.getName(), functions);
+            evalMain = new SLEvalRootNode(contextRef, main.getFrameDescriptor(), main.getBodyNode(), main.getSourceSection(), main.getName(), functions);
         } else {
             /*
              * Even without a main function, "evaluating" the parsed source needs to register the
              * functions into the SLContext.
              */
-            evalMain = new SLEvalRootNode(null, null, null, "[no_main]", functions);
+            evalMain = new SLEvalRootNode(contextRef, null, null, null, "[no_main]", functions);
         }
         /*
 <<<<<<< HEAD
@@ -207,15 +204,6 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
     @Override
     protected boolean isObjectOfLanguage(Object object) {
         return object instanceof SLFunction;
-    }
-
-    public SLContext findContext0() {
-        return findContext == null ? null : findContext.get();
-    }
-
-    public Reference<SLContext> findContextRef() {
-        assert findContext != null;
-        return findContext;
     }
 
 }

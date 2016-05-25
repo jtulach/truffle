@@ -74,7 +74,6 @@ public class SLRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        assert SLLanguage.INSTANCE.findContext0() != null;
         return bodyNode.executeGeneric(frame);
     }
 

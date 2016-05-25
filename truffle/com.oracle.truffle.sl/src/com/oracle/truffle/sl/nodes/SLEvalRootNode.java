@@ -47,8 +47,8 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.source.SourceSection;
-import com.oracle.truffle.sl.SLLanguage;
 import com.oracle.truffle.sl.runtime.SLContext;
+import java.lang.ref.Reference;
 
 /**
  * In addition to {@link SLRootNode}, this class performs two additional tasks:
@@ -64,11 +64,13 @@ import com.oracle.truffle.sl.runtime.SLContext;
 public final class SLEvalRootNode extends SLRootNode {
 
     private final Map<String, SLRootNode> functions;
+    private final Reference<SLContext> contextRef;
     @CompilationFinal private SLContext context;
 
-    public SLEvalRootNode(FrameDescriptor frameDescriptor, SLExpressionNode bodyNode, SourceSection sourceSection, String name, Map<String, SLRootNode> functions) {
+    public SLEvalRootNode(Reference<SLContext> ref, FrameDescriptor frameDescriptor, SLExpressionNode bodyNode, SourceSection sourceSection, String name, Map<String, SLRootNode> functions) {
         super(frameDescriptor, bodyNode, sourceSection, name);
         this.functions = functions;
+        this.contextRef = ref;
     }
 
     @Override
@@ -78,7 +80,7 @@ public final class SLEvalRootNode extends SLRootNode {
             /* Function registration is a slow-path operation that must not be compiled. */
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
-            context = SLLanguage.INSTANCE.findContext0();
+            context = contextRef.get();
             context.getFunctionRegistry().register(functions);
         }
 

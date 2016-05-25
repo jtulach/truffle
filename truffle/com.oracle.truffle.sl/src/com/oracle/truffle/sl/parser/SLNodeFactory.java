@@ -87,12 +87,16 @@ import com.oracle.truffle.sl.nodes.local.SLReadLocalVariableNode;
 import com.oracle.truffle.sl.nodes.local.SLReadLocalVariableNodeGen;
 import com.oracle.truffle.sl.nodes.local.SLWriteLocalVariableNode;
 import com.oracle.truffle.sl.nodes.local.SLWriteLocalVariableNodeGen;
+import com.oracle.truffle.sl.runtime.SLContext;
+import java.lang.ref.Reference;
 
 /**
  * Helper class used by the SL {@link Parser} to create nodes. The code is factored out of the
  * automatically generated parser to keep the attributed grammar of SL small.
  */
 public class SLNodeFactory {
+
+    private final Reference<SLContext> contextRef;
 
     /**
      * Local variable names that are visible in the current block. Variables are not visible outside
@@ -127,9 +131,10 @@ public class SLNodeFactory {
     /* State while parsing a block. */
     private LexicalScope lexicalScope;
 
-    public SLNodeFactory(Source source) {
+    public SLNodeFactory(Reference<SLContext> ref, Source source) {
         this.source = source;
         this.allFunctions = new HashMap<>();
+        this.contextRef = ref;
     }
 
     public Map<String, SLRootNode> getAllFunctions() {
@@ -394,7 +399,7 @@ public class SLNodeFactory {
             return SLReadLocalVariableNodeGen.create(src, frameSlot);
         } else {
             /* Read of a global name. In our language, the only global names are functions. */
-            return new SLFunctionLiteralNode(src, nameToken.val);
+            return new SLFunctionLiteralNode(contextRef, src, nameToken.val);
         }
     }
 

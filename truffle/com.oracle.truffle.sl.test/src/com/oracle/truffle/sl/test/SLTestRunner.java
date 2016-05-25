@@ -88,6 +88,7 @@ import com.oracle.truffle.sl.runtime.SLContext;
 import com.oracle.truffle.sl.runtime.SLFunction;
 import com.oracle.truffle.sl.runtime.SLNull;
 import com.oracle.truffle.sl.test.SLTestRunner.TestCase;
+import java.lang.ref.WeakReference;
 
 public final class SLTestRunner extends ParentRunner<TestCase> {
 
@@ -324,7 +325,7 @@ public final class SLTestRunner extends ParentRunner<TestCase> {
 
         /* Parse the SL source file. */
         Source source = Source.fromFileName(path.toString());
-        context.getFunctionRegistry().register(Parser.parseSL(source));
+        context.getFunctionRegistry().register(Parser.parseSL(source, new WeakReference<>(context)));
 
         /* Lookup our main entry point, which is per definition always named "main". */
         SLFunction mainFunction = context.getFunctionRegistry().lookup("main", false);
