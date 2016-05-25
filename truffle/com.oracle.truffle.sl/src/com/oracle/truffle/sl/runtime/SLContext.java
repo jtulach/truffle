@@ -46,6 +46,7 @@ import java.io.PrintWriter;
 import java.math.BigInteger;
 
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.ExecutionContext;
@@ -259,5 +260,18 @@ public final class SLContext extends ExecutionContext {
 
     public Reference<SLContext> getContextReference() {
         return env.getContextReference(SLLanguage.INSTANCE);
+    }
+
+    public void notifyTransferToInterpreter(String value) {
+        CompilerAsserts.neverPartOfCompilation();
+        if (Boolean.TRUE.equals(env.getConfig().get("notifyTransferToInterpreter"))) {
+            try {
+                env.err().write("notifyTransferToInterpreter: ".getBytes("UTF-8"));
+                env.err().write(value.getBytes("UTF-8"));
+                env.err().write("\n".getBytes("UTF-8"));
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
     }
 }

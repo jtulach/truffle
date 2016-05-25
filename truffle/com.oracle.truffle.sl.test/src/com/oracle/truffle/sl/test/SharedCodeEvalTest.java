@@ -42,15 +42,26 @@ package com.oracle.truffle.sl.test;
 
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.vm.PolyglotEngine;
+import com.oracle.truffle.sl.SLLanguage;
 import com.oracle.truffle.sl.runtime.SLFunction;
+import java.io.ByteArrayOutputStream;
+import java.io.UnsupportedEncodingException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.fail;
 import org.junit.Test;
 
 public class SharedCodeEvalTest {
     @Test
     public void twoEnginesShareTheirCode() throws Exception {
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+
         PolyglotEngine.Builder builder = PolyglotEngine.newBuilder();
+        builder.config(SLLanguage.MIME_TYPE, "notifyTransferToInterpreter", true);
+        builder.setErr(os);
 
         PolyglotEngine engine1 = builder.build();
         PolyglotEngine engine2 = builder.build();
@@ -87,6 +98,7 @@ public class SharedCodeEvalTest {
         assertEquals("Code is shared between two engines", fn1.getCallTarget(), fn2.getCallTarget());
         assertEquals("AST is shared between two engines", fn1.getCallTarget().getRootNode(), fn2.getCallTarget().getRootNode());
 
+        assertTransfer("No transfer yet", os);
 
         final PolyglotEngine.Value fnInvoke1 = engine1.findGlobalSymbol("invoke");
         final PolyglotEngine.Value fnInvoke2 = engine2.findGlobalSymbol("invoke");
@@ -94,9 +106,25 @@ public class SharedCodeEvalTest {
         assertEquals("Plus yields 8", 8L, fnInvoke1.execute(5, 3).get());
         assertEquals("Plus yields 7", 7L, fnInvoke2.execute(4, 3).get());
 
+        assertTransfer("Two transfers", os, "combine", "combine");
+
         engine1.eval(redefine);
 
         assertEquals("Mul yields 15", 15L, fnInvoke1.execute(5, 3).get());
-        assertEquals("Other engine still uses plus", 7L, fnInvoke2.execute(4, 3).get());
+        assertEquals("2nd engine still uses plus", 7L, fnInvoke2.execute(4, 3).get());
+    }
+
+    private static void assertTransfer(String msg, ByteArrayOutputStream os, String... expectedTransfers) throws UnsupportedEncodingException {
+        String text = os.toString("UTF-8");
+        Pattern pattern = Pattern.compile("^notifyTransferToInterpreter: (\\w*)$", Pattern.MULTILINE);
+        Matcher matcher = pattern.matcher(text);
+        for (int i = 0; i < expectedTransfers.length; i++) {
+            if (!matcher.find()) {
+                fail(msg + " .Cannot find " + i + "th transferToInterpreter in:\n" + text);
+            }
+            assertEquals(msg + " :" + i + "th group is correct", expectedTransfers[i], matcher.group(1));
+        }
+        assertFalse(msg + " .No more transfers in:\n" + text, matcher.find());
+        os.reset();
     }
 }
