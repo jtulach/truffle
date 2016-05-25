@@ -47,6 +47,7 @@ import java.io.PrintWriter;
 import java.util.Map;
 
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.debug.DebuggerTags;
@@ -104,18 +105,11 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
         if (request.getFrame() != null) {
             return Truffle.getRuntime().createCallTarget(new SLEvaluateLocalNode(source.getCode(), request.getFrame()));
         }
-        /*
-        <<<<<<< HEAD
-        Source code = request.getSource();
-        CallTarget cached = compiled.get(code);
-        parsingCount++;
+        CallTarget cached = compiled.get(source);
         if (cached != null) {
-        return cached;
+            return cached;
         }
-        final SLContext c = new SLContext();
-        final Exception[] failed = {null};
-        =======
-         */
+//        parsingCount++;
 
         final Reference<SLContext> contextRef = request.createContextReference(this);
         Map<String, SLRootNode> functions;
@@ -150,50 +144,42 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
              */
             evalMain = new SLEvalRootNode(contextRef, null, null, null, "[no_main]", functions);
         }
-        /*
-<<<<<<< HEAD
-        RootNode rootNode = new RootNode(SLLanguage.class, null, null) {
-            @Override
-            public Object execute(VirtualFrame frame) {
-                CompilerDirectives.transferToInterpreter();
-
-                if (failed[0] instanceof RuntimeException) {
-                    throw (RuntimeException) failed[0];
-                }
-                if (failed[0] != null) {
-                    throw new IllegalStateException(failed[0]);
-                }
-                SLContext fillIn = findContext0();
-                final SLFunctionRegistry functionRegistry = fillIn.getFunctionRegistry();
-                int oneAndCnt = 0;
-                SLFunction oneAndOnly = null;
-                for (SLFunction f : c.getFunctionRegistry().getFunctions()) {
-                    RootCallTarget callTarget = f.getCallTarget();
-                    if (callTarget == null) {
-                        continue;
-                    }
-                    oneAndOnly = functionRegistry.lookup(f.getName());
-                    oneAndCnt++;
-                    functionRegistry.register(f.getName(), (SLRootNode) f.getCallTarget().getRootNode());
-                }
-                Object[] arguments = frame.getArguments();
-                if (oneAndCnt == 1 && (arguments.length > 0 || request.getNode() != null)) {
-                    Node callNode = Message.createExecute(arguments.length).createNode();
-                    try {
-                        return ForeignAccess.sendExecute(callNode, frame, oneAndOnly, arguments);
-                    } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException e) {
-                        return null;
-                    }
-                }
-                return null;
-            }
-        };
-        cached = Truffle.getRuntime().createCallTarget(rootNode);
-        compiled.put(code, cached);
-        return cached;
-=======
-         */
-        return Truffle.getRuntime().createCallTarget(evalMain);
+//        <<<<<<< HEAD
+//        RootNode rootNode = new RootNode(SLLanguage.class, null, null) {
+//        @Override
+//        public Object execute(VirtualFrame frame) {
+//        CompilerDirectives.transferToInterpreter();
+//
+//        if (failed[0] instanceof RuntimeException) {
+//        throw (RuntimeException) failed[0];
+//        }
+//        if (failed[0] != null) {
+//        throw new IllegalStateException(failed[0]);
+//        }
+//        SLContext fillIn = findContext0();
+//        final SLFunctionRegistry functionRegistry = fillIn.getFunctionRegistry();
+//        int oneAndCnt = 0;
+//        SLFunction oneAndOnly = null;
+//        for (SLFunction f : c.getFunctionRegistry().getFunctions()) {
+//        RootCallTarget callTarget = f.getCallTarget();
+//        if (callTarget == null) {
+//        continue;
+//        }
+//        oneAndOnly = functionRegistry.lookup(f.getName());
+//        oneAndCnt++;
+//        functionRegistry.register(f.getName(), (SLRootNode) f.getCallTarget().getRootNode());
+//        }
+//        Object[] arguments = frame.getArguments();
+//        if (oneAndCnt == 1 && (arguments.length > 0 || request.getNode() != null)) {
+//        Node callNode = Message.createExecute(arguments.length).createNode();
+//        try {
+//        return ForeignAccess.sendExecute(callNode, frame, oneAndOnly, arguments);
+//        } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException e) {
+//        return null;
+//        }
+        RootCallTarget target = Truffle.getRuntime().createCallTarget(evalMain);
+        compiled.put(source, target);
+        return target;
     }
 
     @Override

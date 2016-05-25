@@ -44,6 +44,7 @@ import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.vm.PolyglotEngine;
 import com.oracle.truffle.sl.runtime.SLFunction;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import org.junit.Test;
 
 public class SharedCodeEvalTest {
@@ -69,7 +70,13 @@ public class SharedCodeEvalTest {
         SLFunction fn1 = fnValue1.as(SLFunction.class);
         SLFunction fn2 = fnValue2.as(SLFunction.class);
 
-        // assertEquals("Functions are shared between two engines", fn1, fn2);
+        assertNotEquals("Functions are different", fn1, fn2);
+        assertEquals("Code is shared between two engines", fn1.getCallTarget().getRootNode(), fn2.getCallTarget().getRootNode());
+
+        // isn't it strange that two calltargets share one RootNode
+        // and it points back to just one calltarget?
+        assertNotEquals("CallTargets are also different!?", fn1.getCallTarget(), fn2.getCallTarget());
+        assertEquals("CallTargets for a code are shared between two engines", fn1.getCallTarget().getRootNode().getCallTarget(), fn2.getCallTarget().getRootNode().getCallTarget());
 
         assertEquals("Plus yields 8", 8L, fnValue1.execute(5, 3).get());
         assertEquals("Plus yields 7", 7L, fnValue2.execute(4, 3).get());

@@ -42,8 +42,6 @@ package com.oracle.truffle.sl.nodes;
 
 import java.util.Map;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.source.SourceSection;
@@ -65,7 +63,6 @@ public final class SLEvalRootNode extends SLRootNode {
 
     private final Map<String, SLRootNode> functions;
     private final Reference<SLContext> contextRef;
-    @CompilationFinal private SLContext context;
 
     public SLEvalRootNode(Reference<SLContext> ref, FrameDescriptor frameDescriptor, SLExpressionNode bodyNode, SourceSection sourceSection, String name, Map<String, SLRootNode> functions) {
         super(frameDescriptor, bodyNode, sourceSection, name);
@@ -75,14 +72,7 @@ public final class SLEvalRootNode extends SLRootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        /* Lazy registrations of functions on first execution. */
-        if (context == null) {
-            /* Function registration is a slow-path operation that must not be compiled. */
-            CompilerDirectives.transferToInterpreterAndInvalidate();
-
-            context = contextRef.get();
-            context.getFunctionRegistry().register(functions);
-        }
+        contextRef.get().getFunctionRegistry().register(functions);
 
         if (getBodyNode() == null) {
             /* The source code did not have a "main" function, so nothing to execute. */
