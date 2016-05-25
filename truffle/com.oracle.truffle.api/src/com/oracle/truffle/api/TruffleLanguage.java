@@ -711,6 +711,20 @@ public abstract class TruffleLanguage<C> {
         public Map<String, Object> getConfig() {
             return config;
         }
+
+        /** XXX: will this be needed.?
+         *
+         * @param <C>
+         * @param lang
+         * @return
+         * @since XXX
+         */
+        public <C> Reference<C> getContextReference(TruffleLanguage<C> lang) {
+            if (lang != this.lang) {
+                throw new IllegalStateException();
+            }
+            return AccessAPI.engineAccess().createContextReference(lang);
+        }
     }
 
     static final AccessAPI API = new AccessAPI();

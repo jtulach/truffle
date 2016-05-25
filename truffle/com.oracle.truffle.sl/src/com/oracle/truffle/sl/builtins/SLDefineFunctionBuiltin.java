@@ -48,7 +48,6 @@ import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.sl.SLLanguage;
 import com.oracle.truffle.sl.parser.Parser;
 import com.oracle.truffle.sl.runtime.SLContext;
-import java.lang.ref.WeakReference;
 
 /**
  * Builtin function to define (or redefine) functions. The provided source code is parsed the same
@@ -71,6 +70,6 @@ public abstract class SLDefineFunctionBuiltin extends SLBuiltinNode {
     private static void doDefineFunction(SLContext context, String code) {
         Source source = Source.fromText(code, "[defineFunction]");
         /* The same parsing code as for parsing the initial source. */
-        context.getFunctionRegistry().register(Parser.parseSL(source, new WeakReference<>(context)));
+        context.getFunctionRegistry().register(Parser.parseSL(source, context.getContextReference()));
     }
 }

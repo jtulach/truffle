@@ -78,6 +78,7 @@ import com.oracle.truffle.sl.nodes.SLExpressionNode;
 import com.oracle.truffle.sl.nodes.SLRootNode;
 import com.oracle.truffle.sl.nodes.local.SLReadArgumentNode;
 import com.oracle.truffle.sl.parser.SLNodeFactory;
+import java.lang.ref.Reference;
 
 /**
  * The run-time state of SL during execution. One context is instantiated before any source code is
@@ -251,5 +252,9 @@ public final class SLContext extends ExecutionContext {
         Object object = env.importSymbol(name);
         Object slValue = fromForeignValue(object);
         return slValue;
+    }
+
+    public Reference<SLContext> getContextReference() {
+        return env.getContextReference(SLLanguage.INSTANCE);
     }
 }
