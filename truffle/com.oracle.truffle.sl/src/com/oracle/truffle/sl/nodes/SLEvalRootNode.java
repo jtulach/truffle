@@ -88,6 +88,10 @@ public final class SLEvalRootNode extends SLRootNode {
             /* The source code did not have a "main" function, so nothing to execute. */
             return null;
         }
+        if (!contextRef.get().isExecuteMain()) {
+            /* if our PolyglotEngine is configured to not execute main return too */
+            return null;
+        }
 
         /* Conversion of arguments to types understood by SL. */
         Object[] arguments = frame.getArguments();

@@ -83,12 +83,10 @@ import com.oracle.truffle.sl.SLLanguage;
 import com.oracle.truffle.sl.SLMain;
 import com.oracle.truffle.sl.builtins.SLBuiltinNode;
 import com.oracle.truffle.sl.nodes.call.SLUndefinedFunctionException;
-import com.oracle.truffle.sl.parser.Parser;
 import com.oracle.truffle.sl.runtime.SLContext;
 import com.oracle.truffle.sl.runtime.SLFunction;
 import com.oracle.truffle.sl.runtime.SLNull;
 import com.oracle.truffle.sl.test.SLTestRunner.TestCase;
-import java.lang.ref.WeakReference;
 
 public final class SLTestRunner extends ParentRunner<TestCase> {
 
@@ -297,7 +295,8 @@ public final class SLTestRunner extends ParentRunner<TestCase> {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         PolyglotEngine engine = null;
         try {
-            engine = PolyglotEngine.newBuilder().setIn(new ByteArrayInputStream(repeat(testCase.testInput, repeats).getBytes("UTF-8"))).setOut(out).build();
+            engine = PolyglotEngine.newBuilder().config(SLLanguage.MIME_TYPE, SLLanguage.EXECUTE_MAIN_CONFIG_OPTION, false).setIn(
+                            new ByteArrayInputStream(repeat(testCase.testInput, repeats).getBytes("UTF-8"))).setOut(out).build();
             String script = readAllLines(testCase.path);
 
             PrintWriter printer = new PrintWriter(out);
@@ -323,9 +322,9 @@ public final class SLTestRunner extends ParentRunner<TestCase> {
             context.installBuiltin(builtin);
         }
 
-        /* Parse the SL source file. */
+        /* Parse the SL source file. No execution. */
         Source source = Source.fromFileName(path.toString());
-        context.getFunctionRegistry().register(Parser.parseSL(source, new WeakReference<>(context)));
+        engine.eval(source);
 
         /* Lookup our main entry point, which is per definition always named "main". */
         SLFunction mainFunction = context.getFunctionRegistry().lookup("main", false);

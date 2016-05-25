@@ -97,15 +97,21 @@ public final class SLContext extends ExecutionContext {
     private final SLFunctionRegistry functionRegistry;
     private final Shape emptyShape;
     private final TruffleLanguage.Env env;
+    private final boolean executeMain;
 
     public SLContext(TruffleLanguage.Env env, BufferedReader input, PrintWriter output) {
         this.input = input;
         this.output = output;
         this.env = env;
         this.functionRegistry = new SLFunctionRegistry();
+        this.executeMain = !Boolean.FALSE.equals(env.getConfig().get(SLLanguage.EXECUTE_MAIN_CONFIG_OPTION));
         installBuiltins();
 
         this.emptyShape = LAYOUT.createShape(new SLObjectType());
+    }
+
+    public boolean isExecuteMain() {
+        return executeMain;
     }
 
     /**

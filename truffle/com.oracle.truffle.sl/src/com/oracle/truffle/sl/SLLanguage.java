@@ -53,6 +53,7 @@ import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.source.Source;
+import com.oracle.truffle.api.vm.PolyglotEngine;
 import com.oracle.truffle.sl.nodes.SLEvalRootNode;
 import com.oracle.truffle.sl.nodes.SLRootNode;
 import com.oracle.truffle.sl.parser.Parser;
@@ -75,6 +76,13 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
     }
 
     public static final String MIME_TYPE = "application/x-sl";
+    /**
+     * Configures a {@link PolyglotEngine} whether to immediately execute SL "main" or not. Use as a
+     * key to
+     * {@link PolyglotEngine.Builder#config(java.lang.String, java.lang.String, java.lang.Object)}
+     * method with MIME type {@link #MIME_TYPE} and value {@link Boolean#FALSE}.
+     */
+    public static final String EXECUTE_MAIN_CONFIG_OPTION = "executeMain";
 
     public static final String builtinKind = "SL builtin";
 
@@ -96,7 +104,7 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
         if (request.getFrame() != null) {
             return Truffle.getRuntime().createCallTarget(new SLEvaluateLocalNode(source.getCode(), request.getFrame()));
         }
-/*
+        /*
         <<<<<<< HEAD
         Source code = request.getSource();
         CallTarget cached = compiled.get(code);
@@ -184,7 +192,7 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
         compiled.put(code, cached);
         return cached;
 =======
-        */
+         */
         return Truffle.getRuntime().createCallTarget(evalMain);
     }
 
