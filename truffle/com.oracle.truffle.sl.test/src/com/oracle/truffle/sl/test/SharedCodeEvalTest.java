@@ -55,31 +55,48 @@ public class SharedCodeEvalTest {
         PolyglotEngine engine1 = builder.build();
         PolyglotEngine engine2 = builder.build();
 
-        Source sharedSource = Source.fromText("" + "function combine(a, b) {\n" + "  return a + b;\n" + "}",
-                        "combine.sl").withMimeType("application/x-sl");
+        // @formatter:off
+        Source sharedSource = Source.fromText(""
+            + "function combine(a, b) {\n"
+            + "  return a + b;\n"
+            + "}"
+            + "function invoke(a, b) {\n"
+            + "  return combine(a, b);\n"
+            + "}",
+            "combine.sl"
+        ).withMimeType("application/x-sl");
 
-        Source redefine = Source.fromText("" + "function main() {\n" + "  defineFunction(\"function combine(a, b) { return a * b; }\");\n" + "}",
-                        "redefine.sl").withMimeType("application/x-sl");
+        Source redefine = Source.fromText(""
+            + "function main() {\n"
+            + "  defineFunction(\"function combine(a, b) { return a * b; }\");\n"
+            + "}",
+            "redefine.sl"
+        ).withMimeType("application/x-sl");
+        // @formatter:
 
         engine1.eval(sharedSource);
         engine2.eval(sharedSource);
 
-        final PolyglotEngine.Value fnValue1 = engine1.findGlobalSymbol("combine");
-        final PolyglotEngine.Value fnValue2 = engine2.findGlobalSymbol("combine");
+        final PolyglotEngine.Value fnCombine1 = engine1.findGlobalSymbol("combine");
+        final PolyglotEngine.Value fnCombine2 = engine2.findGlobalSymbol("combine");
 
-        SLFunction fn1 = fnValue1.as(SLFunction.class);
-        SLFunction fn2 = fnValue2.as(SLFunction.class);
+        SLFunction fn1 = fnCombine1.as(SLFunction.class);
+        SLFunction fn2 = fnCombine2.as(SLFunction.class);
 
         assertNotEquals("Functions are different", fn1, fn2);
         assertEquals("Code is shared between two engines", fn1.getCallTarget(), fn2.getCallTarget());
         assertEquals("AST is shared between two engines", fn1.getCallTarget().getRootNode(), fn2.getCallTarget().getRootNode());
 
-        assertEquals("Plus yields 8", 8L, fnValue1.execute(5, 3).get());
-        assertEquals("Plus yields 7", 7L, fnValue2.execute(4, 3).get());
+
+        final PolyglotEngine.Value fnInvoke1 = engine1.findGlobalSymbol("invoke");
+        final PolyglotEngine.Value fnInvoke2 = engine2.findGlobalSymbol("invoke");
+
+        assertEquals("Plus yields 8", 8L, fnInvoke1.execute(5, 3).get());
+        assertEquals("Plus yields 7", 7L, fnInvoke2.execute(4, 3).get());
 
         engine1.eval(redefine);
 
-        assertEquals("Mul yields 15", 15L, fnValue1.execute(5, 3).get());
-        assertEquals("Other engine still uses plus", 7L, fnValue2.execute(4, 3).get());
+        assertEquals("Mul yields 15", 15L, fnInvoke1.execute(5, 3).get());
+        assertEquals("Other engine still uses plus", 7L, fnInvoke2.execute(4, 3).get());
     }
 }
