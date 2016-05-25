@@ -41,8 +41,6 @@
 package com.oracle.truffle.sl.runtime;
 
 import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.sl.nodes.SLRootNode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -75,15 +73,14 @@ public final class SLFunctionRegistry {
      * node. If the function did not exist before, it defines the function. If the function existed
      * before, it redefines the function and the old implementation is discarded.
      */
-    public SLFunction register(String name, SLRootNode rootNode) {
+    public SLFunction register(String name, RootCallTarget callTarget) {
         SLFunction function = lookup(name, true);
-        RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
         function.setCallTarget(callTarget);
         return function;
     }
 
-    public void register(Map<String, SLRootNode> newFunctions) {
-        for (Map.Entry<String, SLRootNode> entry : newFunctions.entrySet()) {
+    public void register(Map<String, RootCallTarget> newFunctions) {
+        for (Map.Entry<String, RootCallTarget> entry : newFunctions.entrySet()) {
             register(entry.getKey(), entry.getValue());
         }
     }

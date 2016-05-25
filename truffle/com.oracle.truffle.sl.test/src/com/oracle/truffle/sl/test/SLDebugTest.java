@@ -114,7 +114,7 @@ public class SLDebugTest {
         }
     }
 
-    private static Source createFactorial() {
+    private static Source createFactorial(String name) {
         return Source.fromText("function test() {\n" +
                         "  res = fac(2);\n" + "  println(res);\n" +
                         "  return res;\n" +
@@ -126,7 +126,7 @@ public class SLDebugTest {
                         "  nMOFact = fac(nMinusOne);\n" +
                         "  res = n * nMOFact;\n" +
                         "  return res;\n" + "}\n",
-                        "factorial.sl").withMimeType(SLLanguage.MIME_TYPE);
+                        name).withMimeType(SLLanguage.MIME_TYPE);
     }
 
     private static Source createFactorialWithDebugger() {
@@ -172,7 +172,7 @@ public class SLDebugTest {
 
     @Test
     public void testBreakpoint() throws Throwable {
-        final Source factorial = createFactorial();
+        final Source factorial = createFactorial("factorial1.sl");
 
         run.addLast(new Runnable() {
             @Override
@@ -249,7 +249,7 @@ public class SLDebugTest {
 
     @Test
     public void stepInStepOver() throws Throwable {
-        final Source factorial = createFactorial();
+        final Source factorial = createFactorial("factorial2.sl");
         engine.eval(factorial);
 
         // @formatter:on

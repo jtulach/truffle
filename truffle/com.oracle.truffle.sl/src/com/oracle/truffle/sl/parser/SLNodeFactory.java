@@ -40,6 +40,8 @@
  */
 package com.oracle.truffle.sl.parser;
 
+import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.Truffle;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -118,7 +120,7 @@ public class SLNodeFactory {
 
     /* State while parsing a source unit. */
     private final Source source;
-    private final Map<String, SLRootNode> allFunctions;
+    private final Map<String, RootCallTarget> allFunctions;
 
     /* State while parsing a function. */
     private int functionStartPos;
@@ -137,7 +139,7 @@ public class SLNodeFactory {
         this.contextRef = ref;
     }
 
-    public Map<String, SLRootNode> getAllFunctions() {
+    public Map<String, RootCallTarget> getAllFunctions() {
         return allFunctions;
     }
 
@@ -178,7 +180,8 @@ public class SLNodeFactory {
 
         final SLFunctionBodyNode functionBodyNode = new SLFunctionBodyNode(functionSrc, methodBlock);
         final SLRootNode rootNode = new SLRootNode(frameDescriptor, functionBodyNode, functionSrc, functionName);
-        allFunctions.put(functionName, rootNode);
+        RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
+        allFunctions.put(functionName, callTarget);
 
         functionStartPos = 0;
         functionName = null;

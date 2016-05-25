@@ -112,7 +112,7 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
 //        parsingCount++;
 
         final Reference<SLContext> contextRef = request.createContextReference(this);
-        Map<String, SLRootNode> functions;
+        Map<String, RootCallTarget> functions;
         try {
             /*
              * Parse the provided source. At this point, we do not have a SLContext yet.
@@ -127,15 +127,16 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
             throw new IOException(ex);
         }
 
-        SLRootNode main = functions.get("main");
+        RootCallTarget mainTarget = functions.get("main");
         SLRootNode evalMain;
-        if (main != null) {
+        if (mainTarget != null) {
             /*
              * We have a main function, so "evaluating" the parsed source means invoking that main
              * function. However, we need to lazily register functions into the SLContext first, so
              * we cannot use the original SLRootNode for the main function. Instead, we create a new
              * SLEvalRootNode that does everything we need.
              */
+            SLRootNode main = (SLRootNode) mainTarget.getRootNode();
             evalMain = new SLEvalRootNode(contextRef, main.getFrameDescriptor(), main.getBodyNode(), main.getSourceSection(), main.getName(), functions);
         } else {
             /*

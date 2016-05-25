@@ -40,6 +40,7 @@
  */
 package com.oracle.truffle.sl.nodes;
 
+import com.oracle.truffle.api.RootCallTarget;
 import java.util.Map;
 
 import com.oracle.truffle.api.frame.FrameDescriptor;
@@ -61,10 +62,10 @@ import java.lang.ref.Reference;
  */
 public final class SLEvalRootNode extends SLRootNode {
 
-    private final Map<String, SLRootNode> functions;
+    private final Map<String, RootCallTarget> functions;
     private final Reference<SLContext> contextRef;
 
-    public SLEvalRootNode(Reference<SLContext> ref, FrameDescriptor frameDescriptor, SLExpressionNode bodyNode, SourceSection sourceSection, String name, Map<String, SLRootNode> functions) {
+    public SLEvalRootNode(Reference<SLContext> ref, FrameDescriptor frameDescriptor, SLExpressionNode bodyNode, SourceSection sourceSection, String name, Map<String, RootCallTarget> functions) {
         super(frameDescriptor, bodyNode, sourceSection, name);
         this.functions = functions;
         this.contextRef = ref;

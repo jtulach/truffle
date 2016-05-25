@@ -71,12 +71,8 @@ public class SharedCodeEvalTest {
         SLFunction fn2 = fnValue2.as(SLFunction.class);
 
         assertNotEquals("Functions are different", fn1, fn2);
-        assertEquals("Code is shared between two engines", fn1.getCallTarget().getRootNode(), fn2.getCallTarget().getRootNode());
-
-        // isn't it strange that two calltargets share one RootNode
-        // and it points back to just one calltarget?
-        assertNotEquals("CallTargets are also different!?", fn1.getCallTarget(), fn2.getCallTarget());
-        assertEquals("CallTargets for a code are shared between two engines", fn1.getCallTarget().getRootNode().getCallTarget(), fn2.getCallTarget().getRootNode().getCallTarget());
+        assertEquals("Code is shared between two engines", fn1.getCallTarget(), fn2.getCallTarget());
+        assertEquals("AST is shared between two engines", fn1.getCallTarget().getRootNode(), fn2.getCallTarget().getRootNode());
 
         assertEquals("Plus yields 8", 8L, fnValue1.execute(5, 3).get());
         assertEquals("Plus yields 7", 7L, fnValue2.execute(4, 3).get());
