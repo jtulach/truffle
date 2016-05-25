@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -20,21 +22,20 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.dsl.test.processor;
+package com.oracle.truffle.api.interop.java;
 
-import com.oracle.truffle.api.dsl.test.ExpectError;
-import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.interop.TruffleObject;
 
-/**
- * Verify errors emitted by the processor.
- */
-public class TruffleProcessorTest {
-
-    abstract class MyNode extends Node {
-        @ExpectError("@Child field cannot be final") @Child final MyNode first;
-
-        MyNode(MyNode n) {
-            this.first = n;
-        }
+final class JavaInteropSnippets {
+    // BEGIN: JavaInteropSnippets#isNullValue
+    interface IsNullChecker {
+        @MethodMessage(message = "IS_NULL")
+        boolean isNull();
     }
+
+    public static boolean isNullValue(TruffleObject obj) {
+        IsNullChecker check = JavaInterop.asJavaFunction(IsNullChecker.class, obj);
+        return check.isNull();
+    }
+    // END: JavaInteropSnippets#isNullValue
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2016, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0
@@ -38,48 +38,62 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.oracle.truffle.sl.nodes.expression;
+package com.oracle.truffle.sl.nodes;
 
-import com.oracle.truffle.api.CallTarget;
+import java.util.Map;
+
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.sl.SLLanguage;
-import com.oracle.truffle.sl.nodes.SLExpressionNode;
 import com.oracle.truffle.sl.runtime.SLContext;
-import com.oracle.truffle.sl.runtime.SLFunction;
-import com.oracle.truffle.sl.runtime.SLFunctionRegistry;
-import java.lang.ref.Reference;
 
 /**
- * Constant literal for a {@link SLFunction function} value, created when a function name occurs as
- * a literal in SL source code. Note that function redefinition can change the {@link CallTarget
- * call target} that is executed when calling the function, but the {@link SLFunction} for a name
- * never changes. This is guaranteed by the {@link SLFunctionRegistry}.
+ * In addition to {@link SLRootNode}, this class performs two additional tasks:
+ *
+ * <ul>
+ * <li>Lazily registration of functions on first execution. This fulfills the semantics of
+ * "evaluating" source code in SL.</li>
+ * <li>Conversion of arguments to types understood by SL. The SL source code can be evaluated from a
+ * different language, i.e., the caller can be a node from a different language that uses types not
+ * understood by SL.</li>
+ * </ul>
  */
-@NodeInfo(shortName = "func")
-public final class SLFunctionLiteralNode extends SLExpressionNode {
-    private final String value;
-    private final Reference<SLContext> contextRef;
-    @CompilationFinal private SLFunction cachedFunction;
-    @CompilationFinal private SLContext cachedContext;
+public final class SLEvalRootNode extends SLRootNode {
 
-    public SLFunctionLiteralNode(SourceSection src, String value) {
-        super(src);
-        this.value = value;
-        contextRef = SLLanguage.INSTANCE.findContextRef();
+    private final Map<String, SLRootNode> functions;
+    @CompilationFinal private SLContext context;
+
+    public SLEvalRootNode(FrameDescriptor frameDescriptor, SLExpressionNode bodyNode, SourceSection sourceSection, String name, Map<String, SLRootNode> functions) {
+        super(frameDescriptor, bodyNode, sourceSection, name);
+        this.functions = functions;
     }
 
     @Override
-    public SLFunction executeGeneric(VirtualFrame frame) {
-        SLContext context = contextRef.get();
-        if (context != cachedContext) {
+    public Object execute(VirtualFrame frame) {
+        /* Lazy registrations of functions on first execution. */
+        if (context == null) {
+            /* Function registration is a slow-path operation that must not be compiled. */
             CompilerDirectives.transferToInterpreterAndInvalidate();
-            this.cachedContext = context;
-            this.cachedFunction = context.getFunctionRegistry().lookup(value, true);
+
+            context = SLLanguage.INSTANCE.findContext0();
+            context.getFunctionRegistry().register(functions);
         }
-        return cachedFunction;
+
+        if (getBodyNode() == null) {
+            /* The source code did not have a "main" function, so nothing to execute. */
+            return null;
+        }
+
+        /* Conversion of arguments to types understood by SL. */
+        Object[] arguments = frame.getArguments();
+        for (int i = 0; i < arguments.length; i++) {
+            arguments[i] = SLContext.fromForeignValue(arguments[i]);
+        }
+
+        /* Now we can execute the body of the "main" function. */
+        return super.execute(frame);
     }
 }
