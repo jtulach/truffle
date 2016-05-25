@@ -712,7 +712,8 @@ public abstract class TruffleLanguage<C> {
             return config;
         }
 
-        /** XXX: will this be needed.?
+        /**
+         * XXX: will this be needed.?
          *
          * @param <C>
          * @param lang
