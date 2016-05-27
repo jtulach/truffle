@@ -45,9 +45,8 @@ import com.oracle.truffle.api.CompilerDirectives.ValueType;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 
-abstract class MappingCache<K,V> {
-    @CompilationFinal
-    private Item<K,V> items;
+abstract class MappingCache<K, V> {
+    @CompilationFinal private Item<K, V> items;
 
     @ExplodeLoop
     public final V get(K key) {
@@ -62,7 +61,7 @@ abstract class MappingCache<K,V> {
         return registerNew(firstItem, key);
     }
 
-    private final synchronized V registerNew(Item<K,V> firstItem, K key) {
+    private final synchronized V registerNew(Item<K, V> firstItem, K key) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
         if (firstItem != items) {
             return get(key);
@@ -74,14 +73,13 @@ abstract class MappingCache<K,V> {
 
     protected abstract V create(K key);
 
-
     @ValueType
-    private static final class Item<K,V> {
+    private static final class Item<K, V> {
         private final K key;
         private final V value;
-        private final Item<K,V> next;
+        private final Item<K, V> next;
 
-        public Item(K key, V value, Item<K,V> next) {
+        public Item(K key, V value, Item<K, V> next) {
             this.key = key;
             this.value = value;
             this.next = next;
