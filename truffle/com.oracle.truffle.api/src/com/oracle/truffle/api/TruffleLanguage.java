@@ -716,15 +716,15 @@ public abstract class TruffleLanguage<C> {
          * XXX: will this be needed.?
          *
          * @param <C>
-         * @param lang
+         * @param language
          * @return
          * @since XXX
          */
-        public <C> Reference<C> getContextReference(TruffleLanguage<C> lang) {
-            if (lang != this.lang) {
+        public <C> Reference<C> getContextReference(TruffleLanguage<C> language) {
+            if (language != this.lang) {
                 throw new IllegalStateException();
             }
-            return AccessAPI.engineAccess().createContextReference(lang);
+            return AccessAPI.engineAccess().createContextReference(language);
         }
     }
 
