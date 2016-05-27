@@ -54,7 +54,6 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.object.DynamicObject;
-import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.sl.nodes.SLExpressionNode;
 import com.oracle.truffle.sl.runtime.SLContext;
 import com.oracle.truffle.sl.runtime.SLNull;
@@ -74,8 +73,7 @@ public abstract class SLWritePropertyNode extends SLExpressionNode {
     @Child protected SLExpressionNode valueNode;
     @Child protected SLWritePropertyCacheNode cacheNode;
 
-    SLWritePropertyNode(SourceSection src, String propertyName) {
-        super(src);
+    SLWritePropertyNode(String propertyName) {
         this.propertyName = propertyName;
         this.cacheNode = SLWritePropertyCacheNodeGen.create(propertyName);
     }
@@ -86,17 +84,29 @@ public abstract class SLWritePropertyNode extends SLExpressionNode {
         return value;
     }
 
+    /*
+     * The child node to access the foreign object.
+     */
     @Child private Node foreignWrite;
 
+    /*
+     * If the receiver object is a foreign value we use Truffle's interop API to access the foreign
+     * data.
+     */
     @Specialization
     public Object doForeignObject(VirtualFrame frame, TruffleObject object, Object value) {
+        // Lazily insert the foreign object access nodes upon the first execution.
         if (foreignWrite == null) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
+            // SL maps a property write access to a WRITE message if the receiver is a foreign
+            // object.
             this.foreignWrite = insert(Message.WRITE.createNode());
         }
         try {
+            // Perform the foreign object access.
             return ForeignAccess.sendWrite(foreignWrite, frame, object, propertyName, value);
         } catch (UnknownIdentifierException | UnsupportedTypeException | UnsupportedMessageException e) {
+            // In case the foreign access is not successful, we return null.
             return SLNull.SINGLETON;
         }
     }

@@ -33,6 +33,7 @@ import static com.oracle.truffle.api.debug.Breakpoint.State.ENABLED_UNRESOLVED;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -65,6 +66,12 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.LineLocation;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.utilities.CyclicAssumption;
+import java.lang.ref.Reference;
+import java.lang.ref.WeakReference;
+import java.net.URI;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * Creator and manager of program breakpoints.
@@ -87,6 +94,13 @@ final class BreakpointFactory {
      * {@linkplain String tag}; there may be no more than one breakpoint per key.
      */
     private final Map<Object, BreakpointImpl> breakpoints = new HashMap<>();
+    /**
+     * Breakpoints that are internal to the debugger infrastructure. These are not exposed to
+     * clients.
+     */
+    private final Map<Object, BreakpointImpl> breakpointsInternal = new HashMap<>();
+    private final Map<URI, Set<URILocation>> uriLocations = new HashMap<>();
+    private final Map<URI, Reference<Source>> sources = new HashMap<>();
 
     private static final Comparator<Entry<Object, BreakpointImpl>> BREAKPOINT_COMPARATOR = new Comparator<Entry<Object, BreakpointImpl>>() {
 
@@ -122,6 +136,14 @@ final class BreakpointFactory {
         this.instrumenter = instrumenter;
         this.breakpointCallback = breakpointCallback;
         this.warningLog = warningLog;
+        createDefaultBreakpoints();
+    }
+
+    private void createDefaultBreakpoints() {
+        Class<?> tag = DebuggerTags.AlwaysHalt.class;
+        SourceSectionFilter query = SourceSectionFilter.newBuilder().tagIs(tag).build();
+        BreakpointImpl breakpoint = createBreakpoint(tag, query, 0, false);
+        breakpointsInternal.put(tag, breakpoint);
     }
 
     /**
@@ -165,6 +187,43 @@ final class BreakpointFactory {
         } else {
             if (ignoreCount == breakpoint.getIgnoreCount()) {
                 throw new IOException("Breakpoint already set at location " + lineLocation);
+            }
+            breakpoint.setIgnoreCount(ignoreCount);
+            if (TRACE) {
+                trace("CHANGED ignoreCount %s", breakpoint.getShortDescription());
+            }
+        }
+        return breakpoint;
+    }
+
+    Breakpoint create(int ignoreCount, URI sourceUri, int line, int column, boolean oneShot) throws IOException {
+        URILocation uriLocation = new URILocation(sourceUri, line, column);
+        BreakpointImpl breakpoint = breakpoints.get(uriLocation);
+        if (breakpoint == null) {
+            Set<URILocation> locations = uriLocations.get(sourceUri);
+            if (locations == null) {
+                locations = new HashSet<>();
+                uriLocations.put(sourceUri, locations);
+            }
+            locations.add(uriLocation);
+            breakpoint = createBreakpoint(uriLocation, null, ignoreCount, oneShot);
+
+            Reference<Source> sourceRef = sources.get(sourceUri);
+            if (sourceRef != null) {
+                Source source = sourceRef.get();
+                if (source != null) {
+                    breakpoint.resolve(source);
+                } else {
+                    sources.remove(sourceUri);
+                }
+            }
+            if (TRACE) {
+                trace("NEW " + breakpoint.getShortDescription());
+            }
+            breakpoints.put(uriLocation, breakpoint);
+        } else {
+            if (ignoreCount == breakpoint.getIgnoreCount()) {
+                throw new IOException("Breakpoint already set at location " + uriLocation);
             }
             breakpoint.setIgnoreCount(ignoreCount);
             if (TRACE) {
@@ -238,7 +297,8 @@ final class BreakpointFactory {
      * Removes the associated instrumentation for all one-shot breakpoints only.
      */
     void disposeOneShots() {
-        for (BreakpointImpl breakpoint : breakpoints.values()) {
+        final Collection<BreakpointImpl> oneShots = new ArrayList<>(breakpoints.values());
+        for (BreakpointImpl breakpoint : oneShots) {
             if (breakpoint.isOneShot()) {
                 breakpoint.dispose();
             }
@@ -250,7 +310,16 @@ final class BreakpointFactory {
      */
     private void forget(BreakpointImpl breakpoint) {
         assert breakpoint.getState() == State.DISPOSED;
-        breakpoints.remove(breakpoint.getKey());
+        Object key = breakpoint.getKey();
+        breakpoints.remove(key);
+        if (key instanceof URILocation) {
+            URILocation ul = (URILocation) key;
+            Set<URILocation> locations = uriLocations.get(ul.uri);
+            locations.remove(ul);
+            if (locations.isEmpty()) {
+                uriLocations.remove(ul.uri);
+            }
+        }
     }
 
     BreakpointImpl createBreakpoint(Object key, SourceSectionFilter query, int ignoreCount, boolean isOneShot) {
@@ -259,8 +328,30 @@ final class BreakpointFactory {
         // allows for safe publication. Otherwise, we can't be sure that the
         // assumption fields are visible by other threads, which would lead to
         // a race with object initialization.
-        breakpoint.binding = instrumenter.attachListener(breakpoint.locationQuery, new BreakpointListener(breakpoint));
+        if (query != null) {
+            breakpoint.binding = instrumenter.attachListener(query, new BreakpointListener(breakpoint));
+        }
         return breakpoint;
+    }
+
+    void notifySourceLoaded(Source source) {
+        if (source == null) {
+            return;
+        }
+        URI uri = source.getURI();
+        assert uri != null;
+        Reference<Source> sourceRef = sources.get(uri);
+        if (sourceRef != null && source == sourceRef.get()) {
+            // We know about this source already
+            return;
+        }
+        Set<URILocation> locations = uriLocations.get(uri);
+        if (locations != null) {
+            for (URILocation l : locations) {
+                breakpoints.get(l).resolve(source);
+            }
+        }
+        sources.put(uri, new WeakReference<>(source));
     }
 
     private final class BreakpointImpl extends Breakpoint implements ExecutionEventNodeFactory {
@@ -312,6 +403,7 @@ final class BreakpointFactory {
 
         @Override
         public void setEnabled(boolean enabled) {
+            assert getState() != DISPOSED : "disposed breakpoints are unusable";
             if (enabled != isEnabled) {
                 switch (getState()) {
                     case ENABLED:
@@ -332,7 +424,7 @@ final class BreakpointFactory {
                     case DISABLED_UNRESOLVED:
                         assert enabled : SHOULD_NOT_HAPPEN;
                         doSetEnabled(true);
-                        changeState(DISABLED_UNRESOLVED);
+                        changeState(ENABLED_UNRESOLVED);
                         break;
                     case DISPOSED:
                         assert false : "breakpoint disposed";
@@ -351,9 +443,7 @@ final class BreakpointFactory {
 
         @Override
         public void setCondition(String expr) throws IOException {
-            if (getState() == DISPOSED) {
-                throw new IllegalStateException("Attempt to modify a disposed breakpoint");
-            }
+            assert getState() != DISPOSED : "disposed breakpoints are unusable";
             binding.dispose();
             if (expr == null) {
                 conditionSource = null;
@@ -376,6 +466,7 @@ final class BreakpointFactory {
 
         @Override
         public void setIgnoreCount(int ignoreCount) {
+            assert getState() != DISPOSED : "disposed breakpoints are unusable";
             this.ignoreCount = ignoreCount;
         }
 
@@ -395,6 +486,7 @@ final class BreakpointFactory {
             if (getState() != DISPOSED) {
                 binding.dispose();
                 changeState(DISPOSED);
+                isEnabled = false;
                 BreakpointFactory.this.forget(this);
             }
         }
@@ -492,6 +584,14 @@ final class BreakpointFactory {
             warningLog.addWarning(String.format("Exception in %s:  %s", getShortDescription(), ex.getMessage()));
         }
 
+        private void resolve(Source source) {
+            int line = ((URILocation) locationKey).line;
+            LineLocation lineLocation = source.createLineLocation(line);
+            final SourceSectionFilter query = SourceSectionFilter.newBuilder().sourceIs(lineLocation.getSource()).lineStartsIn(IndexRange.byLength(lineLocation.getLineNumber(), 1)).tagIs(
+                            StandardTags.StatementTag.class).build();
+            binding = instrumenter.attachListener(query, new BreakpointListener(this));
+        }
+
         /** Attached to implement a conditional breakpoint. */
         private class BreakpointConditionEventNode extends ExecutionEventNode {
             @Child DirectCallNode callNode;
@@ -566,5 +666,57 @@ final class BreakpointFactory {
         public String toString() {
             return breakpoint.getShortDescription();
         }
+    }
+
+    private static final class URILocation {
+
+        private final URI uri;
+        private final int line;
+        private final int column;
+
+        URILocation(URI uri, int line, int column) {
+            this.uri = uri;
+            this.line = line;
+            if (column < 0) {
+                this.column = -1;
+            } else {
+                this.column = column;
+            }
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(this.uri, this.line, this.column);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final URILocation other = (URILocation) obj;
+            if (this.line != other.line) {
+                return false;
+            }
+            if (this.column != other.column) {
+                return false;
+            }
+            if (!Objects.equals(this.uri, other.uri)) {
+                return false;
+            }
+            return true;
+        }
+
+        @Override
+        public String toString() {
+            return "URILocation{" + "uri=" + uri + ", line=" + line + ", column=" + column + '}';
+        }
+
     }
 }
