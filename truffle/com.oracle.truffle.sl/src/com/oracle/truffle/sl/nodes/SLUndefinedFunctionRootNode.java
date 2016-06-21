@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2016, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0
@@ -38,28 +38,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.oracle.truffle.sl;
+package com.oracle.truffle.sl.nodes;
 
-import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.sl.runtime.SLFunction;
+import com.oracle.truffle.sl.runtime.SLUndefinedNameException;
 
 /**
- * An implementation of an {@link AssertionError} also containing the guest language stack trace.
+ * The initial {@link RootNode} of {@link SLFunction functions} when they are created, i.e., when
+ * they are still undefined. Executing it throws an
+ * {@link SLUndefinedNameException#undefinedFunction exception}.
  */
-public class SLAssertionError extends AssertionError {
-
-    private static final long serialVersionUID = -9138475336963945873L;
-
-    public SLAssertionError(String message) {
-        super(message);
-        CompilerAsserts.neverPartOfCompilation();
-        initCause(new AssertionError("Java stack trace"));
+public class SLUndefinedFunctionRootNode extends SLRootNode {
+    public SLUndefinedFunctionRootNode(String name) {
+        super(null, null, null, name);
     }
 
     @Override
-    @SuppressWarnings("sync-override")
-    public Throwable fillInStackTrace() {
-        CompilerAsserts.neverPartOfCompilation();
-        return SLException.fillInSLStackTrace(this);
+    public Object execute(VirtualFrame frame) {
+        throw SLUndefinedNameException.undefinedFunction(getName());
     }
-
 }

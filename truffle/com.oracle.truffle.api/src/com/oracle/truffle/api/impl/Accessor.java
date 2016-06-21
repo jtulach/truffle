@@ -24,10 +24,11 @@
  */
 package com.oracle.truffle.api.impl;
 
-import com.oracle.truffle.api.Assumption;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+
+import com.oracle.truffle.api.Assumption;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
@@ -41,6 +42,7 @@ import com.oracle.truffle.api.source.Source;
 import java.lang.ref.Reference;
 import java.util.Map;
 import java.util.Set;
+import com.oracle.truffle.api.source.SourceSection;
 
 /**
  * Communication between PolyglotEngine, TruffleLanguage API/SPI, and other services.
@@ -62,6 +64,8 @@ public abstract class Accessor {
         public abstract void executionStarted(Object vm, int currentDepth, Object[] debuggerHolder, Source s);
 
         public abstract void executionEnded(Object vm, Object[] debuggerHolder);
+
+        public abstract void executionSourceSection(SourceSection ss);
     }
 
     public abstract static class EngineSupport {
@@ -74,6 +78,9 @@ public abstract class Accessor {
 
         @SuppressWarnings("rawtypes")
         public abstract Env findEnv(Object vm, Class<? extends TruffleLanguage> languageClass);
+
+        @SuppressWarnings("rawtypes")
+        public abstract Env findEnv(Class<? extends TruffleLanguage> languageClass);
 
         @SuppressWarnings("rawtypes")
         public abstract TruffleLanguage<?> findLanguageImpl(Object known, Class<? extends TruffleLanguage> languageClass, String mimeType);

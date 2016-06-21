@@ -63,8 +63,6 @@ import com.oracle.truffle.api.object.Shape;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.sl.SLLanguage;
-import com.oracle.truffle.sl.builtins.SLAssertFalseBuiltinFactory;
-import com.oracle.truffle.sl.builtins.SLAssertTrueBuiltinFactory;
 import com.oracle.truffle.sl.builtins.SLBuiltinNode;
 import com.oracle.truffle.sl.builtins.SLDefineFunctionBuiltinFactory;
 import com.oracle.truffle.sl.builtins.SLEvalBuiltinFactory;
@@ -80,14 +78,11 @@ import com.oracle.truffle.sl.builtins.SLStackTraceBuiltinFactory;
 import com.oracle.truffle.sl.nodes.SLExpressionNode;
 import com.oracle.truffle.sl.nodes.SLRootNode;
 import com.oracle.truffle.sl.nodes.local.SLReadArgumentNode;
-import com.oracle.truffle.sl.parser.SLNodeFactory;
 import java.lang.ref.Reference;
 
 /**
- * The run-time state of SL during execution. One context is instantiated before any source code is
- * parsed, and this context is passed around to all methods that need access to it. For example, the
- * context is used during {@link SLNodeFactory parsing} and by {@link SLBuiltinNode#getContext()
- * builtin functions}.
+ * The run-time state of SL during execution. The context is created by the {@link SLLanguage}. It
+ * is used, for example, by {@link SLBuiltinNode#getContext() builtin functions}.
  * <p>
  * It would be an error to have two different context instances during the execution of one script.
  * However, if two separate scripts run in one Java VM at the same time, they have a different
@@ -111,7 +106,7 @@ public final class SLContext extends ExecutionContext {
         this.executeMain = !Boolean.FALSE.equals(env.getConfig().get(SLLanguage.EXECUTE_MAIN_CONFIG_OPTION));
         installBuiltins();
 
-        this.emptyShape = LAYOUT.createShape(new SLObjectType());
+        this.emptyShape = LAYOUT.createShape(SLObjectType.SINGLETON);
     }
 
     public boolean isExecuteMain() {
@@ -152,8 +147,6 @@ public final class SLContext extends ExecutionContext {
         installBuiltin(SLDefineFunctionBuiltinFactory.getInstance());
         installBuiltin(SLStackTraceBuiltinFactory.getInstance());
         installBuiltin(SLHelloEqualsWorldBuiltinFactory.getInstance());
-        installBuiltin(SLAssertTrueBuiltinFactory.getInstance());
-        installBuiltin(SLAssertFalseBuiltinFactory.getInstance());
         installBuiltin(SLNewObjectBuiltinFactory.getInstance());
         installBuiltin(SLEvalBuiltinFactory.getInstance());
         installBuiltin(SLImportBuiltinFactory.getInstance());
@@ -173,14 +166,16 @@ public final class SLContext extends ExecutionContext {
          * from this array.
          */
         for (int i = 0; i < argumentCount; i++) {
-            argumentNodes[i] = new SLReadArgumentNode(null, i);
+            argumentNodes[i] = new SLReadArgumentNode(i);
         }
         /* Instantiate the builtin node. This node performs the actual functionality. */
         SLBuiltinNode builtinBodyNode = factory.createNode(argumentNodes, this);
+        builtinBodyNode.addRootTag();
         /* The name of the builtin function is specified via an annotation on the node class. */
         String name = lookupNodeInfo(builtinBodyNode.getClass()).shortName();
+        final SourceSection srcSection = SourceSection.createUnavailable("SL builtin", name);
+        builtinBodyNode.setSourceSection(srcSection);
 
-        final SourceSection srcSection = SourceSection.createUnavailable(SLLanguage.builtinKind, name);
         /* Wrap the builtin in a RootNode. Truffle requires all AST to start with a RootNode. */
         SLRootNode rootNode = new SLRootNode(new FrameDescriptor(), builtinBodyNode, srcSection, name);
 
@@ -201,24 +196,29 @@ public final class SLContext extends ExecutionContext {
         }
     }
 
+    /*
+     * Methods for object creation / object property access.
+     */
+
     /**
-     * Allocate an empty object.
+     * Allocate an empty object. All new objects initially have no properties. Properties are added
+     * when they are first stored, i.e., the store triggers a shape change of the object.
      */
     public DynamicObject createObject() {
         return emptyShape.newInstance();
     }
 
     public static boolean isSLObject(TruffleObject value) {
-        return value instanceof DynamicObject && isSLObject((DynamicObject) value);
+        /*
+         * LAYOUT.getType() returns a concrete implementation class, i.e., a class that is more
+         * precise than the base class DynamicObject. This makes the type check faster.
+         */
+        return LAYOUT.getType().isInstance(value) && LAYOUT.getType().cast(value).getShape().getObjectType() == SLObjectType.SINGLETON;
     }
 
-    public static boolean isSLObject(DynamicObject value) {
-        return value.getShape().getObjectType() instanceof SLObjectType;
-    }
-
-    public static DynamicObject castSLObject(Object value) {
-        return LAYOUT.getType().cast(value);
-    }
+    /*
+     * Methods for language interoperability.
+     */
 
     public static Object fromForeignValue(Object a) {
         if (a instanceof Long || a instanceof BigInteger || a instanceof String) {

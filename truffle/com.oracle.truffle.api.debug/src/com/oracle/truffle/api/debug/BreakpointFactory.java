@@ -66,6 +66,12 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.LineLocation;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.utilities.CyclicAssumption;
+import java.lang.ref.Reference;
+import java.lang.ref.WeakReference;
+import java.net.URI;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * Creator and manager of program breakpoints.
@@ -93,6 +99,8 @@ final class BreakpointFactory {
      * clients.
      */
     private final Map<Object, BreakpointImpl> breakpointsInternal = new HashMap<>();
+    private final Map<URI, Set<URILocation>> uriLocations = new HashMap<>();
+    private final Map<URI, Reference<Source>> sources = new HashMap<>();
 
     private static final Comparator<Entry<Object, BreakpointImpl>> BREAKPOINT_COMPARATOR = new Comparator<Entry<Object, BreakpointImpl>>() {
 
@@ -103,7 +111,7 @@ final class BreakpointFactory {
             if (key1 instanceof LineLocation && key2 instanceof LineLocation) {
                 final LineLocation line1 = (LineLocation) key1;
                 final LineLocation line2 = (LineLocation) key2;
-                final int nameOrder = line1.getSource().getShortName().compareTo(line2.getSource().getShortName());
+                final int nameOrder = line1.getSource().getName().compareTo(line2.getSource().getName());
                 if (nameOrder != 0) {
                     return nameOrder;
                 }
@@ -179,6 +187,43 @@ final class BreakpointFactory {
         } else {
             if (ignoreCount == breakpoint.getIgnoreCount()) {
                 throw new IOException("Breakpoint already set at location " + lineLocation);
+            }
+            breakpoint.setIgnoreCount(ignoreCount);
+            if (TRACE) {
+                trace("CHANGED ignoreCount %s", breakpoint.getShortDescription());
+            }
+        }
+        return breakpoint;
+    }
+
+    Breakpoint create(int ignoreCount, URI sourceUri, int line, int column, boolean oneShot) throws IOException {
+        URILocation uriLocation = new URILocation(sourceUri, line, column);
+        BreakpointImpl breakpoint = breakpoints.get(uriLocation);
+        if (breakpoint == null) {
+            Set<URILocation> locations = uriLocations.get(sourceUri);
+            if (locations == null) {
+                locations = new HashSet<>();
+                uriLocations.put(sourceUri, locations);
+            }
+            locations.add(uriLocation);
+            breakpoint = createBreakpoint(uriLocation, null, ignoreCount, oneShot);
+
+            Reference<Source> sourceRef = sources.get(sourceUri);
+            if (sourceRef != null) {
+                Source source = sourceRef.get();
+                if (source != null) {
+                    breakpoint.resolve(source);
+                } else {
+                    sources.remove(sourceUri);
+                }
+            }
+            if (TRACE) {
+                trace("NEW " + breakpoint.getShortDescription());
+            }
+            breakpoints.put(uriLocation, breakpoint);
+        } else {
+            if (ignoreCount == breakpoint.getIgnoreCount()) {
+                throw new IOException("Breakpoint already set at location " + uriLocation);
             }
             breakpoint.setIgnoreCount(ignoreCount);
             if (TRACE) {
@@ -265,7 +310,16 @@ final class BreakpointFactory {
      */
     private void forget(BreakpointImpl breakpoint) {
         assert breakpoint.getState() == State.DISPOSED;
-        breakpoints.remove(breakpoint.getKey());
+        Object key = breakpoint.getKey();
+        breakpoints.remove(key);
+        if (key instanceof URILocation) {
+            URILocation ul = (URILocation) key;
+            Set<URILocation> locations = uriLocations.get(ul.uri);
+            locations.remove(ul);
+            if (locations.isEmpty()) {
+                uriLocations.remove(ul.uri);
+            }
+        }
     }
 
     BreakpointImpl createBreakpoint(Object key, SourceSectionFilter query, int ignoreCount, boolean isOneShot) {
@@ -274,8 +328,30 @@ final class BreakpointFactory {
         // allows for safe publication. Otherwise, we can't be sure that the
         // assumption fields are visible by other threads, which would lead to
         // a race with object initialization.
-        breakpoint.binding = instrumenter.attachListener(breakpoint.locationQuery, new BreakpointListener(breakpoint));
+        if (query != null) {
+            breakpoint.binding = instrumenter.attachListener(query, new BreakpointListener(breakpoint));
+        }
         return breakpoint;
+    }
+
+    void notifySourceLoaded(Source source) {
+        if (source == null) {
+            return;
+        }
+        URI uri = source.getURI();
+        assert uri != null;
+        Reference<Source> sourceRef = sources.get(uri);
+        if (sourceRef != null && source == sourceRef.get()) {
+            // We know about this source already
+            return;
+        }
+        Set<URILocation> locations = uriLocations.get(uri);
+        if (locations != null) {
+            for (URILocation l : locations) {
+                breakpoints.get(l).resolve(source);
+            }
+        }
+        sources.put(uri, new WeakReference<>(source));
     }
 
     private final class BreakpointImpl extends Breakpoint implements ExecutionEventNodeFactory {
@@ -283,7 +359,7 @@ final class BreakpointFactory {
         private static final String SHOULD_NOT_HAPPEN = "BreakpointImpl:  should not happen";
 
         private final Object locationKey;
-        private final SourceSectionFilter locationQuery;
+        private SourceSectionFilter locationQuery;
         private final boolean isOneShot;
         private int ignoreCount;
         private int hitCount = 0;
@@ -297,6 +373,7 @@ final class BreakpointFactory {
         @CompilationFinal private boolean isEnabled;
         @CompilationFinal private Assumption enabledUnchangedAssumption;
 
+        private String conditionExpr;
         private Source conditionSource;
         @SuppressWarnings("rawtypes") private Class<? extends TruffleLanguage> condLangClass;
 
@@ -315,7 +392,7 @@ final class BreakpointFactory {
         @Override
         public String getLocationDescription() {
             if (locationKey instanceof LineLocation) {
-                return "Line: " + ((LineLocation) locationKey).getShortDescription();
+                return ((LineLocation) locationKey).getShortDescription();
             }
             return "Tag: " + locationKey.toString();
         }
@@ -348,7 +425,7 @@ final class BreakpointFactory {
                     case DISABLED_UNRESOLVED:
                         assert enabled : SHOULD_NOT_HAPPEN;
                         doSetEnabled(true);
-                        changeState(DISABLED_UNRESOLVED);
+                        changeState(ENABLED_UNRESOLVED);
                         break;
                     case DISPOSED:
                         assert false : "breakpoint disposed";
@@ -368,14 +445,17 @@ final class BreakpointFactory {
         @Override
         public void setCondition(String expr) throws IOException {
             assert getState() != DISPOSED : "disposed breakpoints are unusable";
-            binding.dispose();
-            if (expr == null) {
-                conditionSource = null;
-                binding = instrumenter.attachListener(locationQuery, new BreakpointListener(this));
-            } else {
-                conditionSource = Source.fromText(expr, "breakpoint condition from text: " + expr);
-                binding = instrumenter.attachFactory(locationQuery, this);
+            if (binding != null) {
+                binding.dispose();
+                if (expr == null) {
+                    conditionSource = null;
+                    binding = instrumenter.attachListener(locationQuery, new BreakpointListener(this));
+                } else {
+                    conditionSource = Source.newBuilder(expr).name("breakpoint condition from text: " + expr).mimeType("text/plain").build();
+                    binding = instrumenter.attachFactory(locationQuery, this);
+                }
             }
+            conditionExpr = expr;
         }
 
         @Override
@@ -464,7 +544,7 @@ final class BreakpointFactory {
 
         private void doBreak(EventContext context, VirtualFrame vFrame) {
             if (++hitCount > ignoreCount) {
-                breakpointCallback.haltedAt(context, vFrame.materialize(), "Breakpoint");
+                breakpointCallback.haltedAt(context, vFrame.materialize(), this);
             }
         }
 
@@ -506,6 +586,25 @@ final class BreakpointFactory {
         @TruffleBoundary
         private void addExceptionWarning(Exception ex) {
             warningLog.addWarning(String.format("Exception in %s:  %s", getShortDescription(), ex.getMessage()));
+        }
+
+        private void resolve(Source source) {
+            int line = ((URILocation) locationKey).line;
+            LineLocation lineLocation = source.createLineLocation(line);
+            final SourceSectionFilter query = SourceSectionFilter.newBuilder().sourceIs(lineLocation.getSource()).lineStartsIn(IndexRange.byLength(lineLocation.getLineNumber(), 1)).tagIs(
+                            StandardTags.StatementTag.class).build();
+            locationQuery = query;
+            if (conditionExpr != null) {
+                // @formatter:off
+                conditionSource = Source.newBuilder(conditionExpr).
+                    name("breakpoint condition from text: " + conditionExpr).
+                    mimeType(source.getMimeType()).
+                    build();
+                // @formatter:on
+                binding = instrumenter.attachFactory(locationQuery, this);
+            } else {
+                binding = instrumenter.attachListener(query, new BreakpointListener(this));
+            }
         }
 
         /** Attached to implement a conditional breakpoint. */
@@ -565,9 +664,12 @@ final class BreakpointFactory {
         @Override
         public void onEnter(EventContext context, VirtualFrame frame) {
             if (TRACE) {
-                trace("hit breakpoint " + breakpoint.getShortDescription());
+                trace("BEGIN HIT " + breakpoint.getShortDescription());
             }
             breakpoint.nodeEnter(context, frame);
+            if (TRACE) {
+                trace("END HIT " + breakpoint.getShortDescription());
+            }
         }
 
         @Override
@@ -582,5 +684,57 @@ final class BreakpointFactory {
         public String toString() {
             return breakpoint.getShortDescription();
         }
+    }
+
+    private static final class URILocation {
+
+        private final URI uri;
+        private final int line;
+        private final int column;
+
+        URILocation(URI uri, int line, int column) {
+            this.uri = uri;
+            this.line = line;
+            if (column < 0) {
+                this.column = -1;
+            } else {
+                this.column = column;
+            }
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(this.uri, this.line, this.column);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final URILocation other = (URILocation) obj;
+            if (this.line != other.line) {
+                return false;
+            }
+            if (this.column != other.column) {
+                return false;
+            }
+            if (!Objects.equals(this.uri, other.uri)) {
+                return false;
+            }
+            return true;
+        }
+
+        @Override
+        public String toString() {
+            return "URILocation{" + "uri=" + uri + ", line=" + line + ", column=" + column + '}';
+        }
+
     }
 }

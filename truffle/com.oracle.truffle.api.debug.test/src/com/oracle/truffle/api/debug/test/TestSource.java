@@ -28,11 +28,15 @@ import static com.oracle.truffle.api.instrumentation.InstrumentationTestLanguage
 import static com.oracle.truffle.api.instrumentation.InstrumentationTestLanguage.MIME_TYPE;
 
 import com.oracle.truffle.api.source.Source;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
 
 final class TestSource {
 
     static Source createBlock8(String sourceName) {
-        return Source.fromText("ROOT(\n" +
+        return Source.newBuilder("ROOT(\n" +
                         "  STATEMENT,\n" +
                         "  STATEMENT,\n" +
                         "  STATEMENT,\n" +
@@ -41,12 +45,11 @@ final class TestSource {
                         "  STATEMENT,\n" +
                         "  STATEMENT,\n" +
                         "  STATEMENT\n" +
-                        ")\n",
-                        sourceName + FILENAME_EXTENSION).withMimeType(MIME_TYPE);
+                        ")\n").name(sourceName + FILENAME_EXTENSION).mimeType(MIME_TYPE).build();
     }
 
     static Source createBlock12(String sourceName) {
-        return Source.fromText("ROOT(\n" +
+        return Source.newBuilder("ROOT(\n" +
                         "  STATEMENT,\n" +
                         "  STATEMENT,\n" +
                         "  STATEMENT,\n" +
@@ -59,19 +62,43 @@ final class TestSource {
                         "  STATEMENT,\n" +
                         "  STATEMENT,\n" +
                         "  STATEMENT\n" +
-                        ")\n",
-                        sourceName + FILENAME_EXTENSION).withMimeType(MIME_TYPE);
+                        ")\n").name(sourceName + FILENAME_EXTENSION).mimeType(MIME_TYPE).build();
+    }
+
+    static Source createCall(String sourceName) {
+        return Source.newBuilder("ROOT(\n" +
+                        "  DEFINE(foo,\n" +
+                        "    STATEMENT\n" +
+                        "  ),\n" +
+                        "  STATEMENT,\n" +
+                        "  CALL(foo)\n" +
+                        ")\n").name(sourceName + FILENAME_EXTENSION).mimeType(MIME_TYPE).build();
     }
 
     static Source createCallLoop3(String sourceName) {
-        return Source.fromText("ROOT(\n" +
+        return Source.newBuilder("ROOT(\n" +
                         "  DEFINE(foo,\n" +
                         "    LOOP(3,\n" +
                         "      STATEMENT)\n" +
                         "  ),\n" +
                         "  CALL(foo)\n" +
-                        ")\n",
-                        sourceName + FILENAME_EXTENSION).withMimeType(MIME_TYPE);
+                        ")\n").name(sourceName + FILENAME_EXTENSION).mimeType(MIME_TYPE).build();
+    }
+
+    static File createCallLoop3File() throws IOException {
+        String code = "ROOT(\n" +
+                        "  DEFINE(foo,\n" +
+                        "    LOOP(3,\n" +
+                        "      STATEMENT)\n" +
+                        "  ),\n" +
+                        "  CALL(foo)\n" +
+                        ")\n";
+        File file = File.createTempFile("Loop3", FILENAME_EXTENSION);
+        try (Writer w = new FileWriter(file)) {
+            w.write(code);
+        }
+        file.deleteOnExit();
+        return file;
     }
 
     private TestSource() {

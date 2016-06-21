@@ -43,7 +43,6 @@ package com.oracle.truffle.sl.nodes.expression;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.sl.nodes.SLExpressionNode;
 import com.oracle.truffle.sl.runtime.SLContext;
 import com.oracle.truffle.sl.runtime.SLFunction;
@@ -58,13 +57,20 @@ import java.lang.ref.Reference;
  */
 @NodeInfo(shortName = "func")
 public final class SLFunctionLiteralNode extends SLExpressionNode {
-    private final String value;
+    /** The name of the function. */
+    private final String functionName;
+
+    /**
+     * The resolved function. During parsing (in the constructor of this node), we do not have the
+     * {@link SLContext} available yet, so the lookup can only be done at {@link #executeGeneric
+     * first execution}. The {@link CompilationFinal} annotation ensures that the function can still
+     * be constant folded during compilation.
+     */
     private final Reference<SLContext> contextRef;
     private final FunctionCache functionCache;
 
-    public SLFunctionLiteralNode(Reference<SLContext> ref, SourceSection src, String value) {
-        super(src);
-        this.value = value;
+    public SLFunctionLiteralNode(Reference<SLContext> ref, String functionName) {
+        this.functionName = functionName;
         this.contextRef = ref;
         this.functionCache = new FunctionCache();
     }
@@ -78,8 +84,8 @@ public final class SLFunctionLiteralNode extends SLExpressionNode {
         @Override
         protected SLFunction create(SLContext key) {
             final SLContext context = contextRef.get();
-            context.notifyTransferToInterpreter(value);
-            return context.getFunctionRegistry().lookup(value, true);
+            context.notifyTransferToInterpreter(functionName);
+            return context.getFunctionRegistry().lookup(functionName, true);
         }
     }
 }

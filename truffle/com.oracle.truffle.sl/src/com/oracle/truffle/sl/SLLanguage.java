@@ -63,8 +63,9 @@ import com.oracle.truffle.sl.runtime.SLFunction;
 import java.lang.ref.Reference;
 import java.util.Collections;
 import java.util.WeakHashMap;
+import com.oracle.truffle.sl.runtime.SLNull;
 
-@TruffleLanguage.Registration(name = "SL", version = "0.5", mimeType = SLLanguage.MIME_TYPE)
+@TruffleLanguage.Registration(name = "SL", version = "0.12", mimeType = SLLanguage.MIME_TYPE)
 @ProvidedTags({StandardTags.CallTag.class, StandardTags.StatementTag.class, StandardTags.RootTag.class, DebuggerTags.AlwaysHalt.class})
 public final class SLLanguage extends TruffleLanguage<SLContext> {
     private final Map<Source, CallTarget> compiled;
@@ -84,8 +85,6 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
      * method with MIME type {@link #MIME_TYPE} and value {@link Boolean#FALSE}.
      */
     public static final String EXECUTE_MAIN_CONFIG_OPTION = "executeMain";
-
-    public static final String builtinKind = "SL builtin";
 
     /**
      * The singleton instance of the language.
@@ -168,4 +167,14 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
         return object instanceof SLFunction;
     }
 
+    @Override
+    protected String toString(SLContext context, Object value) {
+        if (value == SLNull.SINGLETON) {
+            return "NULL";
+        }
+        if (value instanceof Long) {
+            return Long.toString((Long) value);
+        }
+        return super.toString(context, value);
+    }
 }

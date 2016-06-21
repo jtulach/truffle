@@ -56,7 +56,7 @@ import com.oracle.truffle.sl.nodes.controlflow.SLFunctionBodyNode;
  * builtin functions, the {@link #bodyNode} is a subclass of {@link SLBuiltinNode}. For user-defined
  * functions, the {@link #bodyNode} is a {@link SLFunctionBodyNode}.
  */
-@NodeInfo(language = "Simple Language", description = "The root of all Simple Language execution trees")
+@NodeInfo(language = "SL", description = "The root of all SL execution trees")
 public class SLRootNode extends RootNode {
     /** The function body that is executed, and specialized during execution. */
     @Child private SLExpressionNode bodyNode;
@@ -77,6 +77,11 @@ public class SLRootNode extends RootNode {
         return bodyNode.executeGeneric(frame);
     }
 
+    public SLExpressionNode getBodyNode() {
+        return bodyNode;
+    }
+
+    @Override
     public String getName() {
         return name;
     }
@@ -94,9 +99,4 @@ public class SLRootNode extends RootNode {
     public String toString() {
         return "root " + name;
     }
-
-    public SLExpressionNode getBodyNode() {
-        return bodyNode;
-    }
-
 }

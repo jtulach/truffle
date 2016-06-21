@@ -152,7 +152,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
         TestLanguageInstrumentationLanguage.installInstrumentsCounter = 0;
         TestLanguageInstrumentationLanguage.createContextCounter = 0;
         try {
-            engine.eval(Source.fromText("ROOT(EXPRESSION)", null).withMimeType("testLanguageInstrumentation"));
+            engine.eval(Source.newBuilder("ROOT(EXPRESSION)").name("unknown").mimeType("testLanguageInstrumentation").build());
             Assert.fail("expected exception");
         } catch (IOException e) {
             // we assert that MyLanguageException is not wrapped into
@@ -476,7 +476,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
 
                     final CallTarget target;
                     try {
-                        target = env.parse(Source.fromText("EXPRESSION", null).withMimeType(InstrumentationTestLanguage.MIME_TYPE));
+                        target = env.parse(Source.newBuilder("EXPRESSION").name("unknown").mimeType(InstrumentationTestLanguage.MIME_TYPE).build());
                     } catch (IOException e) {
                         throw new AssertionError();
                     }
@@ -543,7 +543,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
 
                     final CallTarget target;
                     try {
-                        target = context.parseInContext(Source.fromText("EXPRESSION", null).withMimeType(InstrumentationTestLanguage.MIME_TYPE));
+                        target = context.parseInContext(Source.newBuilder("EXPRESSION").name("unknown").mimeType(InstrumentationTestLanguage.MIME_TYPE).build());
                     } catch (IOException e) {
                         throw new AssertionError();
                     }
@@ -796,7 +796,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
         TestIsNodeTaggedWith1.statementNode = null;
         TestIsNodeTaggedWith1Language.instrumenter = null;
 
-        Source otherLanguageSource = Source.fromText("STATEMENT(EXPRESSION)", null).withMimeType("testIsNodeTaggedWith1");
+        Source otherLanguageSource = Source.newBuilder("STATEMENT(EXPRESSION)").name("unknown").mimeType("testIsNodeTaggedWith1").build();
         run(otherLanguageSource);
 
         Instrumenter instrumenter = TestIsNodeTaggedWith1Language.instrumenter;

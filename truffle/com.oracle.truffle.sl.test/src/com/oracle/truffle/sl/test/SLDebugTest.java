@@ -40,8 +40,6 @@
  */
 package com.oracle.truffle.sl.test;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.Truffle;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -56,9 +54,13 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.debug.Debugger;
 import com.oracle.truffle.api.debug.ExecutionEvent;
 import com.oracle.truffle.api.debug.SuspendedEvent;
+import com.oracle.truffle.api.frame.FrameDescriptor;
+import com.oracle.truffle.api.frame.FrameInstance;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ForeignAccess;
@@ -69,12 +71,17 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.LineLocation;
 import com.oracle.truffle.api.source.Source;
+import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.api.vm.EventConsumer;
 import com.oracle.truffle.api.vm.PolyglotEngine;
 import com.oracle.truffle.api.vm.PolyglotEngine.Value;
 import com.oracle.truffle.sl.SLLanguage;
 
+@SuppressWarnings("deprecation")
 public class SLDebugTest {
+
+    private static final Object UNASSIGNED = new Object();
+
     private Debugger debugger;
     private final LinkedList<Runnable> run = new LinkedList<>();
     private SuspendedEvent suspendedEvent;
@@ -115,7 +122,7 @@ public class SLDebugTest {
     }
 
     private static Source createFactorial(String name) {
-        return Source.fromText("function test() {\n" +
+        return Source.newBuilder("function test() {\n" +
                         "  res = fac(2);\n" + "  println(res);\n" +
                         "  return res;\n" +
                         "}\n" +
@@ -125,12 +132,11 @@ public class SLDebugTest {
                         "  nMinusOne = n - 1;\n" +
                         "  nMOFact = fac(nMinusOne);\n" +
                         "  res = n * nMOFact;\n" +
-                        "  return res;\n" + "}\n",
-                        name).withMimeType(SLLanguage.MIME_TYPE);
+                        "  return res;\n" + "}\n").name(name).mimeType(SLLanguage.MIME_TYPE).build();
     }
 
     private static Source createFactorialWithDebugger() {
-        return Source.fromText("function test() {\n" +
+        return Source.newBuilder("function test() {\n" +
                         "  res = fac(2);\n" + "  println(res);\n" +
                         "  return res;\n" +
                         "}\n" +
@@ -141,12 +147,11 @@ public class SLDebugTest {
                         "  nMOFact = fac(nMinusOne);\n" +
                         "  debugger;\n" +
                         "  res = n * nMOFact;\n" +
-                        "  return res;\n" + "}\n",
-                        "factorial.sl").withMimeType(SLLanguage.MIME_TYPE);
+                        "  return res;\n" + "}\n").name("factorial.sl").mimeType(SLLanguage.MIME_TYPE).build();
     }
 
     private static Source createInteropComputation() {
-        return Source.fromText("function test() {\n" +
+        return Source.newBuilder("function test() {\n" +
                         "}\n" +
                         "function interopFunction(notifyHandler) {\n" +
                         "  executing = true;\n" +
@@ -154,8 +159,7 @@ public class SLDebugTest {
                         "    executing = notifyHandler.isExecuting;\n" +
                         "  }\n" +
                         "  return executing;\n" +
-                        "}\n",
-                        "interopComputation.sl").withMimeType(SLLanguage.MIME_TYPE);
+                        "}\n").name("interopComputation.sl").mimeType(SLLanguage.MIME_TYPE).build();
     }
 
     protected final String getOut() {
@@ -197,11 +201,11 @@ public class SLDebugTest {
                 // the breakpoint should hit instead
             }
         });
-        assertLocation(8, true,
+        assertLocation("fac", 8, true,
                         "return 1", "n",
-                        1L, "nMinusOne",
-                        null, "nMOFact",
-                        null, "res", null);
+                        "1", "nMinusOne",
+                        UNASSIGNED, "nMOFact",
+                        UNASSIGNED, "res", UNASSIGNED);
         continueExecution();
 
         Value value = engine.findGlobalSymbol("test").execute();
@@ -232,11 +236,11 @@ public class SLDebugTest {
                 // the breakpoint should hit instead
             }
         });
-        assertLocation(12, true,
+        assertLocation("fac", 12, true,
                         "debugger", "n",
-                        2L, "nMinusOne",
-                        1L, "nMOFact",
-                        1L, "res", null);
+                        "2", "nMinusOne",
+                        "1", "nMOFact",
+                        "1", "res", UNASSIGNED);
         continueExecution();
 
         Value value = engine.findGlobalSymbol("test").execute();
@@ -262,40 +266,40 @@ public class SLDebugTest {
             }
         });
 
-        assertLocation(2, true, "res = fac(2)", "res", null);
+        assertLocation("test", 2, true, "res = fac(2)", "res", UNASSIGNED);
         stepInto(1);
-        assertLocation(7, true,
+        assertLocation("fac", 7, true,
                         "n <= 1", "n",
-                        2L, "nMinusOne",
-                        null, "nMOFact",
-                        null, "res", null);
+                        "2", "nMinusOne",
+                        UNASSIGNED, "nMOFact",
+                        UNASSIGNED, "res", UNASSIGNED);
         stepOver(1);
-        assertLocation(10, true,
+        assertLocation("fac", 10, true,
                         "nMinusOne = n - 1", "n",
-                        2L, "nMinusOne",
-                        null, "nMOFact",
-                        null, "res", null);
+                        "2", "nMinusOne",
+                        UNASSIGNED, "nMOFact",
+                        UNASSIGNED, "res", UNASSIGNED);
         stepOver(1);
-        assertLocation(11, true,
+        assertLocation("fac", 11, true,
                         "nMOFact = fac(nMinusOne)", "n",
-                        2L, "nMinusOne",
-                        1L, "nMOFact",
-                        null, "res", null);
+                        "2", "nMinusOne",
+                        "1", "nMOFact",
+                        UNASSIGNED, "res", UNASSIGNED);
         stepOver(1);
-        assertLocation(12, true,
-                        "res = n * nMOFact", "n", 2L, "nMinusOne",
-                        1L, "nMOFact",
-                        1L, "res", null);
+        assertLocation("fac", 12, true,
+                        "res = n * nMOFact", "n", "2", "nMinusOne",
+                        "1", "nMOFact",
+                        "1", "res", UNASSIGNED);
         stepOver(1);
-        assertLocation(13, true,
+        assertLocation("fac", 13, true,
                         "return res", "n",
-                        2L, "nMinusOne",
-                        1L, "nMOFact",
-                        1L, "res", 2L);
+                        "2", "nMinusOne",
+                        "1", "nMOFact",
+                        "1", "res", "2");
         stepOver(1);
-        assertLocation(2, false, "fac(2)", "res", null);
+        assertLocation("test", 2, false, "fac(2)", "res", UNASSIGNED);
         stepOver(1);
-        assertLocation(3, true, "println(res)", "res", 2L);
+        assertLocation("test", 3, true, "println(res)", "res", "2");
         stepOut();
 
         Value value = engine.findGlobalSymbol("test").execute();
@@ -372,6 +376,44 @@ public class SLDebugTest {
         assertTrue("Interop computation OK", !n.booleanValue());
     }
 
+    private static Source createNull() {
+        return Source.fromText("function nullTest() {\n" +
+                        "  res = doNull();\n" +
+                        "  return res;\n" +
+                        "}\n" +
+                        "function doNull() {\n" +
+                        "}\n",
+                        "nullTest.sl").withMimeType(SLLanguage.MIME_TYPE);
+    }
+
+    @Test
+    public void testNull() throws Throwable {
+        final Source nullTest = createNull();
+        engine.eval(nullTest);
+
+        // @formatter:on
+        run.addLast(new Runnable() {
+            @Override
+            public void run() {
+                assertNull(suspendedEvent);
+                assertNotNull(executionEvent);
+                executionEvent.prepareStepInto();
+            }
+        });
+
+        assertLocation("nullTest", 2, true, "res = doNull()", "res", UNASSIGNED);
+        stepInto(1);
+        assertLocation("nullTest", 3, true, "return res", "res", "NULL");
+        continueExecution();
+
+        Value value = engine.findGlobalSymbol("nullTest").execute();
+        assertExecutedOK();
+
+        String val = value.as(String.class);
+        assertNotNull(val);
+        assertEquals("Null computed OK", "null", val);
+    }
+
     private void performWork() {
         try {
             if (ex == null && !run.isEmpty()) {
@@ -415,17 +457,23 @@ public class SLDebugTest {
         });
     }
 
-    private void assertLocation(final int line, final boolean isBefore, final String code, final Object... expectedFrame) {
+    private void assertLocation(final String name, final int line, final boolean isBefore, final String code, final Object... expectedFrame) {
         run.addLast(new Runnable() {
             public void run() {
                 assertNotNull(suspendedEvent);
-                Assert.assertEquals(line, suspendedEvent.getNode().getSourceSection().getLineLocation().getLineNumber());
-                Assert.assertEquals(code, suspendedEvent.getNode().getSourceSection().getCode());
+
+                final String actualName = suspendedEvent.getNode().getRootNode().getName();
+                Assert.assertEquals(name, actualName);
+                final SourceSection suspendedSourceSection = suspendedEvent.getNode().getSourceSection();
+                Assert.assertEquals(line, suspendedSourceSection.getLineLocation().getLineNumber());
+                Assert.assertEquals(code, suspendedSourceSection.getCode());
+
                 Assert.assertEquals(isBefore, suspendedEvent.isHaltedBefore());
                 final MaterializedFrame frame = suspendedEvent.getFrame();
+                final FrameDescriptor frameDescriptor = frame.getFrameDescriptor();
+                final FrameInstance frameInstance = suspendedEvent.getStack().get(0);
 
-                Assert.assertEquals(expectedFrame.length / 2, frame.getFrameDescriptor().getSize());
-
+                Assert.assertEquals(expectedFrame.length / 2, frameDescriptor.getSize());
                 for (int i = 0; i < expectedFrame.length; i = i + 2) {
                     String expectedIdentifier = (String) expectedFrame[i];
                     Object expectedValue = expectedFrame[i + 1];
