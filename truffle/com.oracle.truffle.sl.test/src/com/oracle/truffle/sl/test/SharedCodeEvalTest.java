@@ -67,22 +67,26 @@ public class SharedCodeEvalTest {
         PolyglotEngine engine2 = builder.build();
 
         // @formatter:off
-        Source sharedSource = Source.fromText(""
+        Source sharedSource = Source.newBuilder(""
             + "function combine(a, b) {\n"
             + "  return a + b;\n"
             + "}"
             + "function invoke(a, b) {\n"
             + "  return combine(a, b);\n"
-            + "}",
-            "combine.sl"
-        ).withMimeType("application/x-sl");
+            + "}"
+            ).
+            name("combine.sl").
+            mimeType("application/x-sl").
+            build();
 
-        Source redefine = Source.fromText(""
+        Source redefine = Source.newBuilder(""
             + "function main() {\n"
             + "  defineFunction(\"function combine(a, b) { return a * b; }\");\n"
-            + "}",
-            "redefine.sl"
-        ).withMimeType("application/x-sl");
+            + "}"
+            ).
+            name("redefine.sl").
+            mimeType("application/x-sl").
+            build();
         // @formatter:
 
         engine1.eval(sharedSource);
