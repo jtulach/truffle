@@ -37,12 +37,17 @@ import java.io.IOException;
 import java.util.Objects;
 
 final class EngineTruffleObject implements TruffleObject, ForeignAccess.Factory {
+
     private final PolyglotEngine engine;
     private final TruffleObject delegate;
 
-    EngineTruffleObject(PolyglotEngine engine, TruffleObject obj) {
+    private EngineTruffleObject(PolyglotEngine engine, TruffleObject obj) {
         this.engine = engine;
         this.delegate = obj;
+    }
+
+    static EngineTruffleObject wrap(PolyglotEngine engine, TruffleObject obj) {
+        return new EngineTruffleObject(engine, obj);
     }
 
     @Override

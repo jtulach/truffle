@@ -585,7 +585,7 @@ public class PolyglotEngine {
             res = invokeForeignOnExecutor(foreignNode, frame, receiver);
         }
         if (res instanceof TruffleObject) {
-            return new EngineTruffleObject(this, (TruffleObject) res);
+            return EngineTruffleObject.wrap(this, (TruffleObject) res);
         } else {
             return res;
         }
@@ -770,7 +770,7 @@ public class PolyglotEngine {
             assertNoTruffle();
             Object result = waitForSymbol();
             if (executor != null && result instanceof TruffleObject) {
-                return new EngineTruffleObject(PolyglotEngine.this, (TruffleObject) result);
+                return EngineTruffleObject.wrap(PolyglotEngine.this, (TruffleObject) result);
             } else {
                 return result;
             }
