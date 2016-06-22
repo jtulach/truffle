@@ -713,11 +713,11 @@ public abstract class TruffleLanguage<C> {
         }
 
         /**
-         * XXX: will this be needed.?
+         * XXX: will this be needed. At all?
          *
-         * @param <C>
-         * @param language
-         * @return
+         * @param <C> context for the language
+         * @param language the language
+         * @return a reference
          * @since XXX
          */
         public <C> Reference<C> getContextReference(TruffleLanguage<C> language) {
