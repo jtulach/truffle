@@ -61,7 +61,7 @@ abstract class MappingCache<K, V> {
         return registerNew(firstItem, key);
     }
 
-    private final synchronized V registerNew(Item<K, V> firstItem, K key) {
+    private synchronized V registerNew(Item<K, V> firstItem, K key) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
         if (firstItem != items) {
             return get(key);
@@ -79,7 +79,7 @@ abstract class MappingCache<K, V> {
         private final V value;
         private final Item<K, V> next;
 
-        public Item(K key, V value, Item<K, V> next) {
+        Item(K key, V value, Item<K, V> next) {
             this.key = key;
             this.value = value;
             this.next = next;
