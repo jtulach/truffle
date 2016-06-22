@@ -506,6 +506,7 @@ public abstract class SpecializationNode extends Node {
         throw new UnsupportedSpecializationException(findRoot(), getSuppliedChildren(), args);
     }
 
+    @SuppressFBWarnings(value = "NP")
     static SpecializationNode insertSorted(SpecializationNode start, final SpecializationNode generated, final CharSequence message, final SpecializationNode merged) {
         if (merged == generated) {
             // new node

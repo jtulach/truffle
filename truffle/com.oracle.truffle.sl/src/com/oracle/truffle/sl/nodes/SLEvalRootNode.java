@@ -73,21 +73,24 @@ public final class SLEvalRootNode extends SLRootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        contextRef.get().getFunctionRegistry().register(functions);
+        final SLContext context = contextRef.get();
+        if (context != null) {
+            context.getFunctionRegistry().register(functions);
 
-        if (getBodyNode() == null) {
-            /* The source code did not have a "main" function, so nothing to execute. */
-            return null;
-        }
-        if (!contextRef.get().isExecuteMain()) {
-            /* if our PolyglotEngine is configured to not execute main return too */
-            return null;
-        }
+            if (getBodyNode() == null) {
+                /* The source code did not have a "main" function, so nothing to execute. */
+                return null;
+            }
+            if (!context.isExecuteMain()) {
+                /* if our PolyglotEngine is configured to not execute main return too */
+                return null;
+            }
 
-        /* Conversion of arguments to types understood by SL. */
-        Object[] arguments = frame.getArguments();
-        for (int i = 0; i < arguments.length; i++) {
-            arguments[i] = SLContext.fromForeignValue(arguments[i]);
+            /* Conversion of arguments to types understood by SL. */
+            Object[] arguments = frame.getArguments();
+            for (int i = 0; i < arguments.length; i++) {
+                arguments[i] = SLContext.fromForeignValue(arguments[i]);
+            }
         }
 
         /* Now we can execute the body of the "main" function. */

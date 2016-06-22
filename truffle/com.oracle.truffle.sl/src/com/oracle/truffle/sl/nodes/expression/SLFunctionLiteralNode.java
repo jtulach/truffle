@@ -84,8 +84,12 @@ public final class SLFunctionLiteralNode extends SLExpressionNode {
         @Override
         protected SLFunction create(SLContext key) {
             final SLContext context = contextRef.get();
-            context.notifyTransferToInterpreter(functionName);
-            return context.getFunctionRegistry().lookup(functionName, true);
+            if (context != null) {
+                context.notifyTransferToInterpreter(functionName);
+                return context.getFunctionRegistry().lookup(functionName, true);
+            } else {
+                throw new IllegalStateException();
+            }
         }
     }
 }
