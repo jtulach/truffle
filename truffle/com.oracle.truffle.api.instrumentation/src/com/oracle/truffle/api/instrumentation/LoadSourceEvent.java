@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2013, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -20,25 +22,34 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.source;
+package com.oracle.truffle.api.instrumentation;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.spi.FileTypeDetector;
+import com.oracle.truffle.api.source.Source;
 
-public final class CommonMIMETypeTestDetector extends FileTypeDetector {
-    @Override
-    public String probeContentType(Path path) throws IOException {
-        if (path.getFileName().toString().endsWith(".java")) {
-            return "text/x-java";
-        }
-        if (path.getFileName().toString().endsWith(".js")) {
-            return "application/javascript";
-        }
-        if (path.getFileName().toString().endsWith(".txt")) {
-            return "text/plain";
-        }
-        return null;
+/**
+ * Represents a source load event from a {@link LoadSourceEventListener}.
+ *
+ * Instances of {@link LoadSourceEvent} should be neither stored, cached nor hashed. The equality
+ * and hashing behavior is undefined.
+ *
+ * @see LoadSourceEventListener
+ * @since 0.15
+ */
+public final class LoadSourceEvent {
+
+    private final Source source;
+
+    LoadSourceEvent(Source source) {
+        this.source = source;
+    }
+
+    /**
+     * Returns the loaded source that caused this event.
+     *
+     * @since 0.15
+     */
+    public Source getSource() {
+        return source;
     }
 
 }
