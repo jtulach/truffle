@@ -285,7 +285,7 @@ public final class SuspendedEvent {
      * @since 0.9
      */
     public Object eval(String code, FrameInstance frameInstance) throws IOException {
-        if (!stack.contains(frameInstance)) {
+        if (frameInstance != null && !stack.contains(frameInstance)) {
             throw new IllegalArgumentException();
         }
         return debugger.evalInContext(this, code, frameInstance);
@@ -298,18 +298,19 @@ public final class SuspendedEvent {
      *
      * @param value an object presumed to represent a <em>value</em> managed by the language of the
      *            AST where execution is halted.
-     * @param frameInstance the frame in which to evaluate the code;
+     * @param frameInstance the frame in which to evaluate the code; {@code null} means the current
+     *            frame at the halted location.
      *
      * @return a user-oriented description of a possibly language-specific value
      * @throws IllegalArgumentException if the frame is not part of current execution stack
      * @since 0.15
      */
     public String toString(Object value, FrameInstance frameInstance) {
-        if (!stack.contains(frameInstance)) {
+        if (frameInstance != null && !stack.contains(frameInstance)) {
             throw new IllegalArgumentException();
         }
         RootNode rootNode = null;
-        if (frameInstance == stack.get(0)) {
+        if (frameInstance == null || frameInstance == stack.get(0)) {
             rootNode = haltedNode.getRootNode();
         } else if (frameInstance.getCallTarget() instanceof RootCallTarget) {
             rootNode = ((RootCallTarget) frameInstance.getCallTarget()).getRootNode();

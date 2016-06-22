@@ -483,7 +483,11 @@ public class SLDebugTest {
                     } catch (IOException ex) {
                         realValue = ex;
                     }
-                    Assert.assertEquals(expectedValue, realValue);
+                    if (expectedValue == UNASSIGNED) {
+                        Assert.assertEquals(realValue, frameDescriptor.getDefaultValue());
+                    } else {
+                        Assert.assertEquals(expectedValue, suspendedEvent.toString(realValue, null));
+                    }
                 }
                 run.removeFirst().run();
             }
