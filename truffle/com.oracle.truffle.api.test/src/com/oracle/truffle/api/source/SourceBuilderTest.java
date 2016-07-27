@@ -28,10 +28,13 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.URL;
+import java.util.jar.JarOutputStream;
+import java.util.zip.ZipEntry;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -232,36 +235,23 @@ public class SourceBuilderTest {
     }
 
     @Test
-    public void relativeURL() throws Exception {
-        URL resource = SourceSnippets.class.getResource("sample.js");
-        assertNotNull("Sample js file found", resource);
-        SourceSnippets.fromURL();
-    }
-
-    @Test
-    public void relativeURLWithOwnContent() throws Exception {
-        URL resource = SourceSnippets.class.getResource("sample.js");
-        assertNotNull("Sample js file found", resource);
-        SourceSnippets.fromURLWithOwnContent();
-    }
-
-    public void fileSample() throws Exception {
-        File sample = File.createTempFile("sample", ".java");
+    public void jarURLGetsAName() throws IOException {
+        File sample = File.createTempFile("sample", ".jar");
         sample.deleteOnExit();
-        SourceSnippets.fromFile(sample.getParentFile(), sample.getName());
+        JarOutputStream os = new JarOutputStream(new FileOutputStream(sample));
+        os.putNextEntry(new ZipEntry("x.js"));
+        os.write("Hi!".getBytes("UTF-8"));
+        os.closeEntry();
+        os.close();
+
+        URL resource = new URL("jar:" + sample.toURI() + "!/x.js");
+        assertNotNull("Resource found", resource);
+        assertEquals("JAR protocol", "jar", resource.getProtocol());
+        Source s = Source.newBuilder(resource).build();
+        assertEquals("Hi!", s.getCode());
+        assertEquals("x.js", s.getName());
+
         sample.delete();
-    }
-
-    @Test
-    public void stringSample() throws Exception {
-        Source source = SourceSnippets.fromAString();
-        assertNotNull("Every source must have URI", source.getURI());
-    }
-
-    @Test
-    public void readerSample() throws Exception {
-        Source source = SourceSnippets.fromReader();
-        assertNotNull("Every source must have URI", source.getURI());
     }
 
     @Test
@@ -321,13 +311,13 @@ public class SourceBuilderTest {
 
     public void subSourceHashAndEquals() {
         Source src = Source.newBuilder("One Two Three").name("counting.en").mimeType("content/unknown").build();
-        Source one = Source.subSource(src, 0, 3);
-        Source two = Source.subSource(src, 4, 3);
-        Source three = Source.subSource(src, 8);
+        Source one = src.subSource(0, 3);
+        Source two = src.subSource(4, 3);
+        Source three = src.subSource(8, src.getLength() - 8);
 
-        Source oneSnd = Source.subSource(src, 0, 3);
-        Source twoSnd = Source.subSource(src, 4, 3);
-        Source threeSnd = Source.subSource(src, 8);
+        Source oneSnd = src.subSource(0, 3);
+        Source twoSnd = src.subSource(4, 3);
+        Source threeSnd = src.subSource(8, src.getLength() - 8);
 
         assertNotEquals("One: " + one.getCode() + " two: " + two.getCode(), one, two);
         assertNotEquals(three, two);
@@ -367,8 +357,8 @@ public class SourceBuilderTest {
         assertNotEquals("Different sources", s1, s2);
         assertEquals("But same content", s1.getCode(), s2.getCode());
 
-        Source sub1 = Source.subSource(s1, 0, 8);
-        Source sub2 = Source.subSource(s2, 0, 8);
+        Source sub1 = s1.subSource(0, 8);
+        Source sub2 = s2.subSource(0, 8);
 
         assertNotEquals("Different sub sources", sub1, sub2);
         assertEquals("with the same content", sub1.getCode(), sub2.getCode());

@@ -323,7 +323,7 @@ public final class SLTestRunner extends ParentRunner<TestCase> {
         }
 
         /* Parse the SL source file. No execution. */
-        Source source = Source.newBuilder(path.toFile()).build();
+        Source source = Source.newBuilder(path.toFile()).mimeType(SLLanguage.MIME_TYPE).build();
         engine.eval(source);
 
         /* Lookup our main entry point, which is per definition always named "main". */

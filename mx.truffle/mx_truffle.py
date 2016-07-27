@@ -71,16 +71,16 @@ def testdownstream(args):
         git.clone(jruby_repo, jruby_dir)
         git.run(['git', 'checkout', jruby_branch], nonZeroIsFatal=True, cwd=jruby_dir)
     dev_version = _suite.release_version(snapshotSuffix='SNAPSHOT')
-    subprocess.check_call(['tool/truffle/set_truffle_version.sh', dev_version], cwd=jruby_dir)
     mx.build([])
     mx.maven_install([])
-    subprocess.check_call(['./mvnw', '-X', 'clean'], cwd=jruby_dir)
-    subprocess.check_call(['./mvnw', '-X', ], cwd=jruby_dir)
+    subprocess.check_call(['./mvnw', '-q', '-Dtruffle.version=' + dev_version], cwd=jruby_dir)
     subprocess.check_call(['bin/jruby', 'tool/jt.rb', 'test', 'fast'], cwd=jruby_dir)
 
 def _truffle_gate_runner(args, tasks):
-    with Task('Truffle Javadoc', tasks) as t:
-        if t: mx.javadoc(['--unified'])
+    jdk = mx.get_jdk(tag=mx.DEFAULT_JDK_TAG)
+    if jdk.javaCompliance < '9':
+        with Task('Truffle Javadoc', tasks) as t:
+            if t: mx.javadoc(['--unified'])
     with Task('Truffle UnitTests', tasks) as t:
         if t: unittest(['--suite', 'truffle', '--enable-timing', '--verbose', '--fail-fast'])
     with Task('Truffle Signature Tests', tasks) as t:

@@ -114,7 +114,7 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
         } catch (LanguageError e) {
             throw new IOException(e);
         }
-        return Truffle.getRuntime().createCallTarget(new InstrumentationTestRootNode(outer, node));
+        return Truffle.getRuntime().createCallTarget(new InstrumentationTestRootNode("", outer, node));
     }
 
     public static BaseNode parse(Source code, Reference<Map<String, CallTarget>> contextRef) {
@@ -138,7 +138,7 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
 
         public BaseNode parse() {
             BaseNode statement = statement();
-            if (current() != EOF) {
+            if (follows() != EOF) {
                 error("eof expected");
             }
             return statement;
@@ -159,43 +159,46 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
                 throw new LanguageError(String.format("Illegal tag \"%s\".", tag));
             }
 
-            skipWhiteSpace();
-
-            boolean isFirstParameterIdent = false;
-            if (tag.equals("DEFINE") || tag.equals("CALL") || tag.equals("LOOP")) {
-                isFirstParameterIdent = true;
-            }
-
             String firstParameterIdent = null;
             List<BaseNode> children = new ArrayList<>();
-            if (current() == '(') {
-                next();
+
+            if (follows() == '(') {
+
                 skipWhiteSpace();
-                int argIndex = 0;
-                while (current() != ')') {
-                    if (argIndex == 0 && isFirstParameterIdent) {
-                        firstParameterIdent = ident();
-                    } else {
-                        children.add(statement());
-                    }
+
+                boolean isFirstParameterIdent = false;
+                if (tag.equals("DEFINE") || tag.equals("CALL") || tag.equals("LOOP")) {
+                    isFirstParameterIdent = true;
+                }
+
+                if (current() == '(') {
+                    next();
                     skipWhiteSpace();
-                    if (current() != ',') {
-                        break;
+                    int argIndex = 0;
+                    while (current() != ')') {
+                        if (argIndex == 0 && isFirstParameterIdent) {
+                            firstParameterIdent = ident();
+                        } else {
+                            children.add(statement());
+                        }
+                        skipWhiteSpace();
+                        if (current() != ',') {
+                            break;
+                        }
+                        next();
+                        argIndex++;
+                    }
+                    if (current() != ')') {
+                        error("missing closing bracket");
                     }
                     next();
-                    argIndex++;
+                    skipWhiteSpace();
                 }
-                if (current() != ')') {
-                    error("missing closing bracket");
+
+                if (isFirstParameterIdent && firstParameterIdent == null) {
+                    throw new LanguageError("parameter required for " + tag);
                 }
-                next();
-                skipWhiteSpace();
             }
-
-            if (isFirstParameterIdent && firstParameterIdent == null) {
-                throw new LanguageError("parameter required for " + tag);
-            }
-
             SourceSection sourceSection = source.createSection(null, startIndex, current - startIndex);
             BaseNode[] childArray = children.toArray(new BaseNode[children.size()]);
             BaseNode node = createNode(tag, firstParameterIdent, sourceSection, childArray);
@@ -257,6 +260,15 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
             }
         }
 
+        private char follows() {
+            for (int i = current; i < code.length(); i++) {
+                if (!Character.isWhitespace(code.charAt(i))) {
+                    return code.charAt(i);
+                }
+            }
+            return EOF;
+        }
+
         private void next() {
             current++;
         }
@@ -272,10 +284,12 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
 
     private static class InstrumentationTestRootNode extends RootNode {
 
+        private final String name;
         @Children private final BaseNode[] expressions;
 
-        protected InstrumentationTestRootNode(SourceSection sourceSection, BaseNode... expressions) {
+        protected InstrumentationTestRootNode(String name, SourceSection sourceSection, BaseNode... expressions) {
             super(InstrumentationTestLanguage.class, sourceSection, null);
+            this.name = name;
             this.expressions = expressions;
         }
 
@@ -294,6 +308,11 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
                 }
             }
             return null;
+        }
+
+        @Override
+        public String getName() {
+            return name;
         }
 
         @Override
@@ -379,7 +398,7 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
 
         DefineNode(Reference<Map<String, CallTarget>> contextRef, String identifier, SourceSection source, BaseNode[] children) {
             this.identifier = identifier;
-            this.target = Truffle.getRuntime().createCallTarget(new InstrumentationTestRootNode(source, children));
+            this.target = Truffle.getRuntime().createCallTarget(new InstrumentationTestRootNode(identifier, source, children));
             this.contextRef = contextRef;
         }
 
