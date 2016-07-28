@@ -47,7 +47,6 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
-import java.lang.ref.Reference;
 
 /**
  * <p>
@@ -105,19 +104,19 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
     }
 
     @Override
-    protected CallTarget parse(ParsingRequest env) throws IOException {
+    protected CallTarget parse(ParsingRequest<Map<String, CallTarget>> env) throws IOException {
         Source code = env.getSource();
         SourceSection outer = code.createSection(null, 0, code.getLength());
         BaseNode node;
         try {
-            node = parse(code, env.createContextReference(this));
+            node = parse(code, env.getSharedEnv());
         } catch (LanguageError e) {
             throw new IOException(e);
         }
         return Truffle.getRuntime().createCallTarget(new InstrumentationTestRootNode("", outer, node));
     }
 
-    public static BaseNode parse(Source code, Reference<Map<String, CallTarget>> contextRef) {
+    public static BaseNode parse(Source code, SharedEnv<Map<String, CallTarget>> contextRef) {
         return new Parser(code, contextRef).parse();
     }
 
@@ -127,10 +126,10 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
 
         private final Source source;
         private final String code;
-        private final Reference<Map<String, CallTarget>> contextRef;
+        private final SharedEnv<Map<String, CallTarget>> contextRef;
         private int current;
 
-        Parser(Source source, Reference<Map<String, CallTarget>> contextRef) {
+        Parser(Source source, SharedEnv<Map<String, CallTarget>> contextRef) {
             this.source = source;
             this.contextRef = contextRef;
             this.code = source.getCode();
@@ -394,9 +393,9 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
 
         private final CallTarget target;
 
-        private final Reference<Map<String, CallTarget>> contextRef;
+        private final SharedEnv<Map<String, CallTarget>> contextRef;
 
-        DefineNode(Reference<Map<String, CallTarget>> contextRef, String identifier, SourceSection source, BaseNode[] children) {
+        DefineNode(SharedEnv<Map<String, CallTarget>> contextRef, String identifier, SourceSection source, BaseNode[] children) {
             this.identifier = identifier;
             this.target = Truffle.getRuntime().createCallTarget(new InstrumentationTestRootNode(identifier, source, children));
             this.contextRef = contextRef;
@@ -410,7 +409,7 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
 
         @TruffleBoundary
         private void defineFunction() {
-            Map<String, CallTarget> context = contextRef.get();
+            Map<String, CallTarget> context = contextRef.getContext();
             if (context.containsKey(identifier)) {
                 if (context.get(identifier) != target) {
                     throw new IllegalArgumentException("Identifier redefinition not supported.");
@@ -424,10 +423,10 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
     private static class CallNode extends InstrumentedNode {
 
         @Child private DirectCallNode callNode;
-        private final Reference<Map<String, CallTarget>> contextRef;
+        private final SharedEnv<Map<String, CallTarget>> contextRef;
         private final String identifier;
 
-        CallNode(Reference<Map<String, CallTarget>> contextRef, String identifier, BaseNode[] children) {
+        CallNode(SharedEnv<Map<String, CallTarget>> contextRef, String identifier, BaseNode[] children) {
             super(children);
             this.contextRef = contextRef;
             this.identifier = identifier;
@@ -437,7 +436,7 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
         public Object execute(VirtualFrame frame) {
             if (callNode == null) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
-                Map<String, CallTarget> context = contextRef.get();
+                Map<String, CallTarget> context = contextRef.getContext();
                 CallTarget target = context.get(identifier);
                 callNode = insert(Truffle.getRuntime().createDirectCallNode(target));
             }

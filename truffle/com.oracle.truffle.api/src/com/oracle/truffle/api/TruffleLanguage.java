@@ -203,7 +203,7 @@ public abstract class TruffleLanguage<C> {
      *             {@link com.oracle.truffle.api.vm.PolyglotEngine}
      * @since 0.14
      */
-    protected CallTarget parse(ParsingRequest request) throws IOException {
+    protected CallTarget parse(ParsingRequest<C> request) throws IOException {
         throw new UnsupportedOperationException(
                         String.format("Override parse method of %s, it will be made abstract in future version of Truffle API!", getClass().getName()));
     }
@@ -212,36 +212,44 @@ public abstract class TruffleLanguage<C> {
      * Request for parsing. Contains information of what to parse and in which context and services
      * necessary for parsing and creating of the AST {@link Node nodes}.
      *
-     * For example the {@link #createContextReference(com.oracle.truffle.api.TruffleLanguage)}
-     * method allows one to effectively share the {@link Node AST} between multiple
-     * {@link com.oracle.truffle.api.vm.PolyglotEngine execution engines} while still keep fast and
-     * effective access to the language's
+     * For example the {@link SharedEnv#getContext()} method allows one to effectively share the
+     * {@link Node AST} between multiple {@link com.oracle.truffle.api.vm.PolyglotEngine execution
+     * engines} while still keep fast and effective access to the language's
      * {@link #createContext(com.oracle.truffle.api.TruffleLanguage.Env) context}.
      *
-     * @since 0.14
+     * @param <C> the type of the {@link TruffleLanguage language} context
+     * @since XXX
      */
-    public static final class ParsingRequest {
+    public static final class ParsingRequest<C> {
         private final Node node;
         private final MaterializedFrame frame;
         private final Source source;
         private final String[] argumentNames;
-        private TruffleLanguage<?> language;
+        private final SharedEnv<C> shared;
+        private boolean disposed;
 
-        ParsingRequest(TruffleLanguage<?> language, Source source, Node node, MaterializedFrame frame, String... argumentNames) {
+        ParsingRequest(TruffleLanguage<C> language, Source source, Node node, MaterializedFrame frame, String... argumentNames) {
+            this(new SharedEnv<>(language), source, node, frame, argumentNames);
+        }
+
+        ParsingRequest(SharedEnv<C> shared, Source source, Node node, MaterializedFrame frame, String... argumentNames) {
             this.node = node;
             this.frame = frame;
             this.source = source;
             this.argumentNames = argumentNames;
-            this.language = language;
+            this.shared = shared;
         }
 
         /**
          * The source code to parse.
          *
          * @return the source code, never <code>null</code>
-         * @since 0.14
+         * @since XXX
          */
         public Source getSource() {
+            if (disposed) {
+                throw new IllegalStateException();
+            }
             return source;
         }
 
@@ -251,9 +259,12 @@ public abstract class TruffleLanguage<C> {
          * this method returns <code>null</code>.
          *
          * @return a {@link Node} defining AST context for the parsing or <code>null</code>
-         * @since 0.14
+         * @since XXX
          */
         public Node getNode() {
+            if (disposed) {
+                throw new IllegalStateException();
+            }
             return node;
         }
 
@@ -265,9 +276,12 @@ public abstract class TruffleLanguage<C> {
          *
          * @return a {@link MaterializedFrame} exposing the current execution state or
          *         <code>null</code> if there is none
-         * @since 0.14
+         * @since XXX
          */
         public MaterializedFrame getFrame() {
+            if (disposed) {
+                throw new IllegalStateException();
+            }
             return frame;
         }
 
@@ -279,49 +293,35 @@ public abstract class TruffleLanguage<C> {
          * the {@link #getSource()} references them, it is essential to name them.
          *
          * @return symbolic names for parameters of {@link CallTarget#call(java.lang.Object...)}
-         * @since 0.14
+         * @since XXX
          */
         public List<String> getArgumentNames() {
+            if (disposed) {
+                throw new IllegalStateException();
+            }
             return argumentNames == null ? Collections.<String> emptyList() : ReadOnlyArrayList.asList(argumentNames, 0, argumentNames.length);
         }
 
         /**
-         * Factory to create an optimized reference to language
-         * {@link TruffleLanguage#createContext(Env) context}. Embed the returned instance into a
-         * <code>final</code> field of your node(s) that needs to access the the
-         * {@link #createContext(com.oracle.truffle.api.TruffleLanguage.Env) context created} by
-         * your language.
+         * Provides access to the shared environment. Use it to access context of your language:
          *
          * {@link TruffleLanguageSnippets.ASTSharingLanguage}
          *
-         * If there is just a single
-         * {@link #createContext(com.oracle.truffle.api.TruffleLanguage.Env) context} created for
-         * your language {@link Node AST}, then the Graal runtime will specialize generated code and
-         * turn the context access into constant. Should there be multiple contexts, but used one by
-         * one, the code will be re-optimized to read the value of current context first - that is
-         * slower, but most optimal for this kind of sequential execution. Should your language be
-         * used from multiple threads at once, the code will re-optimize again and use
-         * {@link ThreadLocal} fallback to find out the active context. In any case, the
-         * {@link #createContextReference(com.oracle.truffle.api.TruffleLanguage) created reference}
-         * will always keep your code as optimal as possible.
-         *
-         * @param <C> type of the context
-         * @param lang the requesting language that is doing the parsing
-         * @return a highly optimized accessor to the context <code>C</code>
-         * @since 0.14
+         * @return shared environment to use in nodes created by the parser
+         * @since XXX
          */
-        public <C> Reference<C> createContextReference(TruffleLanguage<C> lang) {
-            if (lang != this.language) {
+        public SharedEnv<C> getSharedEnv() {
+            if (disposed) {
                 throw new IllegalStateException();
             }
-            return AccessAPI.engineAccess().createContextReference(lang);
+            return shared;
         }
 
         void dispose() {
-            language = null;
+            disposed = true;
         }
 
-        CallTarget parse(TruffleLanguage<?> truffleLanguage) throws IOException {
+        CallTarget parse(TruffleLanguage<C> truffleLanguage) throws IOException {
             try {
                 return truffleLanguage.parse(this);
             } catch (UnsupportedOperationException ex) {
@@ -438,7 +438,7 @@ public abstract class TruffleLanguage<C> {
      */
     @Deprecated
     protected Object evalInContext(Source source, Node node, MaterializedFrame mFrame) throws IOException {
-        ParsingRequest request = new ParsingRequest(this, source, node, mFrame);
+        ParsingRequest<C> request = new ParsingRequest<>(this, source, node, mFrame);
         CallTarget target = parse(request);
         return target.call();
     }
@@ -468,9 +468,7 @@ public abstract class TruffleLanguage<C> {
      * @return node to be inserted into program to effectively find out current execution context
      *         for this language
      * @since 0.8 or earlier
-     * @deprecated Use
-     *             {@link ParsingRequest#createContextReference(com.oracle.truffle.api.TruffleLanguage)}
-     *             to create context reference when
+     * @deprecated Use {@link ParsingRequest#getSharedEnv() } to obtain a {@link SharedEnv} when
      *             {@link #parse(com.oracle.truffle.api.TruffleLanguage.ParsingRequest) parsing}
      *             your sources
      */
@@ -492,9 +490,8 @@ public abstract class TruffleLanguage<C> {
      * @throws ClassCastException if the node has not been created by <code>this</code>.
      *             {@link #createFindContextNode()} method.
      * @since 0.8 or earlier
-     * @deprecated Use
-     *             {@link ParsingRequest#createContextReference(com.oracle.truffle.api.TruffleLanguage)}
-     *             and then call {@link Reference#get()} to obtain your context
+     * @deprecated Use {@link ParsingRequest#getSharedEnv()} and then call
+     *             {@link SharedEnv#getContext() ()} to obtain your context
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Deprecated
@@ -530,6 +527,51 @@ public abstract class TruffleLanguage<C> {
         String toString(TruffleLanguage<?> language, Object obj) {
             assert lang == language;
             return lang.toString(ctx, obj);
+        }
+    }
+
+    /**
+     * Provides access to services associated with generated code. Various independent {@link Env
+     * execution environments} of a {@link TruffleLanguage language implementation} may share -
+     * usually {@link Node code and AST}. This class gives them easy, fast and effective access to
+     * services needed in such shared code. For example an effective way to locate a language
+     * context.
+     *
+     * @param <C> context of the {@link TruffleLanguage language} this environment is associated
+     *            with
+     * @since XXX
+     */
+    public static final class SharedEnv<C> {
+        private final Reference<C> reference;
+
+        SharedEnv(TruffleLanguage<C> language) {
+            this.reference = AccessAPI.engineAccess().createContextReference(language);
+        }
+
+        /**
+         * Finds appropriate {@link TruffleLanguage language}
+         * {@link TruffleLanguage#createContext(Env) context}. Embed the {@link SharedEnv} into a
+         * <code>final</code> field of your node(s) that needs to access the the
+         * {@link #createContext(com.oracle.truffle.api.TruffleLanguage.Env) context created} by
+         * your language.
+         *
+         * {@link TruffleLanguageSnippets.ASTSharingLanguage}
+         *
+         * If there is just a single
+         * {@link #createContext(com.oracle.truffle.api.TruffleLanguage.Env) context} created for
+         * your language {@link Node AST}, then the Graal runtime will specialize generated code and
+         * turn the context access into constant. Should there be multiple contexts, but used one by
+         * one, the code will be re-optimized to read the value of current context first - that is
+         * slower, but most optimal for this kind of sequential execution. Should your language be
+         * used from multiple threads at once, the code will re-optimize again and use
+         * {@link ThreadLocal} fallback to find out the active context. In any case, the
+         * {@link SharedEnv shared environment} will always keep your code as optimal as possible.
+         *
+         * @return currently active context <code>C</code>
+         * @since XXX
+         */
+        public C getContext() {
+            return reference.get();
         }
     }
 
@@ -612,7 +654,11 @@ public abstract class TruffleLanguage<C> {
          */
         public CallTarget parse(Source source, String... argumentNames) throws IOException {
             TruffleLanguage<?> language = AccessAPI.engineAccess().findLanguageImpl(vm, null, source.getMimeType());
-            ParsingRequest env = new ParsingRequest(language, source, null, null, argumentNames);
+            return parseForLanguage(language, source, argumentNames);
+        }
+
+        private static <C> CallTarget parseForLanguage(TruffleLanguage<C> language, Source source, String... argumentNames) throws IOException {
+            ParsingRequest<C> env = new ParsingRequest<>(language, source, null, null, argumentNames);
             CallTarget target = env.parse(language);
             env.dispose();
             return target;
@@ -713,18 +759,21 @@ public abstract class TruffleLanguage<C> {
         }
 
         /**
-         * XXX: will this be needed. At all?
+         * Provides shared environment for the language.
          *
-         * @param <C> context for the language
-         * @param language the language
-         * @return a reference
+         * @param <C> type of the context
+         * @param language the language associated with this environment
+         * @return instance of {@link ParsingRequest#getSharedEnv() the context} used while
+         *         {@link TruffleLanguage#parse(com.oracle.truffle.api.TruffleLanguage.ParsingRequest)
+         *         parsing}
+         * @throws IllegalArgumentException if the language isn't the right one
          * @since XXX
          */
-        public <C> Reference<C> getContextReference(TruffleLanguage<C> language) {
+        public <C> SharedEnv<C> getSharedEnv(TruffleLanguage<C> language) {
             if (language != this.lang) {
-                throw new IllegalStateException();
+                throw new IllegalArgumentException();
             }
-            return AccessAPI.engineAccess().createContextReference(language);
+            return new SharedEnv<>(language);
         }
     }
 
@@ -758,7 +807,11 @@ public abstract class TruffleLanguage<C> {
 
         @Override
         public CallTarget parse(TruffleLanguage<?> truffleLanguage, Source code, Node context, String... argumentNames) throws IOException {
-            ParsingRequest env = new ParsingRequest(truffleLanguage, code, context, null, argumentNames);
+            return parseForLanguage(truffleLanguage, code, context, argumentNames);
+        }
+
+        private static <C> CallTarget parseForLanguage(TruffleLanguage<C> truffleLanguage, Source code, Node context, String... argumentNames) throws IOException {
+            ParsingRequest<C> env = new ParsingRequest<>(truffleLanguage, code, context, null, argumentNames);
             CallTarget target = env.parse(truffleLanguage);
             env.dispose();
             return target;
@@ -766,9 +819,13 @@ public abstract class TruffleLanguage<C> {
 
         @Override
         public Object eval(TruffleLanguage<?> language, Source source, Map<Source, CallTarget> cache) throws IOException {
+            return evalForLanguage(language, source, cache);
+        }
+
+        private static <C> Object evalForLanguage(TruffleLanguage<C> language, Source source, Map<Source, CallTarget> cache) throws IOException {
             CallTarget target = cache.get(source);
             if (target == null) {
-                ParsingRequest env = new ParsingRequest(language, source, null, null);
+                ParsingRequest<C> env = new ParsingRequest<>(language, source, null, null);
                 target = env.parse(language);
                 env.dispose();
                 if (target == null) {
@@ -873,13 +930,12 @@ class TruffleLanguageSnippets {
     // BEGIN: TruffleLanguageSnippets.ASTSharingLanguage
     abstract class ASTSharingLanguage extends TruffleLanguage<Context> {
         @Override
-        protected CallTarget parse(ParsingRequest request) throws IOException {
-            // create a reference to use to locate
-            // execution Context
-            Reference<Context> contextRef = request.createContextReference(this);
+        protected CallTarget parse(ParsingRequest<Context> request) {
+            // obtain the shared environment
+            SharedEnv<Context> sharedEnv = request.getSharedEnv();
 
             // use it in your AST nodes
-            final MyFindContextNode contextNode = new MyFindContextNode(contextRef);
+            final MyFindContextNode contextNode = new MyFindContextNode(sharedEnv);
             return Truffle.getRuntime().createCallTarget(contextNode);
         }
 
@@ -890,19 +946,19 @@ class TruffleLanguageSnippets {
         }
 
         static final class MyFindContextNode extends RootNode {
-            // keep the context reference as final field
-            private final Reference<Context> contextRef;
+            // keep the shared environment as final field
+            private final SharedEnv<Context> sharedEnv;
 
-            MyFindContextNode(Reference<Context> contextRef) {
+            MyFindContextNode(SharedEnv<Context> sharedEnv) {
                 super(ASTSharingLanguage.class, null, null);
-                this.contextRef = contextRef;
+                this.sharedEnv = sharedEnv;
             }
 
             @Override
             public Context execute(VirtualFrame frame) {
                 // use it in your nodes to effectively access
                 // the context when needed
-                return contextRef.get();
+                return sharedEnv.getContext();
             }
         }
     }

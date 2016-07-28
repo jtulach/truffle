@@ -41,13 +41,13 @@
 package com.oracle.truffle.sl.nodes.expression;
 
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.TruffleLanguage.SharedEnv;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.sl.nodes.SLExpressionNode;
 import com.oracle.truffle.sl.runtime.SLContext;
 import com.oracle.truffle.sl.runtime.SLFunction;
 import com.oracle.truffle.sl.runtime.SLFunctionRegistry;
-import java.lang.ref.Reference;
 
 /**
  * Constant literal for a {@link SLFunction function} value, created when a function name occurs as
@@ -66,10 +66,10 @@ public final class SLFunctionLiteralNode extends SLExpressionNode {
      * first execution}. The {@link CompilationFinal} annotation ensures that the function can still
      * be constant folded during compilation.
      */
-    private final Reference<SLContext> contextRef;
+    private final SharedEnv<SLContext> contextRef;
     private final FunctionCache functionCache;
 
-    public SLFunctionLiteralNode(Reference<SLContext> ref, String functionName) {
+    public SLFunctionLiteralNode(SharedEnv<SLContext> ref, String functionName) {
         this.functionName = functionName;
         this.contextRef = ref;
         this.functionCache = new FunctionCache();
@@ -77,13 +77,13 @@ public final class SLFunctionLiteralNode extends SLExpressionNode {
 
     @Override
     public SLFunction executeGeneric(VirtualFrame frame) {
-        return functionCache.get(contextRef.get());
+        return functionCache.get(contextRef.getContext());
     }
 
     private final class FunctionCache extends MappingCache<SLContext, SLFunction> {
         @Override
         protected SLFunction create(SLContext key) {
-            final SLContext context = contextRef.get();
+            final SLContext context = contextRef.getContext();
             if (context != null) {
                 context.notifyTransferToInterpreter(functionName);
                 return context.getFunctionRegistry().lookup(functionName, true);

@@ -42,7 +42,7 @@ public class HashLanguage extends TruffleLanguage<Env> {
     }
 
     @Override
-    protected CallTarget parse(ParsingRequest env) throws IOException {
+    protected CallTarget parse(ParsingRequest<Env> env) throws IOException {
         return Truffle.getRuntime().createCallTarget(new HashNode(this, env.getSource()));
     }
 

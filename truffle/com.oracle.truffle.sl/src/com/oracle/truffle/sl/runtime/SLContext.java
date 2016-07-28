@@ -53,6 +53,7 @@ import com.oracle.truffle.api.ExecutionContext;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.TruffleLanguage.SharedEnv;
 import com.oracle.truffle.api.dsl.NodeFactory;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -78,7 +79,6 @@ import com.oracle.truffle.sl.builtins.SLStackTraceBuiltinFactory;
 import com.oracle.truffle.sl.nodes.SLExpressionNode;
 import com.oracle.truffle.sl.nodes.SLRootNode;
 import com.oracle.truffle.sl.nodes.local.SLReadArgumentNode;
-import java.lang.ref.Reference;
 
 /**
  * The run-time state of SL during execution. The context is created by the {@link SLLanguage}. It
@@ -258,8 +258,8 @@ public final class SLContext extends ExecutionContext {
         return slValue;
     }
 
-    public Reference<SLContext> getContextReference() {
-        return env.getContextReference(SLLanguage.INSTANCE);
+    public SharedEnv<SLContext> getContextReference() {
+        return env.getSharedEnv(SLLanguage.INSTANCE);
     }
 
     public void notifyTransferToInterpreter(String value) {

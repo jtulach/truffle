@@ -51,7 +51,6 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
-import java.lang.ref.Reference;
 import static org.junit.Assert.assertFalse;
 
 public class ImplicitExplicitExportTest {
@@ -148,7 +147,7 @@ public class ImplicitExplicitExportTest {
 
     private abstract static class AbstractExportImportLanguage extends TruffleLanguage<Ctx> {
 
-        private Reference<Ctx> contextRef;
+        private SharedEnv<Ctx> contextRef;
 
         @Override
         protected Ctx createContext(Env env) {
@@ -173,8 +172,8 @@ public class ImplicitExplicitExportTest {
         }
 
         @Override
-        protected CallTarget parse(ParsingRequest env) throws IOException {
-            contextRef = env.createContextReference(this);
+        protected CallTarget parse(ParsingRequest<Ctx> env) throws IOException {
+            contextRef = env.getSharedEnv();
             throw new SilentlyUnsupportedException();
         }
 
@@ -201,7 +200,7 @@ public class ImplicitExplicitExportTest {
 
         private Object importExport(Source code) {
             assertNotEquals("Should run asynchronously", Thread.currentThread(), mainThread);
-            Ctx ctx = contextRef.get();
+            Ctx ctx = contextRef.getContext();
             Properties p = new Properties();
             try (Reader r = code.getReader()) {
                 p.load(r);

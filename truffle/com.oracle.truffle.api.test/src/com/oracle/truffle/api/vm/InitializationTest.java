@@ -136,7 +136,7 @@ public class InitializationTest {
         }
 
         @Override
-        protected CallTarget parse(ParsingRequest env) throws IOException {
+        protected CallTarget parse(ParsingRequest<Object> env) throws IOException {
             return Truffle.getRuntime().createCallTarget(new MMRootNode(env.getSource().createSection("1st line", 1)));
         }
 

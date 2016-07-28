@@ -38,7 +38,7 @@ public final class TestTruffleLanguage extends TruffleLanguage<Object> {
     }
 
     @Override
-    protected CallTarget parse(ParsingRequest env) throws IOException {
+    protected CallTarget parse(ParsingRequest<Object> env) throws IOException {
         return null;
     }
 

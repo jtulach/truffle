@@ -42,6 +42,7 @@ package com.oracle.truffle.sl.parser;
 
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.TruffleLanguage.SharedEnv;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -89,7 +90,6 @@ import com.oracle.truffle.sl.nodes.local.SLReadLocalVariableNodeGen;
 import com.oracle.truffle.sl.nodes.local.SLWriteLocalVariableNode;
 import com.oracle.truffle.sl.nodes.local.SLWriteLocalVariableNodeGen;
 import com.oracle.truffle.sl.runtime.SLContext;
-import java.lang.ref.Reference;
 
 /**
  * Helper class used by the SL {@link Parser} to create nodes. The code is factored out of the
@@ -97,7 +97,7 @@ import java.lang.ref.Reference;
  */
 public class SLNodeFactory {
 
-    private final Reference<SLContext> contextRef;
+    private final SharedEnv<SLContext> contextRef;
 
     /**
      * Local variable names that are visible in the current block. Variables are not visible outside
@@ -132,7 +132,7 @@ public class SLNodeFactory {
     /* State while parsing a block. */
     private LexicalScope lexicalScope;
 
-    public SLNodeFactory(Reference<SLContext> ref, Source source) {
+    public SLNodeFactory(SharedEnv<SLContext> ref, Source source) {
         this.source = source;
         this.allFunctions = new HashMap<>();
         this.contextRef = ref;

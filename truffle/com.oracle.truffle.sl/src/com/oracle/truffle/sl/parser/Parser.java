@@ -44,6 +44,7 @@
 package com.oracle.truffle.sl.parser;
 
 import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.TruffleLanguage.SharedEnv;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -53,7 +54,6 @@ import com.oracle.truffle.sl.SLException;
 import com.oracle.truffle.sl.nodes.SLExpressionNode;
 import com.oracle.truffle.sl.nodes.SLStatementNode;
 import com.oracle.truffle.sl.runtime.SLContext;
-import java.lang.ref.Reference;
 
 // Checkstyle: stop
 // @formatter:off
@@ -76,7 +76,7 @@ public class Parser {
     public final Errors errors;
     private final SLNodeFactory factory;
     
-    public Parser(Reference<SLContext> ref, Source source) {
+    public Parser(SharedEnv<SLContext> ref, Source source) {
         this.scanner = new Scanner(source.getInputStream());
         this.factory = new SLNodeFactory(ref, source);
         errors = new Errors();
@@ -476,7 +476,7 @@ public class Parser {
 
     };
 
-    public static Map<String, RootCallTarget> parseSL(Source source, Reference<SLContext> contextRef) {
+    public static Map<String, RootCallTarget> parseSL(Source source, SharedEnv<SLContext> contextRef) {
         Parser parser = new Parser(contextRef, source);
         parser.Parse();
         if (parser.errors.errors.size() > 0) {

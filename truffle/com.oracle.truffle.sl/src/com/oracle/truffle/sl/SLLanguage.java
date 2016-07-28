@@ -60,7 +60,6 @@ import com.oracle.truffle.sl.nodes.SLRootNode;
 import com.oracle.truffle.sl.parser.Parser;
 import com.oracle.truffle.sl.runtime.SLContext;
 import com.oracle.truffle.sl.runtime.SLFunction;
-import java.lang.ref.Reference;
 import java.util.Collections;
 import java.util.WeakHashMap;
 import com.oracle.truffle.sl.runtime.SLNull;
@@ -99,7 +98,7 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
     }
 
     @Override
-    protected CallTarget parse(final ParsingRequest request) throws IOException {
+    protected CallTarget parse(final ParsingRequest<SLContext> request) throws IOException {
         Source source = request.getSource();
         if (request.getFrame() != null) {
             return Truffle.getRuntime().createCallTarget(new SLEvaluateLocalNode(source.getCode(), request.getFrame()));
@@ -110,7 +109,7 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
         }
         // parsingCount++;
 
-        final Reference<SLContext> contextRef = request.createContextReference(this);
+        final SharedEnv<SLContext> contextRef = request.getSharedEnv();
         Map<String, RootCallTarget> functions;
         try {
             /*

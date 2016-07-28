@@ -27,7 +27,6 @@ import java.io.IOException;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
-import java.lang.ref.Reference;
 
 @TruffleLanguage.Registration(name = "Hash", mimeType = "application/x-test-mime-type-supported", version = "1.0")
 public class IsMimeTypeSupportedTestLanguage extends TruffleLanguage<Env> {
@@ -40,13 +39,13 @@ public class IsMimeTypeSupportedTestLanguage extends TruffleLanguage<Env> {
     }
 
     @Override
-    protected CallTarget parse(ParsingRequest env) throws IOException {
+    protected CallTarget parse(ParsingRequest<Env> env) throws IOException {
         final String mimeType = env.getSource().getCode();
-        final Reference<Env> contextRef = env.createContextReference(this);
+        final SharedEnv<Env> contextRef = env.getSharedEnv();
         return new CallTarget() {
             @Override
             public Object call(Object... arguments) {
-                return contextRef.get().isMimeTypeSupported(mimeType);
+                return contextRef.getContext().isMimeTypeSupported(mimeType);
             }
         };
     }

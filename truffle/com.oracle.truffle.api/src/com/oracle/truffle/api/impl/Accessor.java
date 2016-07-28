@@ -178,7 +178,7 @@ public abstract class Accessor {
             }
 
             @Override
-            protected CallTarget parse(ParsingRequest env) throws IOException {
+            protected CallTarget parse(ParsingRequest<Object> env) throws IOException {
                 throw new IOException();
             }
 
