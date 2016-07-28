@@ -52,7 +52,7 @@ final class ContextStore {
     }
 
     void setContext(int languageId, Object context) {
-        if (languageId >= store.length) {
+        while (languageId >= store.length) {
             store = Arrays.copyOf(store, store.length << 1);
         }
         store[languageId] = context;
