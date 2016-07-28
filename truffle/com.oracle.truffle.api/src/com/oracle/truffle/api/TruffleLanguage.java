@@ -198,12 +198,12 @@ public abstract class TruffleLanguage<C> {
      * @param request request for parsing
      * @return a call target to invoke which also keeps in memory the {@link Node} tree representing
      *         just parsed <code>code</code>
-     * @throws IOException thrown when I/O or parsing goes wrong. Here-in thrown exception is
+     * @throws Exception exception can be thrown parsing goes wrong. Here-in thrown exception is
      *             propagated to the user who called one of <code>eval</code> methods of
      *             {@link com.oracle.truffle.api.vm.PolyglotEngine}
-     * @since 0.14
+     * @since XXX
      */
-    protected CallTarget parse(ParsingRequest<C> request) throws IOException {
+    protected CallTarget parse(ParsingRequest<C> request) throws Exception {
         throw new UnsupportedOperationException(
                         String.format("Override parse method of %s, it will be made abstract in future version of Truffle API!", getClass().getName()));
     }
@@ -326,6 +326,14 @@ public abstract class TruffleLanguage<C> {
                 return truffleLanguage.parse(this);
             } catch (UnsupportedOperationException ex) {
                 return truffleLanguage.parse(source, node, argumentNames);
+            } catch (Exception ex) {
+                if (ex instanceof IOException) {
+                    throw (IOException) ex;
+                }
+                if (ex instanceof RuntimeException) {
+                    throw (RuntimeException) ex;
+                }
+                throw new RuntimeException(ex);
             }
         }
     }
@@ -438,7 +446,18 @@ public abstract class TruffleLanguage<C> {
     @Deprecated
     protected Object evalInContext(Source source, Node node, MaterializedFrame mFrame) throws IOException {
         ParsingRequest<C> request = new ParsingRequest<>(this, source, node, mFrame);
-        CallTarget target = parse(request);
+        CallTarget target;
+        try {
+            target = parse(request);
+        } catch (Exception ex) {
+            if (ex instanceof IOException) {
+                throw (IOException)ex;
+            }
+            if (ex instanceof RuntimeException) {
+                throw (RuntimeException)ex;
+            }
+            throw new RuntimeException(ex);
+        }
         return target.call();
     }
 
