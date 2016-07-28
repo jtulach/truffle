@@ -325,7 +325,6 @@ public abstract class TruffleLanguage<C> {
             try {
                 return truffleLanguage.parse(this);
             } catch (UnsupportedOperationException ex) {
-                ex.printStackTrace();
                 return truffleLanguage.parse(source, node, argumentNames);
             }
         }
