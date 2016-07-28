@@ -451,10 +451,10 @@ public abstract class TruffleLanguage<C> {
             target = parse(request);
         } catch (Exception ex) {
             if (ex instanceof IOException) {
-                throw (IOException)ex;
+                throw (IOException) ex;
             }
             if (ex instanceof RuntimeException) {
-                throw (RuntimeException)ex;
+                throw (RuntimeException) ex;
             }
             throw new RuntimeException(ex);
         }
