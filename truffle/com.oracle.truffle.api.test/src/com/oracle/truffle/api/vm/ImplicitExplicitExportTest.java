@@ -42,13 +42,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
+import com.oracle.truffle.api.TruffleLanguage.SharedEnv;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ForeignAccess;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
-import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import static org.junit.Assert.assertFalse;
@@ -146,9 +147,6 @@ public class ImplicitExplicitExportTest {
     }
 
     private abstract static class AbstractExportImportLanguage extends TruffleLanguage<Ctx> {
-
-        private SharedEnv<Ctx> contextRef;
-
         @Override
         protected Ctx createContext(Env env) {
             if (mainThread != null) {
@@ -162,19 +160,15 @@ public class ImplicitExplicitExportTest {
             context.dispose();
         }
 
-        @SuppressWarnings("deprecation")
         @Override
-        protected CallTarget parse(Source code, Node context, String... argumentNames) throws IOException {
+        protected CallTarget parse(ParsingRequest<Ctx> env) throws IOException {
+            SharedEnv<Ctx> contextRef = env.getSharedEnv();
+            Source code = env.getSource();
             if (code.getCode().startsWith("parse=")) {
                 throw new IOException(code.getCode().substring(6));
             }
-            return new ValueCallTarget(code, this);
-        }
-
-        @Override
-        protected CallTarget parse(ParsingRequest<Ctx> env) throws IOException {
-            contextRef = env.getSharedEnv();
-            throw new UnsupportedOperationException();
+            RootNode node = new ImportExportNode(contextRef, code, this);
+            return Truffle.getRuntime().createCallTarget(node);
         }
 
         @Override
@@ -198,7 +192,7 @@ public class ImplicitExplicitExportTest {
             return false;
         }
 
-        private Object importExport(Source code) {
+        private Object importExport(SharedEnv<Ctx> contextRef, Source code) {
             assertNotEquals("Should run asynchronously", Thread.currentThread(), mainThread);
             Ctx ctx = contextRef.getContext();
             Properties p = new Properties();
@@ -231,23 +225,21 @@ public class ImplicitExplicitExportTest {
         }
     }
 
-    private static final class ValueCallTarget implements RootCallTarget {
+    private static final class ImportExportNode extends RootNode {
         private final Source code;
         private final AbstractExportImportLanguage language;
+        private final SharedEnv<Ctx> sharedEnv;
 
-        private ValueCallTarget(Source code, AbstractExportImportLanguage language) {
+        private ImportExportNode(SharedEnv<Ctx> sharedEnv, Source code, AbstractExportImportLanguage language) {
+            super(language.getClass(), null, null);
             this.code = code;
             this.language = language;
+            this.sharedEnv = sharedEnv;
         }
 
         @Override
-        public RootNode getRootNode() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Object call(Object... arguments) {
-            return language.importExport(code);
+        public Object execute(VirtualFrame frame) {
+            return language.importExport(sharedEnv, code);
         }
     }
 
