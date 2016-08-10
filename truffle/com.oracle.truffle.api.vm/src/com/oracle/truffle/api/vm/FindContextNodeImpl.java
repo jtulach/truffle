@@ -26,13 +26,15 @@ package com.oracle.truffle.api.vm;
 
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.impl.FindContextNode;
+import com.oracle.truffle.api.vm.PolyglotEngine.Access;
 
 final class FindContextNodeImpl<C> extends FindContextNode<C> {
     private final TruffleLanguage<C> language;
     private final ContextReference<C> ref;
 
     FindContextNodeImpl(TruffleLanguage<C> language) {
-        this.ref = ContextReference.create(null, language);
+        PolyglotEngine engine = (PolyglotEngine) Access.LANGS.findProfile();
+        this.ref = ContextReference.create(engine.profile(), language);
         this.language = language;
     }
 

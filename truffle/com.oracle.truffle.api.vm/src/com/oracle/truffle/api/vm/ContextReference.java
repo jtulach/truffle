@@ -28,6 +28,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 
 final class ContextReference<C> implements Callable<C> {
@@ -37,6 +38,7 @@ final class ContextReference<C> implements Callable<C> {
     private final int languageId;
 
     private ContextReference(ContextStoreProfile profile, TruffleLanguage<C> language, int languageId) {
+        Objects.requireNonNull(profile);
         this.profile = profile;
         this.language = language;
         this.languageId = languageId;
