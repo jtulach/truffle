@@ -38,7 +38,7 @@ final class FindContextNodeImpl<C> extends FindContextNode<C> {
 
     @Override
     public C executeFindContext() {
-        return ref.get();
+        return ref.call();
     }
 
     @Override

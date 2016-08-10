@@ -42,10 +42,10 @@ import com.oracle.truffle.api.impl.ReadOnlyArrayList;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
-import java.lang.ref.Reference;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * <p>
@@ -570,7 +570,7 @@ public abstract class TruffleLanguage<C> {
      * @since XXX
      */
     public static final class SharedEnv<C> {
-        private final Reference<C> reference;
+        private final Callable<C> reference;
         private final Object profile;
 
         SharedEnv(Object contextStoreProfile, TruffleLanguage<C> language) {
@@ -601,7 +601,11 @@ public abstract class TruffleLanguage<C> {
          * @since XXX
          */
         public C getContext() {
-            return reference.get();
+            try {
+                return reference.call();
+            } catch (Throwable t) {
+                throw new RuntimeException(t);
+            }
         }
 
         /**

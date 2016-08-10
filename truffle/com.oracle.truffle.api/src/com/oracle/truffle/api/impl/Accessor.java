@@ -39,10 +39,10 @@ import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
-import java.lang.ref.Reference;
 import java.util.Map;
 import java.util.Set;
 import com.oracle.truffle.api.source.SourceSection;
+import java.util.concurrent.Callable;
 
 /**
  * Communication between PolyglotEngine, TruffleLanguage API/SPI, and other services.
@@ -78,7 +78,7 @@ public abstract class Accessor {
 
         public abstract <C> FindContextNode<C> createFindContextNode(TruffleLanguage<C> lang);
 
-        public abstract <C> Reference<C> createContextReference(Object vm, TruffleLanguage<C> lang);
+        public abstract <C> Callable<C> createContextReference(Object vm, TruffleLanguage<C> lang);
 
         @SuppressWarnings("rawtypes")
         public abstract Env findEnv(Object vm, Class<? extends TruffleLanguage> languageClass);
