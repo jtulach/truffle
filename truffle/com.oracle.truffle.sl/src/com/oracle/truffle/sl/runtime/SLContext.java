@@ -179,8 +179,8 @@ public final class SLContext extends ExecutionContext {
         SLRootNode rootNode = new SLRootNode(new FrameDescriptor(), builtinBodyNode, srcSection, name);
 
         /* Register the builtin function in our function registry. */
-        RootCallTarget callTarget = getContextReference().callTarget(rootNode);
-        getFunctionRegistry().register(name, callTarget);
+        CallTarget callTarget = getContextReference().registerCallTarget(null, rootNode);
+        getFunctionRegistry().register(name, (RootCallTarget) callTarget);
     }
 
     public static NodeInfo lookupNodeInfo(Class<?> clazz) {

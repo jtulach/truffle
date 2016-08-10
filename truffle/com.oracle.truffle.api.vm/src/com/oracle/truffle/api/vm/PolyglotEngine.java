@@ -1367,6 +1367,16 @@ public class PolyglotEngine {
                 assert engine.debugger()[0] == null || engine.debugger()[0] == debugger;
                 engine.debugger()[0] = debugger;
             }
+
+            @Override
+            public CallTarget sharedCallTarget(Object vm, Source key, CallTarget target, boolean register) {
+                PolyglotEngine engine = (PolyglotEngine) vm;
+                Map<Source, CallTarget> cache = engine.profile().map();
+                if (register) {
+                    cache.put(key, target);
+                }
+                return cache.get(key);
+            }
         }
 
     } // end of SPIAccessor

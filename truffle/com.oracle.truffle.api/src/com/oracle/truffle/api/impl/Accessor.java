@@ -97,6 +97,8 @@ public abstract class Accessor {
         public abstract boolean isMimeTypeSupported(Object vm, String mimeType);
 
         public abstract void registerDebugger(Object vm, Object debugger);
+
+        public abstract CallTarget sharedCallTarget(Object profile, Source key, CallTarget target, boolean register);
     }
 
     public abstract static class LanguageSupport {

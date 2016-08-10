@@ -25,10 +25,14 @@
 package com.oracle.truffle.api.vm;
 
 import com.oracle.truffle.api.Assumption;
+import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.source.Source;
+import java.util.HashMap;
+import java.util.Map;
 
 final class ContextStoreProfile {
 
@@ -43,9 +47,11 @@ final class ContextStoreProfile {
     private volatile Thread singleThread;
 
     private volatile ThreadLocal<ContextStore> threadStore;
+    private Map<Source, CallTarget> map;
 
     ContextStoreProfile(ContextStore initialStore) {
         this.constantStore = initialStore == null ? UNINTIALIZED_STORE : initialStore;
+        this.map = new HashMap<>();
     }
 
     ContextStore get() {
@@ -135,6 +141,11 @@ final class ContextStoreProfile {
     @TruffleBoundary
     private static ContextStore getThreadLocalStore(ThreadLocal<ContextStore> tls) {
         return tls.get();
+    }
+
+    @TruffleBoundary
+    Map<Source, CallTarget> map() {
+        return map;
     }
 
 }

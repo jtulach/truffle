@@ -113,7 +113,7 @@ public class InstrumentationTestLanguage extends TruffleLanguage<Map<String, Cal
         } catch (LanguageError e) {
             throw new IOException(e);
         }
-        return env.getSharedEnv().callTarget(new InstrumentationTestRootNode("", outer, node));
+        return env.getSharedEnv().registerCallTarget(code, new InstrumentationTestRootNode("", outer, node));
     }
 
     public static BaseNode parse(Source code, SharedEnv<Map<String, CallTarget>> contextRef) {

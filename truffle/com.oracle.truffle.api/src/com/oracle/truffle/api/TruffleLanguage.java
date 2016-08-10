@@ -605,18 +605,40 @@ public abstract class TruffleLanguage<C> {
         }
 
         /**
-         * Creates a new call target for a given root node.
+         * Creates a new call target for a given root node and registers it into {@link SharedEnv}
+         * cache. The cache can then be queried by
+         * {@link #findCallTarget(com.oracle.truffle.api.source.Source)} method.
          *
+         * @param key the source this the node represents, or <code>null</code> if no registration
+         *            shall be performed
          * @param node the root node whose
          *            {@link RootNode#execute(com.oracle.truffle.api.frame.VirtualFrame)} method
          *            represents the entry point
          * @return the new call target object
          * @since XXX
          */
-        public RootCallTarget callTarget(RootNode node) {
+        public CallTarget registerCallTarget(Source key, RootNode node) {
             RootCallTarget target = Truffle.getRuntime().createCallTarget(node);
             AccessAPI.nodesAccess().associate(node, target, profile);
+            if (key != null) {
+                AccessAPI.engineAccess().sharedCallTarget(profile, key, target, true);
+            }
             return target;
+        }
+
+        /**
+         * Finds already
+         * {@link #registerCallTarget(com.oracle.truffle.api.source.Source, com.oracle.truffle.api.nodes.RootNode)
+         * registered} {@link CallTarget} for given source. Consults the cache filled by
+         * {@link #registerCallTarget(com.oracle.truffle.api.source.Source, com.oracle.truffle.api.nodes.RootNode)}
+         * and if
+         * 
+         * @param key the source to find call target for
+         * @return previously registered call target or <code>null</code>
+         * @since XXX
+         */
+        public CallTarget findCallTarget(Source key) {
+            return AccessAPI.engineAccess().sharedCallTarget(profile, key, null, false);
         }
     }
 
