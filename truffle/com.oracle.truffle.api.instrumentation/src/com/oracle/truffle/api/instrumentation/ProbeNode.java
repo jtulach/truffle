@@ -80,9 +80,9 @@ public final class ProbeNode extends Node {
     @CompilationFinal private volatile Assumption version;
 
     /** Instantiated by the instrumentation framework. */
-    ProbeNode(InstrumentationHandler handler, SourceSection sourceSection) {
+    ProbeNode(Object profile, InstrumentationHandler handler, SourceSection sourceSection) {
         this.handler = handler;
-        this.context = new EventContext(this, sourceSection);
+        this.context = new EventContext(profile, this, sourceSection);
     }
 
     /**

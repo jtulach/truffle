@@ -135,7 +135,8 @@ final class InstrumentationHandler {
             return;
         }
 
-        visitRoot(root, new InsertWrappersVisitor(executionBindings));
+        Object profile = AccessorInstrumentHandler.nodesAccess().findProfile(root);
+        visitRoot(root, new InsertWrappersVisitor(profile, executionBindings));
     }
 
     void addInstrument(Object vm, Object key, Class<?> clazz) {
@@ -346,7 +347,7 @@ final class InstrumentationHandler {
     }
 
     @SuppressWarnings("unchecked")
-    private void insertWrapper(Node instrumentableNode, SourceSection sourceSection) {
+    private void insertWrapper(Object profile, Node instrumentableNode, SourceSection sourceSection) {
         final Node node = instrumentableNode;
         final Node parent = node.getParent();
         if (parent instanceof WrapperNode) {
@@ -354,7 +355,7 @@ final class InstrumentationHandler {
             invalidateWrapperImpl((WrapperNode) parent, node);
             return;
         }
-        ProbeNode probe = new ProbeNode(InstrumentationHandler.this, sourceSection);
+        ProbeNode probe = new ProbeNode(profile, InstrumentationHandler.this, sourceSection);
         WrapperNode wrapper;
         try {
             Class<?> factory = null;
@@ -638,7 +639,8 @@ final class InstrumentationHandler {
 
         @Override
         protected void visitInstrumented(Node node, SourceSection section) {
-            insertWrapper(node, section);
+            Object profile = AccessorInstrumentHandler.nodesAccess().findProfile(node.getRootNode());
+            insertWrapper(profile, node, section);
         }
 
     }
@@ -656,14 +658,16 @@ final class InstrumentationHandler {
     }
 
     private final class InsertWrappersVisitor extends AbstractBindingsVisitor {
+        private final Object profile;
 
-        InsertWrappersVisitor(Collection<EventBinding<?>> bindings) {
+        InsertWrappersVisitor(Object profile, Collection<EventBinding<?>> bindings) {
             super(bindings, false);
+            this.profile = profile;
         }
 
         @Override
         protected void visitInstrumented(EventBinding<?> binding, Node node, SourceSection section) {
-            insertWrapper(node, section);
+            insertWrapper(profile, node, section);
         }
     }
 
@@ -1173,7 +1177,7 @@ final class InstrumentationHandler {
 
         @SuppressWarnings("rawtypes")
         protected CallTarget parse(Object vm, Class<? extends TruffleLanguage> languageClass, Source code, Node context, String... argumentNames) throws IOException {
-            final TruffleLanguage<?> truffleLanguage = engineSupport().findLanguageImpl(null, languageClass, code.getMimeType());
+            final TruffleLanguage<?> truffleLanguage = engineSupport().findLanguageImpl(vm, languageClass, code.getMimeType());
             return langAccess().parse(vm, truffleLanguage, code, context, argumentNames);
         }
 
