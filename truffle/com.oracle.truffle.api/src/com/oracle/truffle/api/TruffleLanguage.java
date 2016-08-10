@@ -221,7 +221,7 @@ public abstract class TruffleLanguage<C> {
      * @since XXX
      */
     public static final class ParsingRequest<C> {
-        static ThreadLocal<Object> CURRENT_VM = new ThreadLocal<>();
+        static final ThreadLocal<Object> CURRENT_VM = new ThreadLocal<>();
 
         private final Node node;
         private final MaterializedFrame frame;

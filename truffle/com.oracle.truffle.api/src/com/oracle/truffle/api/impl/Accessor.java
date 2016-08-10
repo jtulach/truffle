@@ -120,7 +120,7 @@ public abstract class Accessor {
 
         public abstract TruffleLanguage<?> findLanguage(Env env);
 
-        public abstract CallTarget parse(Object StoreProfile, TruffleLanguage<?> truffleLanguage, Source code, Node context, String... argumentNames) throws IOException;
+        public abstract CallTarget parse(Object profile, TruffleLanguage<?> truffleLanguage, Source code, Node context, String... argumentNames) throws IOException;
 
         public abstract String toString(TruffleLanguage<?> language, Env env, Object obj);
 
