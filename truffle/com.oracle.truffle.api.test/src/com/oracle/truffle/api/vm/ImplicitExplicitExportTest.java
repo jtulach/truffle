@@ -192,7 +192,7 @@ public class ImplicitExplicitExportTest {
             return false;
         }
 
-        private Object importExport(SharedEnv<Ctx> contextRef, Source code) {
+        private static Object importExport(SharedEnv<Ctx> contextRef, Source code) {
             assertNotEquals("Should run asynchronously", Thread.currentThread(), mainThread);
             Ctx ctx = contextRef.getContext();
             Properties p = new Properties();
@@ -227,19 +227,17 @@ public class ImplicitExplicitExportTest {
 
     private static final class ImportExportNode extends RootNode {
         private final Source code;
-        private final AbstractExportImportLanguage language;
         private final SharedEnv<Ctx> sharedEnv;
 
         private ImportExportNode(SharedEnv<Ctx> sharedEnv, Source code, AbstractExportImportLanguage language) {
             super(language.getClass(), null, null);
             this.code = code;
-            this.language = language;
             this.sharedEnv = sharedEnv;
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
-            return language.importExport(sharedEnv, code);
+            return AbstractExportImportLanguage.importExport(sharedEnv, code);
         }
     }
 

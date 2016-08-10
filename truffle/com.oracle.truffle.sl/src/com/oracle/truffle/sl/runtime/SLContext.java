@@ -51,7 +51,6 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.ExecutionContext;
 import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.SharedEnv;
 import com.oracle.truffle.api.dsl.NodeFactory;
@@ -180,7 +179,7 @@ public final class SLContext extends ExecutionContext {
         SLRootNode rootNode = new SLRootNode(new FrameDescriptor(), builtinBodyNode, srcSection, name);
 
         /* Register the builtin function in our function registry. */
-        RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
+        RootCallTarget callTarget = getContextReference().callTarget(rootNode);
         getFunctionRegistry().register(name, callTarget);
     }
 

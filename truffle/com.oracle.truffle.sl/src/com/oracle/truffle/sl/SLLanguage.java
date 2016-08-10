@@ -48,7 +48,6 @@ import java.util.Map;
 
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
@@ -99,9 +98,10 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
 
     @Override
     protected CallTarget parse(final ParsingRequest<SLContext> request) throws IOException {
+        final SharedEnv<SLContext> contextRef = request.getSharedEnv();
         Source source = request.getSource();
         if (request.getFrame() != null) {
-            return Truffle.getRuntime().createCallTarget(new SLEvaluateLocalNode(source.getCode(), request.getFrame()));
+            return contextRef.callTarget(new SLEvaluateLocalNode(source.getCode(), request.getFrame()));
         }
         CallTarget cached = compiled.get(source);
         if (cached != null) {
@@ -109,7 +109,6 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
         }
         // parsingCount++;
 
-        final SharedEnv<SLContext> contextRef = request.getSharedEnv();
         Map<String, RootCallTarget> functions;
         try {
             /*
@@ -143,8 +142,8 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
              */
             evalMain = new SLEvalRootNode(contextRef, null, null, null, "[no_main]", functions);
         }
-        RootCallTarget target = Truffle.getRuntime().createCallTarget(evalMain);
-        compiled.put(source, target);
+        RootCallTarget target = contextRef.callTarget(evalMain);
+        // compiled.put(source, target);
         return target;
     }
 

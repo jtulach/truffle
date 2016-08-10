@@ -101,6 +101,7 @@ final class SymbolInvokerImpl {
 
         private final Assumption debuggingDisabled = PolyglotEngine.Access.DEBUG.assumeNoDebugger();
         private final ContextStore store;
+        private final ContextStoreProfile profile;
 
         @SuppressWarnings("rawtypes")
         ExecuteRoot(Class<? extends TruffleLanguage> lang, PolyglotEngine engine, TruffleObject function) {
@@ -109,11 +110,12 @@ final class SymbolInvokerImpl {
             this.engine = engine;
             this.convert = new ConvertNode();
             this.store = engine.context();
+            this.profile = engine.profile();
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
-            ContextStore prev = ExecutionImpl.executionStarted(store);
+            ContextStore prev = ExecutionImpl.executionStarted(profile, store);
             try {
                 if (!debuggingDisabled.isValid()) {
                     debugExecutionStarted();

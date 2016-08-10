@@ -162,7 +162,7 @@ public final class Debugger {
     Debugger(PolyglotEngine engine, Instrumenter instrumenter) {
         this.engine = engine;
         this.instrumenter = instrumenter;
-        this.breakpoints = new BreakpointFactory(instrumenter, breakpointCallback, warningLog);
+        this.breakpoints = new BreakpointFactory(engine, instrumenter, breakpointCallback, warningLog);
         NO_DEBUGGER.invalidate();
         EXISTING_DEBUGGERS.add(this);
     }
@@ -1223,15 +1223,16 @@ public final class Debugger {
         }
 
         @SuppressWarnings("rawtypes")
-        protected CallTarget parse(Class<? extends TruffleLanguage> languageClass, Source code, Node context, String... argumentNames) throws IOException {
+        protected CallTarget parse(Object vm, Class<? extends TruffleLanguage> languageClass, Source code, Node context, String... argumentNames) throws IOException {
             final TruffleLanguage<?> truffleLanguage = engineSupport().findLanguageImpl(null, languageClass, code.getMimeType());
-            return languageSupport().parse(truffleLanguage, code, context, argumentNames);
+            return languageSupport().parse(vm, truffleLanguage, code, context, argumentNames);
         }
 
         @SuppressWarnings({"rawtypes", "static-method"})
         String toStringInContext(RootNode rootNode, Object value) {
             final Class<? extends TruffleLanguage> languageClass = nodesAccess().findLanguage(rootNode);
-            final TruffleLanguage.Env env = engineAccess().findEnv(languageClass);
+            final Object profile = ACCESSOR.nodes().findProfile(rootNode);
+            final TruffleLanguage.Env env = engineAccess().findEnv(profile, languageClass);
             final TruffleLanguage<?> language = langs().findLanguage(env);
             return AccessorDebug.langs().toString(language, env, value);
         }

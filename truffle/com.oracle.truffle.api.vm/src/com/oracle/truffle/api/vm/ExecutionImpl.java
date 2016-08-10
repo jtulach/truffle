@@ -28,26 +28,15 @@ import com.oracle.truffle.api.TruffleLanguage;
 import java.util.Objects;
 
 final class ExecutionImpl {
-    //
-    // execution
-    //
-
-    private static final ContextStoreProfile CURRENT_VM = new ContextStoreProfile(null);
-
-    static ContextStoreProfile sharedProfile() {
-        return CURRENT_VM;
-    }
-
-    public static ContextStore createStore(Object vm) {
+    public static ContextStore createStore(PolyglotEngine vm) {
         return new ContextStore(vm, 4);
     }
 
-    public static ContextStore executionStarted(ContextStore context) {
+    public static ContextStore executionStarted(ContextStoreProfile profile, ContextStore context) {
         Object vm = context.vm;
         Objects.requireNonNull(vm);
-        final ContextStore prev = CURRENT_VM.get();
-        CURRENT_VM.enter(context);
-        return prev;
+        profile.enter(context);
+        return null;
     }
 
     @SuppressWarnings("unused")
@@ -62,12 +51,6 @@ final class ExecutionImpl {
     }
 
     public static Object findVM() {
-        return currentVM();
+        return null;
     }
-
-    private static Object currentVM() {
-        ContextStore current = CURRENT_VM.get();
-        return current == null ? null : current.vm;
-    }
-
 }

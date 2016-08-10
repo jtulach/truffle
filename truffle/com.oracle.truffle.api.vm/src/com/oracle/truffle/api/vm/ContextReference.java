@@ -59,11 +59,11 @@ final class ContextReference<C> extends WeakReference<C> {
         return (C) context;
     }
 
-    public static synchronized <C> ContextReference<C> create(TruffleLanguage<C> language) {
+    public static synchronized <C> ContextReference<C> create(ContextStoreProfile store, TruffleLanguage<C> language) {
         Integer id = ids.get(language);
         if (id == null) {
             ids.put(language, id = ids.size());
         }
-        return new ContextReference<>(ExecutionImpl.sharedProfile(), language, id);
+        return new ContextReference<>(store, language, id);
     }
 }

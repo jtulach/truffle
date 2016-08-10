@@ -138,8 +138,8 @@ final class InstrumentationHandler {
         visitRoot(root, new InsertWrappersVisitor(executionBindings));
     }
 
-    void addInstrument(Object key, Class<?> clazz) {
-        addInstrumenter(key, new InstrumentClientInstrumenter(clazz, out, err, in));
+    void addInstrument(Object vm, Object key, Class<?> clazz) {
+        addInstrumenter(key, new InstrumentClientInstrumenter(vm, clazz, out, err, in));
     }
 
     void disposeInstrumenter(Object key, boolean cleanupRequired) {
@@ -716,9 +716,9 @@ final class InstrumentationHandler {
         private TruffleInstrument instrument;
         private final Env env;
 
-        InstrumentClientInstrumenter(Class<?> instrumentClass, OutputStream out, OutputStream err, InputStream in) {
+        InstrumentClientInstrumenter(Object vm, Class<?> instrumentClass, OutputStream out, OutputStream err, InputStream in) {
             this.instrumentClass = instrumentClass;
-            this.env = new Env(this, out, err, in);
+            this.env = new Env(vm, this, out, err, in);
         }
 
         @Override
@@ -1172,9 +1172,9 @@ final class InstrumentationHandler {
         }
 
         @SuppressWarnings("rawtypes")
-        protected CallTarget parse(Class<? extends TruffleLanguage> languageClass, Source code, Node context, String... argumentNames) throws IOException {
+        protected CallTarget parse(Object vm, Class<? extends TruffleLanguage> languageClass, Source code, Node context, String... argumentNames) throws IOException {
             final TruffleLanguage<?> truffleLanguage = engineSupport().findLanguageImpl(null, languageClass, code.getMimeType());
-            return langAccess().parse(truffleLanguage, code, context, argumentNames);
+            return langAccess().parse(vm, truffleLanguage, code, context, argumentNames);
         }
 
         @Override
@@ -1190,8 +1190,8 @@ final class InstrumentationHandler {
             }
 
             @Override
-            public void addInstrument(Object instrumentationHandler, Object key, Class<?> instrumentClass) {
-                ((InstrumentationHandler) instrumentationHandler).addInstrument(key, instrumentClass);
+            public void addInstrument(Object vm, Object instrumentationHandler, Object key, Class<?> instrumentClass) {
+                ((InstrumentationHandler) instrumentationHandler).addInstrument(vm, key, instrumentClass);
             }
 
             @Override
@@ -1219,8 +1219,8 @@ final class InstrumentationHandler {
             }
 
             @Override
-            public void onFirstExecution(RootNode rootNode) {
-                Object instrumentationHandler = engineAccess().getInstrumentationHandler(null);
+            public void onFirstExecution(RootNode rootNode, Object profile) {
+                Object instrumentationHandler = engineAccess().getInstrumentationHandler(profile);
                 /*
                  * we want to still support cases where call targets are executed without an
                  * enclosing engine.
@@ -1231,8 +1231,8 @@ final class InstrumentationHandler {
             }
 
             @Override
-            public void onLoad(RootNode rootNode) {
-                Object instrumentationHandler = engineAccess().getInstrumentationHandler(null);
+            public void onLoad(RootNode rootNode, Object profile) {
+                Object instrumentationHandler = engineAccess().getInstrumentationHandler(profile);
                 /*
                  * we want to still support cases where call targets are executed without an
                  * enclosing engine.

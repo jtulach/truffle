@@ -38,6 +38,7 @@ import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.ReplaceObserver;
+import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleOptions;
 import com.oracle.truffle.api.TruffleRuntime;
@@ -582,6 +583,11 @@ public abstract class Node implements NodeInterface, Cloneable {
             return new AccessNodes();
         }
 
+        @Override
+        protected LanguageSupport languageSupport() {
+            return super.languageSupport();
+        }
+
         static final class AccessNodes extends Accessor.Nodes {
             @SuppressWarnings("rawtypes")
             @Override
@@ -597,6 +603,16 @@ public abstract class Node implements NodeInterface, Cloneable {
             @Override
             public boolean isTaggedWith(Node node, Class<?> tag) {
                 return node.isTaggedWith(tag);
+            }
+
+            @Override
+            public void associate(RootNode node, RootCallTarget target, Object profile) {
+                node.setCallTarget(target, profile);
+            }
+
+            @Override
+            public Object findProfile(RootNode rootNode) {
+                return rootNode.profile();
             }
         }
     }

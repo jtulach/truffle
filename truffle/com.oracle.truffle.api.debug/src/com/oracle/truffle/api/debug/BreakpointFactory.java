@@ -66,6 +66,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.LineLocation;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.utilities.CyclicAssumption;
+import com.oracle.truffle.api.vm.PolyglotEngine;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import java.net.URI;
@@ -101,6 +102,7 @@ final class BreakpointFactory {
     private final Map<Object, BreakpointImpl> breakpointsInternal = new HashMap<>();
     private final Map<URI, Set<URILocation>> uriLocations = new HashMap<>();
     private final Map<URI, Reference<Source>> sources = new HashMap<>();
+    private final PolyglotEngine engine;
 
     private static final Comparator<Entry<Object, BreakpointImpl>> BREAKPOINT_COMPARATOR = new Comparator<Entry<Object, BreakpointImpl>>() {
 
@@ -132,7 +134,8 @@ final class BreakpointFactory {
     private final BreakpointCallback breakpointCallback;
     private final WarningLog warningLog;
 
-    BreakpointFactory(Instrumenter instrumenter, BreakpointCallback breakpointCallback, final WarningLog warningLog) {
+    BreakpointFactory(PolyglotEngine engine, Instrumenter instrumenter, BreakpointCallback breakpointCallback, final WarningLog warningLog) {
+        this.engine = engine;
         this.instrumenter = instrumenter;
         this.breakpointCallback = breakpointCallback;
         this.warningLog = warningLog;
@@ -508,7 +511,7 @@ final class BreakpointFactory {
                 }
             }
             try {
-                final CallTarget callTarget = Debugger.ACCESSOR.parse(condLangClass, conditionSource, instrumentedNode, new String[0]);
+                final CallTarget callTarget = Debugger.ACCESSOR.parse(engine, condLangClass, conditionSource, instrumentedNode, new String[0]);
                 final DirectCallNode callNode = Truffle.getRuntime().createDirectCallNode(callTarget);
                 return new BreakpointConditionEventNode(context, callNode);
             } catch (IOException e) {

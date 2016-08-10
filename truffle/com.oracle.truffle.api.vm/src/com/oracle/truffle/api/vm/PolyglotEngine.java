@@ -130,6 +130,7 @@ public class PolyglotEngine {
     private final List<Object[]> config;
     private final Object[] debugger = {null};
     private final ContextStore context;
+    private final ContextStoreProfile profile;
     private volatile boolean disposed;
 
     static final boolean JDK8OrEarlier = System.getProperty("java.specification.version").compareTo("1.9") < 0;
@@ -162,12 +163,14 @@ public class PolyglotEngine {
         this.instruments = null;
         this.config = null;
         this.context = null;
+        this.profile = null;
     }
 
     /**
      * Real constructor used from the builder.
      */
-    PolyglotEngine(Executor executor, Map<String, Object> globals, OutputStream out, OutputStream err, InputStream in, EventConsumer<?>[] handlers, List<Object[]> config) {
+    PolyglotEngine(ContextStoreProfile profile, Executor executor, Map<String, Object> globals, OutputStream out, OutputStream err, InputStream in, EventConsumer<?>[] handlers,
+                    List<Object[]> config) {
         assertNoTruffle();
         this.executor = executor;
         this.out = out;
@@ -193,6 +196,7 @@ public class PolyglotEngine {
         this.langs = map;
         this.instruments = createAndAutostartDescriptors(InstrumentCache.load(JDK8OrEarlier ? getClass().getClassLoader() : null));
         this.context = ExecutionImpl.createStore(this);
+        this.profile = profile;
     }
 
     private Map<String, Instrument> createAndAutostartDescriptors(List<InstrumentCache> instrumentCaches) {
@@ -256,6 +260,7 @@ public class PolyglotEngine {
      * @since 0.9
      */
     public class Builder {
+        private final ContextStoreProfile profile;
         private OutputStream out;
         private OutputStream err;
         private InputStream in;
@@ -265,6 +270,7 @@ public class PolyglotEngine {
         private List<Object[]> arguments;
 
         Builder() {
+            profile = new ContextStoreProfile(null);
         }
 
         /**
@@ -422,7 +428,7 @@ public class PolyglotEngine {
             if (in == null) {
                 in = System.in;
             }
-            return new PolyglotEngine(executor, globals, out, err, in, handlers.toArray(new EventConsumer[0]), arguments);
+            return new PolyglotEngine(profile, executor, globals, out, err, in, handlers.toArray(new EventConsumer[0]), arguments);
         }
     }
 
@@ -552,18 +558,22 @@ public class PolyglotEngine {
         return context;
     }
 
+    ContextStoreProfile profile() {
+        return profile;
+    }
+
     Object[] debugger() {
         return debugger;
     }
 
     @SuppressWarnings("try")
     private Object evalImpl(TruffleLanguage<?>[] fillLang, Source s, Language l) throws IOException {
-        ContextStore prev = ExecutionImpl.executionStarted(context);
+        ContextStore prev = ExecutionImpl.executionStarted(profile, context);
         try {
             Access.DEBUG.executionStarted(PolyglotEngine.this, -1, debugger, s);
             TruffleLanguage<?> langImpl = l.getImpl(true);
             fillLang[0] = langImpl;
-            return Access.LANGS.eval(langImpl, s, l.cache);
+            return Access.LANGS.eval(PolyglotEngine.this, langImpl, s, l.cache);
         } finally {
             ExecutionImpl.executionEnded(prev);
             Access.DEBUG.executionEnded(PolyglotEngine.this, debugger);
@@ -576,7 +586,7 @@ public class PolyglotEngine {
         Object res;
         CompilerAsserts.neverPartOfCompilation();
         if (executor == null) {
-            ContextStore prev = ExecutionImpl.executionStarted(context);
+            ContextStore prev = ExecutionImpl.executionStarted(profile, context);
             try {
                 Access.DEBUG.executionStarted(PolyglotEngine.this, -1, debugger, null);
                 final Object[] args = ForeignAccess.getArguments(frame).toArray();
@@ -606,7 +616,7 @@ public class PolyglotEngine {
             @SuppressWarnings("try")
             @Override
             protected Object compute() throws IOException {
-                ContextStore prev = ExecutionImpl.executionStarted(context);
+                ContextStore prev = ExecutionImpl.executionStarted(profile, context);
                 try {
                     Access.DEBUG.executionStarted(PolyglotEngine.this, -1, debugger, null);
                     final Object[] args = ForeignAccess.getArguments(materialized).toArray();
@@ -1042,7 +1052,7 @@ public class PolyglotEngine {
             synchronized (instrumentLock) {
                 if (this.enabled != enabled) {
                     if (enabled) {
-                        Access.INSTRUMENT.addInstrument(instrumentationHandler, this, getCache().getInstrumentationClass());
+                        Access.INSTRUMENT.addInstrument(PolyglotEngine.this, instrumentationHandler, this, getCache().getInstrumentationClass());
                     } else {
                         Access.INSTRUMENT.disposeInstrument(instrumentationHandler, this, cleanup);
                     }
@@ -1139,7 +1149,7 @@ public class PolyglotEngine {
         @SuppressWarnings("try")
         public Value getGlobalObject() {
             assert checkThread();
-            ContextStore prev = ExecutionImpl.executionStarted(context);
+            ContextStore prev = ExecutionImpl.executionStarted(profile, context);
             try {
                 Object res = Access.LANGS.languageGlobal(getEnv(true));
                 if (res == null) {
@@ -1263,12 +1273,6 @@ public class PolyglotEngine {
             @Override
             public Env findEnv(Object obj, Class<? extends TruffleLanguage> languageClass) {
                 PolyglotEngine vm = (PolyglotEngine) obj;
-                return vm.findEnv(languageClass);
-            }
-
-            @Override
-            public Env findEnv(Class<? extends TruffleLanguage> languageClass) {
-                final PolyglotEngine vm = (PolyglotEngine) ExecutionImpl.findVM();
                 if (vm == null) {
                     throw new IllegalStateException("Accessor.findEnv access to vm");
                 }
@@ -1302,7 +1306,8 @@ public class PolyglotEngine {
 
             @Override
             public Object getInstrumenter(Object obj) {
-                final PolyglotEngine vm = (PolyglotEngine) (obj == null ? ExecutionImpl.findVM() : obj);
+                final PolyglotEngine vm;
+                vm = (PolyglotEngine) (obj == null ? ExecutionImpl.findVM() : obj);
                 return vm == null ? null : vm.instrumenter;
             }
 
@@ -1351,8 +1356,9 @@ public class PolyglotEngine {
             }
 
             @Override
-            public <C> Reference<C> createContextReference(TruffleLanguage<C> lang) {
-                return ContextReference.create(lang);
+            public <C> Reference<C> createContextReference(Object vm, TruffleLanguage<C> lang) {
+                PolyglotEngine engine = (PolyglotEngine) vm;
+                return ContextReference.create(engine.profile, lang);
             }
 
             @Override

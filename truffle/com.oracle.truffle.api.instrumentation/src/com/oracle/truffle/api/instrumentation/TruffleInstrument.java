@@ -163,14 +163,15 @@ public abstract class TruffleInstrument {
      * @since 0.12
      */
     public static final class Env {
-
+        private final Object vm;
         private final Instrumenter instrumenter;
         private final InputStream in;
         private final OutputStream err;
         private final OutputStream out;
         private List<Object> services;
 
-        Env(Instrumenter instrumenter, OutputStream out, OutputStream err, InputStream in) {
+        Env(Object vm, Instrumenter instrumenter, OutputStream out, OutputStream err, InputStream in) {
+            this.vm = vm;
             this.instrumenter = instrumenter;
             this.in = in;
             this.err = err;
@@ -268,9 +269,8 @@ public abstract class TruffleInstrument {
          * @throws IOException if the parsing or evaluation fails for some reason
          * @since 0.12
          */
-        @SuppressWarnings("static-method")
         public CallTarget parse(Source source, String... argumentNames) throws IOException {
-            return InstrumentationHandler.ACCESSOR.parse(null, source, null, argumentNames);
+            return InstrumentationHandler.ACCESSOR.parse(vm, null, source, null, argumentNames);
         }
 
     }

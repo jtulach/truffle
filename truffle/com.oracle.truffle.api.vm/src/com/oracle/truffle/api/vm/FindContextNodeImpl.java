@@ -32,7 +32,7 @@ final class FindContextNodeImpl<C> extends FindContextNode<C> {
     private final ContextReference<C> ref;
 
     FindContextNodeImpl(TruffleLanguage<C> language) {
-        this.ref = ContextReference.create(language);
+        this.ref = ContextReference.create(null, language);
         this.language = language;
     }
 

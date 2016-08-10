@@ -47,6 +47,7 @@ import com.oracle.truffle.api.source.SourceSection;
 public abstract class RootNode extends Node {
     final Class<? extends TruffleLanguage> language;
     private RootCallTarget callTarget;
+    private Object profile;
     @CompilationFinal private FrameDescriptor frameDescriptor;
     private final SourceSection sourceSection;
 
@@ -173,9 +174,27 @@ public abstract class RootNode extends Node {
         return frameDescriptor;
     }
 
-    /** @since 0.8 or earlier */
+    /**
+     * No longer used internal method.
+     * 
+     * @since 0.8 or earlier
+     * @deprecated No replacement for this internal only method.
+     */
+    @Deprecated
     public final void setCallTarget(RootCallTarget callTarget) {
         this.callTarget = callTarget;
+        this.profile = ACCESSOR.languageSupport().findProfile();
+    }
+
+    final void setCallTarget(RootCallTarget target, Object profile) {
+        assert this.callTarget == null || this.callTarget == target;
+        this.callTarget = target;
+        assert profile != null;
+        this.profile = profile;
+    }
+
+    final Object profile() {
+        return profile;
     }
 
     /**

@@ -56,6 +56,10 @@ public abstract class Accessor {
         public abstract boolean isInstrumentable(RootNode rootNode);
 
         public abstract boolean isTaggedWith(Node node, Class<?> tag);
+
+        public abstract void associate(RootNode node, RootCallTarget target, Object profile);
+
+        public abstract Object findProfile(RootNode rootNode);
     }
 
     public abstract static class DebugSupport {
@@ -74,13 +78,10 @@ public abstract class Accessor {
 
         public abstract <C> FindContextNode<C> createFindContextNode(TruffleLanguage<C> lang);
 
-        public abstract <C> Reference<C> createContextReference(TruffleLanguage<C> lang);
+        public abstract <C> Reference<C> createContextReference(Object vm, TruffleLanguage<C> lang);
 
         @SuppressWarnings("rawtypes")
         public abstract Env findEnv(Object vm, Class<? extends TruffleLanguage> languageClass);
-
-        @SuppressWarnings("rawtypes")
-        public abstract Env findEnv(Class<? extends TruffleLanguage> languageClass);
 
         @SuppressWarnings("rawtypes")
         public abstract TruffleLanguage<?> findLanguageImpl(Object known, Class<? extends TruffleLanguage> languageClass, String mimeType);
@@ -101,7 +102,7 @@ public abstract class Accessor {
     public abstract static class LanguageSupport {
         public abstract Env attachEnv(Object vm, TruffleLanguage<?> language, OutputStream stdOut, OutputStream stdErr, InputStream stdIn, Object instrumenter, Map<String, Object> config);
 
-        public abstract Object eval(TruffleLanguage<?> l, Source s, Map<Source, CallTarget> cache) throws IOException;
+        public abstract Object eval(Object vm, TruffleLanguage<?> l, Source s, Map<Source, CallTarget> cache) throws IOException;
 
         public abstract Object evalInContext(Object vm, Object ev, String code, Node node, MaterializedFrame frame) throws IOException;
 
@@ -117,15 +118,17 @@ public abstract class Accessor {
 
         public abstract TruffleLanguage<?> findLanguage(Env env);
 
-        public abstract CallTarget parse(TruffleLanguage<?> truffleLanguage, Source code, Node context, String... argumentNames) throws IOException;
+        public abstract CallTarget parse(Object StoreProfile, TruffleLanguage<?> truffleLanguage, Source code, Node context, String... argumentNames) throws IOException;
 
         public abstract String toString(TruffleLanguage<?> language, Env env, Object obj);
 
         public abstract Object findContext(Env env);
+
+        public abstract Object findProfile();
     }
 
     public abstract static class InstrumentSupport {
-        public abstract void addInstrument(Object instrumentationHandler, Object key, Class<?> instrumentClass);
+        public abstract void addInstrument(Object vm, Object instrumentationHandler, Object key, Class<?> instrumentClass);
 
         public abstract void disposeInstrument(Object instrumentationHandler, Object key, boolean cleanupRequired);
 
@@ -137,9 +140,9 @@ public abstract class Accessor {
 
         public abstract void detachLanguageFromInstrumentation(Object vm, Env context);
 
-        public abstract void onFirstExecution(RootNode rootNode);
+        public abstract void onFirstExecution(RootNode rootNode, Object profile);
 
-        public abstract void onLoad(RootNode rootNode);
+        public abstract void onLoad(RootNode rootNode, Object profile);
     }
 
     public abstract static class OldInstrumentSupport {

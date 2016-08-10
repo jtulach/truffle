@@ -221,6 +221,8 @@ public abstract class TruffleLanguage<C> {
      * @since XXX
      */
     public static final class ParsingRequest<C> {
+        static ThreadLocal<Object> CURRENT_VM = new ThreadLocal<>();
+
         private final Node node;
         private final MaterializedFrame frame;
         private final Source source;
@@ -228,8 +230,8 @@ public abstract class TruffleLanguage<C> {
         private final SharedEnv<C> shared;
         private boolean disposed;
 
-        ParsingRequest(TruffleLanguage<C> language, Source source, Node node, MaterializedFrame frame, String... argumentNames) {
-            this(new SharedEnv<>(language), source, node, frame, argumentNames);
+        ParsingRequest(Object vm, TruffleLanguage<C> language, Source source, Node node, MaterializedFrame frame, String... argumentNames) {
+            this(new SharedEnv<>(vm, language), source, node, frame, argumentNames);
         }
 
         ParsingRequest(SharedEnv<C> shared, Source source, Node node, MaterializedFrame frame, String... argumentNames) {
@@ -322,7 +324,9 @@ public abstract class TruffleLanguage<C> {
         }
 
         CallTarget parse(TruffleLanguage<C> truffleLanguage) throws IOException {
+            Object prev = CURRENT_VM.get();
             try {
+                CURRENT_VM.set(this.shared.profile);
                 return truffleLanguage.parse(this);
             } catch (UnsupportedOperationException ex) {
                 return truffleLanguage.parse(source, node, argumentNames);
@@ -334,6 +338,8 @@ public abstract class TruffleLanguage<C> {
                     throw (RuntimeException) ex;
                 }
                 throw new RuntimeException(ex);
+            } finally {
+                CURRENT_VM.set(prev);
             }
         }
     }
@@ -445,7 +451,11 @@ public abstract class TruffleLanguage<C> {
      */
     @Deprecated
     protected Object evalInContext(Source source, Node node, MaterializedFrame mFrame) throws IOException {
-        ParsingRequest<C> request = new ParsingRequest<>(this, source, node, mFrame);
+        return evalInContext(null, source, node, mFrame);
+    }
+
+    final Object evalInContext(Object profile, Source source, Node node, MaterializedFrame mFrame) throws IOException {
+        ParsingRequest<C> request = new ParsingRequest<>(profile, this, source, node, mFrame);
         CallTarget target;
         try {
             target = parse(request);
@@ -561,9 +571,11 @@ public abstract class TruffleLanguage<C> {
      */
     public static final class SharedEnv<C> {
         private final Reference<C> reference;
+        private final Object profile;
 
-        SharedEnv(TruffleLanguage<C> language) {
-            this.reference = AccessAPI.engineAccess().createContextReference(language);
+        SharedEnv(Object contextStoreProfile, TruffleLanguage<C> language) {
+            this.reference = AccessAPI.engineAccess().createContextReference(contextStoreProfile, language);
+            this.profile = contextStoreProfile;
         }
 
         /**
@@ -590,6 +602,21 @@ public abstract class TruffleLanguage<C> {
          */
         public C getContext() {
             return reference.get();
+        }
+
+        /**
+         * Creates a new call target for a given root node.
+         *
+         * @param node the root node whose
+         *            {@link RootNode#execute(com.oracle.truffle.api.frame.VirtualFrame)} method
+         *            represents the entry point
+         * @return the new call target object
+         * @since XXX
+         */
+        public RootCallTarget callTarget(RootNode node) {
+            RootCallTarget target = Truffle.getRuntime().createCallTarget(node);
+            AccessAPI.nodesAccess().associate(node, target, profile);
+            return target;
         }
     }
 
@@ -672,11 +699,11 @@ public abstract class TruffleLanguage<C> {
          */
         public CallTarget parse(Source source, String... argumentNames) throws IOException {
             TruffleLanguage<?> language = AccessAPI.engineAccess().findLanguageImpl(vm, null, source.getMimeType());
-            return parseForLanguage(language, source, argumentNames);
+            return parseForLanguage(vm, language, source, argumentNames);
         }
 
-        private static <C> CallTarget parseForLanguage(TruffleLanguage<C> language, Source source, String... argumentNames) throws IOException {
-            ParsingRequest<C> env = new ParsingRequest<>(language, source, null, null, argumentNames);
+        private static <C> CallTarget parseForLanguage(Object profile, TruffleLanguage<C> language, Source source, String... argumentNames) throws IOException {
+            ParsingRequest<C> env = new ParsingRequest<>(profile, language, source, null, null, argumentNames);
             CallTarget target = env.parse(language);
             env.dispose();
             return target;
@@ -791,7 +818,7 @@ public abstract class TruffleLanguage<C> {
             if (language != this.lang) {
                 throw new IllegalArgumentException();
             }
-            return new SharedEnv<>(language);
+            return new SharedEnv<>(vm, language);
         }
     }
 
@@ -824,26 +851,26 @@ public abstract class TruffleLanguage<C> {
         }
 
         @Override
-        public CallTarget parse(TruffleLanguage<?> truffleLanguage, Source code, Node context, String... argumentNames) throws IOException {
-            return parseForLanguage(truffleLanguage, code, context, argumentNames);
+        public CallTarget parse(Object contextStoreProfile, TruffleLanguage<?> truffleLanguage, Source code, Node context, String... argumentNames) throws IOException {
+            return parseForLanguage(contextStoreProfile, truffleLanguage, code, context, argumentNames);
         }
 
-        private static <C> CallTarget parseForLanguage(TruffleLanguage<C> truffleLanguage, Source code, Node context, String... argumentNames) throws IOException {
-            ParsingRequest<C> env = new ParsingRequest<>(truffleLanguage, code, context, null, argumentNames);
+        private static <C> CallTarget parseForLanguage(Object profile, TruffleLanguage<C> truffleLanguage, Source code, Node context, String... argumentNames) throws IOException {
+            ParsingRequest<C> env = new ParsingRequest<>(profile, truffleLanguage, code, context, null, argumentNames);
             CallTarget target = env.parse(truffleLanguage);
             env.dispose();
             return target;
         }
 
         @Override
-        public Object eval(TruffleLanguage<?> language, Source source, Map<Source, CallTarget> cache) throws IOException {
-            return evalForLanguage(language, source, cache);
+        public Object eval(Object vm, TruffleLanguage<?> language, Source source, Map<Source, CallTarget> cache) throws IOException {
+            return evalForLanguage(vm, language, source, cache);
         }
 
-        private static <C> Object evalForLanguage(TruffleLanguage<C> language, Source source, Map<Source, CallTarget> cache) throws IOException {
+        private static <C> Object evalForLanguage(Object vm, TruffleLanguage<C> language, Source source, Map<Source, CallTarget> cache) throws IOException {
             CallTarget target = cache.get(source);
             if (target == null) {
-                ParsingRequest<C> env = new ParsingRequest<>(language, source, null, null);
+                ParsingRequest<C> env = new ParsingRequest<>(vm, language, source, null, null);
                 target = env.parse(language);
                 env.dispose();
                 if (target == null) {
@@ -868,7 +895,7 @@ public abstract class TruffleLanguage<C> {
             final Env env = AccessAPI.engineAccess().findEnv(vm, languageType);
             final TruffleLanguage<?> lang = findLanguage(env);
             final Source source = Source.newBuilder(code).name("eval in context").mimeType("content/unknown").build();
-            return lang.evalInContext(source, node, frame);
+            return lang.evalInContext(vm, source, node, frame);
         }
 
         @Override
@@ -889,6 +916,11 @@ public abstract class TruffleLanguage<C> {
         @Override
         public Object findContext(Env env) {
             return env.langCtx.ctx;
+        }
+
+        @Override
+        public Object findProfile() {
+            return ParsingRequest.CURRENT_VM.get();
         }
 
         @Deprecated

@@ -96,7 +96,7 @@ public final class EventContext {
      * @since 0.12
      */
     public CallTarget parseInContext(Source source, String... argumentNames) throws IOException {
-        return InstrumentationHandler.ACCESSOR.parse(null, source, getInstrumentedNode(), argumentNames);
+        return InstrumentationHandler.ACCESSOR.parse(null, null, source, getInstrumentedNode(), argumentNames);
     }
 
     /*

@@ -736,9 +736,9 @@ public final class Instrumenter {
         }
 
         @SuppressWarnings("rawtypes")
-        protected CallTarget parse(Class<? extends TruffleLanguage> languageClass, Source code, Node context, String... argumentNames) throws IOException {
+        protected CallTarget parse(Object vm, Class<? extends TruffleLanguage> languageClass, Source code, Node context, String... argumentNames) throws IOException {
             final TruffleLanguage<?> truffleLanguage = engineSupport().findLanguageImpl(null, languageClass, code.getMimeType());
-            return languageSupport().parse(truffleLanguage, code, context, argumentNames);
+            return languageSupport().parse(vm, truffleLanguage, code, context, argumentNames);
         }
 
         @Override

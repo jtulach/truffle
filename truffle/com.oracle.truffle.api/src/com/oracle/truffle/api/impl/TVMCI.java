@@ -65,7 +65,7 @@ public abstract class TVMCI {
     protected void onLoad(RootNode rootNode) {
         InstrumentSupport support = Accessor.instrumentAccess();
         if (support != null) {
-            support.onLoad(rootNode);
+            support.onLoad(rootNode, Accessor.nodesAccess().findProfile(rootNode));
         }
     }
 
@@ -78,7 +78,7 @@ public abstract class TVMCI {
     protected void onFirstExecution(RootNode rootNode) {
         final Accessor.InstrumentSupport accessor = Accessor.instrumentAccess();
         if (accessor != null) {
-            accessor.onFirstExecution(rootNode);
+            accessor.onFirstExecution(rootNode, Accessor.nodesAccess().findProfile(rootNode));
         }
         Accessor.DebugSupport debugAccessor = Accessor.debugAccess();
         if (debugAccessor != null) {

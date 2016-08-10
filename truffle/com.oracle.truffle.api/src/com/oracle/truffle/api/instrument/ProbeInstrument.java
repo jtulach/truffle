@@ -401,7 +401,10 @@ public abstract class ProbeInstrument extends Instrument {
             public void enter(Node node, VirtualFrame frame) {
                 if (callNode == null) {
                     try {
-                        final CallTarget callTarget = Instrumenter.ACCESSOR.parse(languageClass, source, node, names);
+                        if (true) {
+                            throw new UnsupportedOperationException();
+                        }
+                        final CallTarget callTarget = Instrumenter.ACCESSOR.parse(null, languageClass, source, node, names);
                         if (callTarget != null) {
                             callNode = Truffle.getRuntime().createDirectCallNode(callTarget);
                             callNode.forceInlining();
