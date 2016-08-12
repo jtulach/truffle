@@ -28,6 +28,7 @@ import com.oracle.truffle.api.Assumption;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -41,6 +42,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.profiles.ValueProfile;
+import com.oracle.truffle.api.vm.PolyglotEngine.Access;
 
 final class SymbolInvokerImpl {
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -57,7 +59,9 @@ final class SymbolInvokerImpl {
         } else {
             symbolNode = new ExecuteRoot(type, engine, (TruffleObject) symbol);
         }
-        return Truffle.getRuntime().createCallTarget(symbolNode);
+        RootCallTarget target = Truffle.getRuntime().createCallTarget(symbolNode);
+        Access.NODES.associate(symbolNode, target, engine);
+        return target;
     }
 
     @SuppressWarnings("rawtypes")

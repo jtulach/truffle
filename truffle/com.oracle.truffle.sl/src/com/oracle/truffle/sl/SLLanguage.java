@@ -52,6 +52,7 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.vm.PolyglotEngine;
 import com.oracle.truffle.sl.nodes.SLEvalRootNode;
@@ -167,5 +168,10 @@ public final class SLLanguage extends TruffleLanguage<SLContext> {
             return Long.toString((Long) value);
         }
         return super.toString(context, value);
+    }
+
+    @SuppressWarnings("deprecation")
+    public final SLContext findSLContext(Node n) {
+        return findContext(n);
     }
 }

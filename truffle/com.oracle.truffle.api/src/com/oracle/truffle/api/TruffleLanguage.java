@@ -524,11 +524,24 @@ public abstract class TruffleLanguage<C> {
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Deprecated
     protected final C findContext(Node n) {
-        FindContextNode fcn = (FindContextNode) n;
-        if (fcn.getTruffleLanguage() != this) {
-            throw new ClassCastException();
+        if (n instanceof FindContextNode) {
+            FindContextNode fcn = (FindContextNode) n;
+            if (fcn.getTruffleLanguage() != this) {
+                throw new ClassCastException();
+            }
+            return (C) fcn.executeFindContext();
+        } else {
+            return fallbackFindContext(n);
         }
-        return (C) fcn.executeFindContext();
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    @SuppressWarnings("unchecked")
+    private C fallbackFindContext(Node n) {
+        RootNode root = n.getRootNode();
+        Object context = AccessAPI.nodesAccess().findProfile(root);
+        Env env = AccessAPI.engineAccess().findEnv(context, getClass());
+        return (C) env.langCtx.ctx;
     }
 
     private static final class LangCtx<C> {

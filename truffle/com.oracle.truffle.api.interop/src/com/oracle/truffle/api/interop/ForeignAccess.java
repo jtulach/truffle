@@ -29,9 +29,11 @@ import java.util.List;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.impl.Accessor;
 import com.oracle.truffle.api.impl.ReadOnlyArrayList;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
@@ -496,9 +498,21 @@ public final class ForeignAccess {
         assert initThread == Thread.currentThread();
     }
 
-    CallTarget access(Message message) {
+    CallTarget access(RootNode node, Message message) {
         checkThread();
-        return factory.accessMessage(message);
+        final Accessor.Nodes nodes = AccessorInterop.NODES;
+        CallTarget target = factory.accessMessage(message);
+        Object profile = nodes.findProfile(node);
+        if (profile != null) {
+            // XXX the profile should ideally always be non-null
+            if (target instanceof RootCallTarget) {
+                final RootCallTarget rootTarget = (RootCallTarget) target;
+                if (nodes.findProfile(rootTarget.getRootNode()) == null) {
+                    nodes.associate(rootTarget.getRootNode(), rootTarget, profile);
+                }
+            }
+        }
+        return target;
     }
 
     CallTarget checkLanguage() {
@@ -718,6 +732,17 @@ public final class ForeignAccess {
                 }
             }
             return factory.accessMessage(msg);
+        }
+    }
+
+    private static final class AccessorInterop extends Accessor {
+        static final Nodes NODES;
+        static {
+            AccessorInterop ACCESSOR = new AccessorInterop();
+            NODES = ACCESSOR.nodes();
+        }
+
+        private AccessorInterop() {
         }
     }
 }

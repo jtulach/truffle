@@ -49,12 +49,12 @@ final class UnresolvedObjectAccessNode extends ObjectAccessNode {
         }
     }
 
-    private static CachedObjectAccessNode createCachedAccess(TruffleObject receiver, Message accessTree, ObjectAccessNode next) {
+    private CachedObjectAccessNode createCachedAccess(TruffleObject receiver, Message accessTree, ObjectAccessNode next) {
         ForeignAccess fa = receiver.getForeignAccess();
         if (fa == null) {
             throw nullAccess(receiver);
         }
-        final CallTarget ct = fa.access(accessTree);
+        final CallTarget ct = fa.access(getRootNode(), accessTree);
         if (ct == null) {
             throw UnsupportedMessageException.raise(accessTree);
         }

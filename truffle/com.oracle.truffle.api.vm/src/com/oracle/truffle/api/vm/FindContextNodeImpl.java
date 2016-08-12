@@ -33,7 +33,11 @@ final class FindContextNodeImpl<C> extends FindContextNode<C> {
     private final ContextReference<C> ref;
 
     FindContextNodeImpl(TruffleLanguage<C> language) {
-        PolyglotEngine engine = (PolyglotEngine) Access.LANGS.findProfile();
+        Object profile = Access.LANGS.findProfile();
+        if (profile == null) {
+            profile = Access.NODES.findProfile(getRootNode());
+        }
+        PolyglotEngine engine = (PolyglotEngine) profile;
         this.ref = ContextReference.create(engine.profile(), language);
         this.language = language;
     }

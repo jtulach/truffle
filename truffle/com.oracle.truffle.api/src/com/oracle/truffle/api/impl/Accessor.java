@@ -263,6 +263,8 @@ public abstract class Accessor {
                 throw new IllegalStateException();
             }
             FRAMES = this.framesSupport();
+        } else if (this.getClass().getSimpleName().endsWith("AccessorInterop")) {
+            // OK
         } else {
             if (SPI != null) {
                 throw new IllegalStateException();

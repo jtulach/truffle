@@ -1242,6 +1242,7 @@ public class PolyglotEngine {
         static final Accessor.LanguageSupport LANGS = SPIAccessor.langs();
         static final Accessor.InstrumentSupport INSTRUMENT = SPIAccessor.instrumentAccess();
         static final Accessor.DebugSupport DEBUG = SPIAccessor.debugAccess();
+        static final Accessor.Nodes NODES = SPIAccessor.nodesAccess();
     }
 
     private static class SPIAccessor extends Accessor {
@@ -1255,6 +1256,10 @@ public class PolyglotEngine {
 
         static DebugSupport debugAccess() {
             return SPI.debugSupport();
+        }
+
+        static Nodes nodesAccess() {
+            return SPI.nodes();
         }
 
         @Override
