@@ -52,7 +52,7 @@ import com.oracle.truffle.api.utilities.JSONHelper;
  *
  * @since 0.8 or earlier
  */
-public abstract class Node implements NodeInterface, Cloneable {
+public abstract class Node implements NodeInterface, Cloneable, SourceSection.Provider {
 
     private final NodeClass nodeClass;
     @CompilationFinal private Node parent;
