@@ -1904,12 +1904,14 @@ public class FlatNodeGenFactory {
         CodeTreeBuilder builder = parent.create();
 
         boolean hasFallthrough = false;
+        boolean hasImplicitCast = false;
         List<IfTriple> cachedTriples = new ArrayList<>();
         for (TypeGuard guard : group.getTypeGuards()) {
             IfTriple triple = createTypeCheckOrCast(frameState, group, guard, mode, false, true);
             if (triple != null) {
                 cachedTriples.add(triple);
             }
+            hasImplicitCast = hasImplicitCast || node.getTypeSystem().hasImplicitSourceTypes(guard.getType());
             if (!mode.isGuardFallback()) {
                 triple = createTypeCheckOrCast(frameState, group, guard, mode, true, true);
                 if (triple != null) {
@@ -2119,21 +2121,15 @@ public class FlatNodeGenFactory {
 
             cachedTriples = IfTriple.optimize(cachedTriples);
 
-            if (!useClass) {
+            if (!useClass && specialization != null && !hasImplicitCast) {
                 IfTriple singleCondition = null;
-                for (IfTriple triple : cachedTriples) {
-                    if (!IfTriple.isEmpty(triple.condition)) {
-                        if (singleCondition != null) {
-                            singleCondition = null;
-                            break;
-                        }
-                        singleCondition = triple;
-                    }
+                if (cachedTriples.size() == 1) {
+                    singleCondition = cachedTriples.get(0);
                 }
                 if (singleCondition != null) {
                     int index = cachedTriples.indexOf(singleCondition);
-                    CodeTree stateCheck = state.createContains(frameState, specializations);
-                    cachedTriples.set(index, new IfTriple(singleCondition.prepare, combineTrees(" || ", stateCheck, singleCondition.condition), singleCondition.statements));
+                    CodeTree stateCheck = state.createNotContains(frameState, specializations);
+                    cachedTriples.set(index, new IfTriple(singleCondition.prepare, combineTrees(" && ", stateCheck, singleCondition.condition), singleCondition.statements));
                     fallbackNeedsState = true;
                 }
             }

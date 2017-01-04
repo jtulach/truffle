@@ -39,6 +39,7 @@ import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
+import com.oracle.truffle.api.source.SourceSection;
 import java.util.Collection;
 
 /**
@@ -78,7 +79,7 @@ public abstract class Accessor {
 
         public abstract Object getInstrumentationHandler(Object vm);
 
-        public abstract Object importSymbol(Object vm, TruffleLanguage<?> queryingLang, String globalName);
+        public abstract Iterable<? extends Object> importSymbols(Object vm, TruffleLanguage<?> queryingLang, String globalName);
 
         public abstract void dispatchEvent(Object vm, Object event, int type);
 
@@ -114,6 +115,10 @@ public abstract class Accessor {
         public abstract void postInitEnv(Env env);
 
         public abstract Object getVM(Env env);
+
+        public abstract Object findMetaObject(TruffleLanguage<?> language, Env env, Object value);
+
+        public abstract SourceSection findSourceLocation(TruffleLanguage<?> language, Env env, Object value);
     }
 
     public abstract static class InstrumentSupport {
@@ -166,19 +171,10 @@ public abstract class Accessor {
             }
 
             @Override
-            protected CallTarget parse(Source code, Node context, String... argumentNames) {
-                throw new IllegalStateException();
-            }
-
-            @Override
             protected Object createContext(TruffleLanguage.Env env) {
                 return null;
             }
 
-            @Override
-            protected Object evalInContext(Source source, Node node, MaterializedFrame mFrame) {
-                return null;
-            }
         };
         lng.hashCode();
         new Node() {
