@@ -433,24 +433,4 @@ public final class SourceSection {
         return new SourceSection(kind, name == null ? UNKNOWN : name);
     }
 
-    /**
-     * Interface for those objects that are producers, providers or are somehow associated with a
-     * {@link SourceSection}. A frequent provider of source sections is
-     * {@link com.oracle.truffle.api.nodes.Node}, but one can also find this interface handy when
-     * dealing with user error exceptions.
-     * 
-     * @since 0.22
-     */
-    public interface Provider {
-        /**
-         * Retrieves the segment of guest language source code that is associated with this object.
-         * *
-         *
-         * @return the source code associated with this object, can return <code>null</code>, if
-         *         there is no such source code
-         * @since 0.22
-         */
-        SourceSection getSourceSection();
-    }
-
 }
