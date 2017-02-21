@@ -1,0 +1,17 @@
+com.oracle.truffle.api
+com.oracle.truffle.api.debug
+com.oracle.truffle.api.dsl
+com.oracle.truffle.api.frame
+com.oracle.truffle.api.instrumentation
+com.oracle.truffle.api.interop
+com.oracle.truffle.api.interop.java
+com.oracle.truffle.api.nodes
+com.oracle.truffle.api.object
+com.oracle.truffle.api.object.dsl
+com.oracle.truffle.api.profiles
+com.oracle.truffle.api.source
+com.oracle.truffle.api.utilities
+com.oracle.truffle.api.vm
+com.oracle.truffle.object
+com.oracle.truffle.tck
+com.oracle.truffle.tools.debug.shell
